@@ -1,18 +1,23 @@
-import rule
 import random
+
+# このモジュール関数・メソッドにルールモジュールor関数を渡すような設計がいいな
+# 汎用AIっぽいから
 
 class Node():
 
-    def __init__(self, m, y):
+    def __init__(self, m, y, db):
 
         self.m = m
         self.y = y
+        self.key = format(self.m, '064b') + format(self.y, '064b')
+        db[self.key] = self
         self.record = []
         self.memory = 20
         self.children = []
+        self.a = 1
+        self.b = 1
 
-    def FindChildren(self):
-
+    def FindChildren(self, db, rule):
         
         if self.children:
 
@@ -29,24 +34,19 @@ class Node():
                     move = movable & (-movable)
                     reversable = rule.GetReversable(self.m, self.y, move)
                     m, y = rule.Reverse(self.m, self.y, move, reversable)
-                    key_m = format(m, '064b')
-                    key_y = format(y, '064b')
-                    self.children.append('{}{}'.format(key_y, key_m))
+                    key_child = format(y, '064b') + format(m, '064b')
+                    self.children.append(key_child)
                     movable ^= move
 
             else:
                 
                 if rule.GetMovable(self.y, self.m):
-                    key_m = format(m, '064b')
-                    key_y = format(y, '064b')
-                    self.children.append('{}{}'.format(key_y, key_m))
+                    key_child = format(self.y, '064b') + format(self.m, '064b')
+                    self.children.append(key_child)
 
     # FindChildrenしても空だったら
     def End(self):
 
-        if len(self.record) == self.memory:
-            self.record.pop(0)
-        
         count_m = bin(self.m).count('1')
         count_y = bin(self.y).count('1')
 
@@ -57,57 +57,69 @@ class Node():
         elif count_m == count_y:
             state = 'd'
 
+        return state
+
+    def Record(self, state):
+
+        if len(self.record) == self.memory:
+            self.record.pop(0)
         self.record.append(state)
 
-def ChoiceNode(node):
+def Children(node, db):
 
-    probs = [Dice(child) for child in node.children] #ここの関係で関数をメソッド化するか悩みどころ
-    key_choiced = node.children[probs.index(max(probs))]
-    # DBになければ登録もする
-    if key_choiced in db:
-        child = db[key_choiced]
-    else:
-        child = Node(int(key_choiced[:64], 2), int(key_choiced[-64:], 2))
-        db[key_choiced] = child
+    children = [key_child for key_child in node.children]
 
-    return child
+    for child in children:
+        if child in db:
+            child = db[child]
+        else:
+            child = Node(int(child[:32], 2), int(child[-32:], 2), db)
 
-def Dice(child_key, tree, a, b):
+    return children
 
-    child = tree[child_key]
-    count_w = child.record.count('w')
-    a = a + count_w
-    b = b + (len(child.record) - count_w)
+# 子は必ずいるときのみ呼ばれる
+def ChoiceNode(children, db):
+
+    probs = [Dice(child) for child in children]
+    child_choiced = children[probs.index(max(probs))]
+
+    return child_choiced
+
+def Dice(node):
+
+    x = node.record.count('w')
+    n = len(node.record)
+
+    a = node.a + x
+    b = node.b + (n - x)
 
     uniforms = [random.random() for i in range(a+b-1)]
     uniforms.sort()
 
     return uniforms[a-1]
 
+def Playout(node, db, rule):
+    
+    node.FindChildren(db, rule)
+
+    if node.children:
+
+        children = Children(node, db)
+        child = ChoiceNode(children, db)
+        state = Playout(child, db, rule) #これって参照渡しだよな？
+
+    else:
+
+        state = node.End()
+
+    node.Record(state)
+
+    return state
+
 def Initialize(m, y):
 
     key_m = format(m, '064b')
     key_y = format(y, '064b')
     db['{}{}'.format(key_m, key_y)] = Node(m, y)
-
-def Playout(node):
-    
-    node.FindChildren()
-
-    if node.children:
-
-        child = ChoiceNode(node)
-        state = Playout(child) #これって参照渡しだよな？
-
-    else:
-
-        node.End()
-        state = node.record[-1]
-
-    return state
-
-def GenerateKey(m, y):
-    
-    return '{}{}'.format(format(m, '064b'), format(y, '064b'))
 
 db = {}
