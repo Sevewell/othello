@@ -5,17 +5,17 @@ import random
 
 class Node():
 
-    def __init__(self, m, y, db):
+    def __init__(self, key, db):
 
-        self.m = m
-        self.y = y
-        self.key = format(self.m, '064b') + format(self.y, '064b')
-        db[self.key] = self
+        self.key = key
+        self.m = int(key[:32], 2)
+        self.y = int(key[-32:], 2)
         self.record = []
         self.memory = 20
         self.children = []
         self.a = 1
         self.b = 1
+        db[self.key] = self
 
     def FindChildren(self, db, rule):
         
@@ -70,10 +70,12 @@ def Children(node, db):
     children = [key_child for key_child in node.children]
 
     for child in children:
+
+        # 実体にする
         if child in db:
             child = db[child]
         else:
-            child = Node(int(child[:32], 2), int(child[-32:], 2), db)
+            child = Node(child, db)
 
     return children
 
