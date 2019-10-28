@@ -1,17 +1,20 @@
 import random
+import multiprocessing
 
 # このモジュール関数・メソッドにルールモジュールor関数を渡すような設計がいいな
 # 汎用AIっぽいから
+
+# 例えば並列処理しているときに本当に同じオブジェクトが更新されているのか
 
 class Node():
 
     def __init__(self, key, db):
 
         self.key = key
-        self.m = int(key[:32], 2)
-        self.y = int(key[-32:], 2)
+        self.m = int(key[:64], 2)
+        self.y = int(key[-64:], 2)
         self.record = []
-        self.memory = 20
+        self.memory = 100
         self.children = []
         self.a = 1
         self.b = 1
@@ -59,26 +62,6 @@ class Node():
 
         return state
 
-    def Record(self, state):
-
-        if len(self.record) == self.memory:
-            self.record.pop(0)
-        self.record.append(state)
-
-def Children(node, db):
-
-    children = [key_child for key_child in node.children]
-
-    for child in children:
-
-        # 実体にする
-        if child in db:
-            child = db[child]
-        else:
-            child = Node(child, db)
-
-    return children
-
 # 子は必ずいるときのみ呼ばれる
 def ChoiceNode(children, db):
 
@@ -89,7 +72,7 @@ def ChoiceNode(children, db):
 
 def Dice(node):
 
-    x = node.record.count('w')
+    x = node.record.count('l')
     n = len(node.record)
 
     a = node.a + x
@@ -100,23 +83,53 @@ def Dice(node):
 
     return uniforms[a-1]
 
-def Playout(node, db, rule):
+def PlayOut(node, db, rule):
     
     node.FindChildren(db, rule)
 
     if node.children:
 
-        children = Children(node, db)
+        children = [db[key_child] if key_child in db else Node(key_child, db) for key_child in node.children]
         child = ChoiceNode(children, db)
-        state = Playout(child, db, rule) #これって参照渡しだよな？
+        state = PlayOut(child, db, rule) #これって参照渡しだよな？
+        if state == 'w':
+            state = 'l'
+        elif state == 'l':
+            state = 'w'
 
     else:
 
         state = node.End()
 
-    node.Record(state)
+    if len(node.record) == node.memory:
+        node.record.pop(0)
+    node.record.append(state)
 
     return state
+
+def Search(node, db, rule, trial):
+
+    for i in range(trial):
+        PlayOut(node, db, rule)
+
+    children = [db[key_child] for key_child in node.children]
+    child = ChoiceNode(children, db)
+
+    move = (child.m | child.y) ^ (node.m | node.y)
+
+    return move
+
+def Multi(node, db, rule):
+
+    with multiprocessing.Manager() as manager:
+
+        db = manager.dict(db)
+        p = multiprocessing.Process(target=PlayOut, args=(node, db, rule))
+        p.start()
+        p.join()
+
+        print(db)
+        print(node)
 
 def Initialize(m, y):
 
