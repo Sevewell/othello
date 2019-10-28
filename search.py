@@ -1,3 +1,4 @@
+import rule
 import random
 import multiprocessing
 
@@ -8,7 +9,7 @@ import multiprocessing
 
 class Node():
 
-    def __init__(self, key, db):
+    def __init__(self, key):
 
         self.key = key
         self.m = int(key[:64], 2)
@@ -18,9 +19,8 @@ class Node():
         self.children = []
         self.a = 1
         self.b = 1
-        db[self.key] = self
 
-    def FindChildren(self, db, rule):
+    def FindChildren(self):
         
         if self.children:
 
@@ -63,7 +63,7 @@ class Node():
         return state
 
 # 子は必ずいるときのみ呼ばれる
-def ChoiceNode(children, db):
+def ChoiceNode(children):
 
     probs = [Dice(child) for child in children]
     child_choiced = children[probs.index(max(probs))]
@@ -83,37 +83,57 @@ def Dice(node):
 
     return uniforms[a-1]
 
-def PlayOut(node, db, rule):
+def ReverseState(state):
+
+    if state == 'w':
+        state = 'l'
+    elif state == 'l':
+        state = 'w'
+
+    return state
+
+def PlayOut(node, db, record):
     
-    node.FindChildren(db, rule)
+    node.FindChildren()
 
     if node.children:
 
-        children = [db[key_child] if key_child in db else Node(key_child, db) for key_child in node.children]
-        child = ChoiceNode(children, db)
-        state = PlayOut(child, db, rule) #これって参照渡しだよな？
-        if state == 'w':
-            state = 'l'
-        elif state == 'l':
-            state = 'w'
+        children = [db[key_child] if key_child in db else Node(key_child) for key_child in node.children]
+        child = ChoiceNode(children)
+        state, record = PlayOut(child, db, record) #これって参照渡しだよな？
+        state = ReverseState(state)
 
     else:
 
         state = node.End()
 
-    if len(node.record) == node.memory:
-        node.record.pop(0)
-    node.record.append(state)
+    record.append(node.key)
 
-    return state
+    return state, record
 
-def Search(node, db, rule, trial):
+def UpdateDB(state, record, db):
 
-    for i in range(trial):
-        PlayOut(node, db, rule)
+    for key in reversed(record):
+
+        if key in db:
+            node = db[key]
+            if len(node.record) == node.memory:
+                node.record.pop(0)
+        else:
+            node = Node(key)
+            db[key] = node
+
+        node.record.append(state)
+        state = ReverseState(state)
+
+def Search(node, db, n):
+
+    for i in range(n):
+        state, record = PlayOut(node, db, [])
+        UpdateDB(state, record, db)
 
     children = [db[key_child] for key_child in node.children]
-    child = ChoiceNode(children, db)
+    child = ChoiceNode(children)
 
     move = (child.m | child.y) ^ (node.m | node.y)
 
@@ -136,5 +156,3 @@ def Initialize(m, y):
     key_m = format(m, '064b')
     key_y = format(y, '064b')
     db['{}{}'.format(key_m, key_y)] = Node(m, y)
-
-db = {}
