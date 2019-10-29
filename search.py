@@ -1,6 +1,7 @@
 import rule
 import random
-import multiprocessing
+import time
+import pickle
 
 # このモジュール関数・メソッドにルールモジュールor関数を渡すような設計がいいな
 # 汎用AIっぽいから
@@ -92,67 +93,63 @@ def ReverseState(state):
 
     return state
 
-def PlayOut(node, db, record):
+def PlayOut(node, db, path):
     
     node.FindChildren()
 
     if node.children:
 
-        children = [db[key_child] if key_child in db else Node(key_child) for key_child in node.children]
+        children = [db[key] if key in db else Node(key) for key in node.children]
         child = ChoiceNode(children)
-        state, record = PlayOut(child, db, record) #これって参照渡しだよな？
-        state = ReverseState(state)
+        path = PlayOut(child, db, path)
+        state = ReverseState(path[-1].record[-1])
 
     else:
 
         state = node.End()
 
-    record.append(node.key)
+    if len(node.record) == node.memory:
+        node.record.pop(0)
+    node.record.append(state)
+    
+    path.append(node)
 
-    return state, record
+    return path
 
-def UpdateDB(state, record, db):
+def Search(node, db, seconds):
 
-    for key in reversed(record):
+    time_before = time.time()
+    time_after = time.time()
+    info = {
+        'n_playout': 0,
+        'n_node': 0
+    }
 
-        if key in db:
-            node = db[key]
-            if len(node.record) == node.memory:
-                node.record.pop(0)
-        else:
-            node = Node(key)
-            db[key] = node
+    while (time_after - time_before) < seconds:
 
-        node.record.append(state)
-        state = ReverseState(state)
+        path = PlayOut(node, db, [])
+        for leaf in path:
+            db[leaf.key] = leaf
+        info['n_playout'] += 1
+        time_after = time.time()
 
-def Search(node, db, n):
+    info['n_node'] = len(db)
 
-    for i in range(n):
-        state, record = PlayOut(node, db, [])
-        UpdateDB(state, record, db)
-
-    children = [db[key_child] for key_child in node.children]
+    children = [db[key] for key in db[node.key].children]
     child = ChoiceNode(children)
 
     move = (child.m | child.y) ^ (node.m | node.y)
 
-    return move
+    return move, info
 
-def Multi(node, db, rule):
+def DumpDB(db):
 
-    with multiprocessing.Manager() as manager:
+    with open('db.pkl', mode='wb') as f:
+        pickle.dump(db, f)
 
-        db = manager.dict(db)
-        p = multiprocessing.Process(target=PlayOut, args=(node, db, rule))
-        p.start()
-        p.join()
+def LoadDB(name):
 
-        print(db)
-        print(node)
+    with open('db.pkl', mode='rb') as f:
+        db = pickle.load(f)
 
-def Initialize(m, y):
-
-    key_m = format(m, '064b')
-    key_y = format(y, '064b')
-    db['{}{}'.format(key_m, key_y)] = Node(m, y)
+    return db

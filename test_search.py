@@ -51,8 +51,8 @@ class TestNode(unittest.TestCase):
         y = '0000000000000000000000000001000000001000000000000000000000000000'
         node = search.Node(m + y)
         db = {node.key: node}
-        state, record = search.PlayOut(node, db, [])
-        self.assertTrue(len(record) > 60)
+        path = search.PlayOut(node, db, [])
+        self.assertTrue(len(path) > 60)
 
     def test_Search(self):
 
@@ -62,14 +62,14 @@ class TestNode(unittest.TestCase):
         #m = '0111111000111100110010001100010011111000110000001000000000000000'
         #y = '0000000000000000001101110011101100000110001110100000100000000000'
         #correct = "0000000001000000000000000000000000000000000000000000000000000000"
-        db = {}
         node = search.Node(m + y)
-        move = search.Search(node, db, 30000)
-        print()
+        db = {node.key: node}
+        move, info = search.Search(node, db, 30)
+        print(info)
         move = format(move, '064b').index('1')
         correct = correct.index('1')
 
-        children = [db[child] for child in node.children]
+        children = [db[child] for child in db[node.key].children]
         for child in children:
             move_ = (child.m | child.y) ^ (node.m | node.y)
             move_ = format(move_, '064b').index('1')
