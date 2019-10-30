@@ -78,14 +78,12 @@ def Search():
         m = white
         y = black
 
-    node = search.Node(m + y)
-    db = {node.key:node}
+    node = search.Node(int(m, 2), int(y, 2))
 
-    move, info = search.Search(node, db, seconds_var.get()**2)
+    move, info = search.Search(node, seconds_var.get()**2)
     print(info)
 
-    children = [db[key] for key in db[node.key].children]
-    for child in children:
+    for child in node.children:
         if move & (child.m | child.y):
             if turn.get() == 'b':
                 black = format(child.y, '064b')

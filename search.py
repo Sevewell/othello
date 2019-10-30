@@ -10,16 +10,13 @@ import pickle
 
 class Node():
 
-    def __init__(self, key):
+    def __init__(self, m, y):
 
-        self.key = key
-        self.m = int(key[:64], 2)
-        self.y = int(key[-64:], 2)
+        self.m = m
+        self.y = y
         self.record = []
         self.memory = 100
         self.children = []
-        self.a = 1
-        self.b = 1
 
     def FindChildren(self):
         
@@ -38,15 +35,13 @@ class Node():
                     move = movable & (-movable)
                     reversable = rule.GetReversable(self.m, self.y, move)
                     m, y = rule.Reverse(self.m, self.y, move, reversable)
-                    key_child = format(y, '064b') + format(m, '064b')
-                    self.children.append(key_child)
+                    self.children.append(Node(y, m))
                     movable ^= move
 
             else:
                 
                 if rule.GetMovable(self.y, self.m):
-                    key_child = format(self.y, '064b') + format(self.m, '064b')
-                    self.children.append(key_child)
+                    self.children.append(Node(self.y, self.m))
 
     # FindChildrenしても空だったら
     def End(self):
@@ -63,6 +58,14 @@ class Node():
 
         return state
 
+    def Count(self, n):
+
+        for child in self.children:
+            n = child.Count(n)
+            n += 1
+        
+        return n
+
 # 子は必ずいるときのみ呼ばれる
 def ChoiceNode(children):
 
@@ -76,8 +79,8 @@ def Dice(node):
     x = node.record.count('l')
     n = len(node.record)
 
-    a = node.a + x
-    b = node.b + (n - x)
+    a = 1 + x
+    b = 1 + (n - x)
 
     uniforms = [random.random() for i in range(a+b-1)]
     uniforms.sort()
@@ -93,16 +96,15 @@ def ReverseState(state):
 
     return state
 
-def PlayOut(node, db, path):
+def PlayOut(node):
     
     node.FindChildren()
 
     if node.children:
 
-        children = [db[key] if key in db else Node(key) for key in node.children]
-        child = ChoiceNode(children)
-        path = PlayOut(child, db, path)
-        state = ReverseState(path[-1].record[-1])
+        child = ChoiceNode(node.children)
+        child = PlayOut(child)
+        state = ReverseState(child.record[-1])
 
     else:
 
@@ -112,11 +114,9 @@ def PlayOut(node, db, path):
         node.record.pop(0)
     node.record.append(state)
     
-    path.append(node)
+    return node
 
-    return path
-
-def Search(node, db, seconds):
+def Search(node, seconds):
 
     time_before = time.time()
     time_after = time.time()
@@ -127,29 +127,26 @@ def Search(node, db, seconds):
 
     while (time_after - time_before) < seconds:
 
-        path = PlayOut(node, db, [])
-        for leaf in path:
-            db[leaf.key] = leaf
+        node = PlayOut(node)
         info['n_playout'] += 1
         time_after = time.time()
 
-    info['n_node'] = len(db)
+    # ノードを数える
+    info['n_node'] = node.Count(0)
 
-    children = [db[key] for key in db[node.key].children]
-    child = ChoiceNode(children)
-
+    child = ChoiceNode(node.children)
     move = (child.m | child.y) ^ (node.m | node.y)
 
     return move, info
 
-def DumpDB(db):
+def DumpDB(node):
 
-    with open('db.pkl', mode='wb') as f:
-        pickle.dump(db, f)
+    with open('node.pkl', mode='wb') as f:
+        pickle.dump(node, f)
 
-def LoadDB(name):
+def LoadDB():
 
-    with open('db.pkl', mode='rb') as f:
-        db = pickle.load(f)
+    with open('node.pkl', mode='rb') as f:
+        node = pickle.load(f)
 
-    return db
+    return node
