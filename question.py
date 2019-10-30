@@ -36,22 +36,31 @@ def Draw():
 
 def Put(i):
 
+    # 既に石があったら空にしたいな
+
     def Put_():
 
         global black
         global white
         global turn
 
-        if turn.get() == 'b':
-            black_ = int(black, 2) | (2**(63 - i))
+        move = 2**(63 - i)
+
+        if move & (int(black, 2) | int(white, 2)):
+            
+            black_ = int(black, 2) & (~move)
             black = format(black_, '064b')
-            white_ = int(white, 2) & (~(2**(63 - i)))
+            white_ = int(white, 2) & (~move)
             white = format(white_, '064b')
-        elif turn.get() == 'w':
-            white_ = int(white, 2) | (2**(63 - i))
-            white = format(white_, '064b')
-            black_ = int(black, 2) & (~(2**(63 - i)))
-            black = format(black_, '064b')
+        
+        else:
+
+            if turn.get() == 'b':
+                black_ = int(black, 2) | move
+                black = format(black_, '064b')
+            elif turn.get() == 'w':
+                white_ = int(white, 2) | move
+                white = format(white_, '064b')
 
         Draw()
 
@@ -71,9 +80,8 @@ def Search():
 
     node = search.Node(m + y)
     db = {node.key:node}
-    seconds = 10
 
-    move, info = search.Search(node, db, seconds)
+    move, info = search.Search(node, db, seconds_var.get()**2)
     print(info)
 
     children = [db[key] for key in db[node.key].children]
@@ -101,6 +109,24 @@ turn_white.pack()
 
 start = tkinter.Button(frame['control'], command=Search, text='探索開始')
 start.pack()
+
+# 設定で探索時間を指定したい
+seconds_var = tkinter.IntVar()
+seconds_var.set(3)
+label_seconds = tkinter.Label(frame['control'], text='{}秒'.format(seconds_var.get()**2))
+label_seconds.pack()
+def Scale(x):
+    label_seconds.config(text='{}秒'.format(seconds_var.get()**2))
+scale_seconds = tkinter.Scale(
+    frame['control'],
+    orient='horizontal',
+    variable=seconds_var,
+    from_=1,
+    to=32,
+    command=Scale,
+    showvalue=False
+    )
+scale_seconds.pack()
 
 Draw()
 
