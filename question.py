@@ -78,16 +78,12 @@ def Search():
     '''
 
     child = search.ChoiceNode(node.children)
-    move = (child.m | child.y) ^ (node.m | node.y)
-
-    for child in node.children:
-        if move & (child.m | child.y):
-            if turn.get() == 'b':
-                black = format(child.y, '064b')
-                white = format(child.m, '064b')
-            elif turn.get() == 'w':
-                white = format(child.y, '064b')
-                black = format(child.m, '064b')
+    if turn.get() == 'b':
+        black = format(child.y, '064b')
+        white = format(child.m, '064b')
+    elif turn.get() == 'w':
+        white = format(child.y, '064b')
+        black = format(child.m, '064b')
 
     Draw()
 
