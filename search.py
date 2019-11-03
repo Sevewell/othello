@@ -1,12 +1,16 @@
 import rule
 import random
+from collections import deque
 import time
 import pickle
+import multiprocessing
 
 # このモジュール関数・メソッドにルールモジュールor関数を渡すような設計がいいな
 # 汎用AIっぽいから
 
 # 例えば並列処理しているときに本当に同じオブジェクトが更新されているのか
+
+seconds = 10
 
 class Node():
 
@@ -14,6 +18,8 @@ class Node():
 
         self.m = m
         self.y = y
+        # メモリ消費が激しかったので不採用
+        #self.record = deque(maxlen=100)
         self.record = []
         self.memory = 100
         self.children = []
@@ -43,49 +49,38 @@ class Node():
                 if rule.GetMovable(self.y, self.m):
                     self.children.append(Node(self.y, self.m))
 
-    # FindChildrenしても空だったら
-    def End(self):
+# FindChildrenしても空だったら
+def End(m, y):
 
-        count_m = bin(self.m).count('1')
-        count_y = bin(self.y).count('1')
+    count_m = bin(m).count('1')
+    count_y = bin(y).count('1')
 
-        if count_m > count_y:
-            state = 'w'
-        elif count_m < count_y:
-            state = 'l'
-        elif count_m == count_y:
-            state = 'd'
+    if count_m > count_y:
+        state = 'w'
+    elif count_m < count_y:
+        state = 'l'
+    elif count_m == count_y:
+        state = 'd'
 
-        return state
-
-    def Count(self, n):
-
-        for child in self.children:
-            n = child.Count(n)
-            n += 1
-        
-        return n
+    return state
 
 # 子は必ずいるときのみ呼ばれる
 def ChoiceNode(children):
 
     probs = [Dice(child) for child in children]
-    child_choiced = children[probs.index(max(probs))]
+    child_choiced = children[probs.index(min(probs))]
 
     return child_choiced
 
 def Dice(node):
 
-    x = node.record.count('l')
     n = len(node.record)
+    k = node.record.count('w')
 
-    a = 1 + x
-    b = 1 + (n - x)
+    alpha = 1 + k
+    beta = 1 + (n - k)
 
-    uniforms = [random.random() for i in range(a+b-1)]
-    uniforms.sort()
-
-    return uniforms[a-1]
+    return random.betavariate(alpha, beta)
 
 def ReverseState(state):
 
@@ -108,7 +103,7 @@ def PlayOut(node):
 
     else:
 
-        state = node.End()
+        state = End(node.m, node.y)
 
     if len(node.record) == node.memory:
         node.record.pop(0)
@@ -116,7 +111,7 @@ def PlayOut(node):
     
     return node
 
-def Search(node, seconds):
+def Search(node):
 
     time_before = time.time()
     time_after = time.time()
@@ -126,18 +121,29 @@ def Search(node, seconds):
     }
 
     while (time_after - time_before) < seconds:
-
         node = PlayOut(node)
         info['n_playout'] += 1
         time_after = time.time()
 
     # ノードを数える
-    info['n_node'] = node.Count(0)
+    info['n_node'] = Count(node, 0)
 
-    child = ChoiceNode(node.children)
-    move = (child.m | child.y) ^ (node.m | node.y)
+    return node, info
 
-    return move, info
+def SearchMulti(node):
+
+    with multiprocessing.Pool() as p:
+        node.children = p.map(Search, node.children)
+    
+    return node
+
+def Count(node, n):
+
+    n += 1
+    for child in node.children:
+        n = Count(child, n)
+    
+    return n
 
 def DumpDB(node):
 
