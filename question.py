@@ -59,24 +59,17 @@ def Search():
     node = search.Node(int(m, 2), int(y, 2))
     node, info = search.Search(node)
     print(info)
-    '''
+    for i in range(64):
+        board[i].config(bg='#FFFFFF')
     for child in node.children:
-        m_child = format(child.m, '064b')
-        y_child = format(child.y, '064b')
-        k = child.record.count('l')
+        move = (child.m | child.y) ^ (node.m | node.y)
+        move = format(move, '064b').index('1')
         n = len(child.record)
-        for i in range(64):
-            if m_child[i] == '1':
-                print('y', end='')
-            elif y_child[i] == '1':
-                print('m', end='')
-            else:
-                print('x', end='')
-            if i%8 == 7:
-                print()
-        print('{}'.format(k/n))
-    '''
+        k = child.record.count('l')
+        rgb = format(255-255*k//n, 'x')*3
+        board[move].config(bg='#{}'.format(rgb))
 
+    '''
     child = search.ChoiceNode(node.children)
     if turn.get() == 'b':
         black = format(child.y, '064b')
@@ -84,6 +77,7 @@ def Search():
     elif turn.get() == 'w':
         white = format(child.y, '064b')
         black = format(child.m, '064b')
+    '''
 
     Draw()
 
@@ -95,6 +89,10 @@ if __name__ == '__main__':
 
     root = tkinter.Tk()
     root.title('詰めオセロ解くやつ')
+
+    menu = tkinter.Menu(root)
+    menu_file = tkinter.Menu(menu)
+    menu.add_cascade(menu=menu_file, label='モード')
 
     frame = {
         'board': tkinter.Frame(root),
