@@ -57,7 +57,9 @@ def Search():
         y = black
 
     node = search.Node(int(m, 2), int(y, 2))
-    node, info = search.Search(node)
+    result = search.Search({'node':node, 'seconds':seconds_var.get()**2})
+    node = result['node']
+    info = result['info']
     print(info)
     for i in range(64):
         board[i].config(bg='#FFFFFF')
@@ -82,9 +84,9 @@ def Search():
     Draw()
 
 def Scale(x):
-    search.seconds = seconds_var.get()**2
-    label_seconds.config(text='{}秒'.format(search.seconds))
+    label_seconds.config(text='{}秒'.format(int(x)**2))
 
+# 自分も石を置けるようにすればおｋ
 if __name__ == '__main__':
 
     root = tkinter.Tk()
@@ -130,7 +132,6 @@ if __name__ == '__main__':
     # 設定で探索時間を指定したい
     seconds_var = tkinter.IntVar()
     seconds_var.set(3)
-    search.seconds = seconds_var.get()
     label_seconds = tkinter.Label(frame['control'], text='{}秒'.format(seconds_var.get()**2))
     label_seconds.pack()
     scale_seconds = tkinter.Scale(

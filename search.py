@@ -10,8 +10,6 @@ import multiprocessing
 
 # 例えば並列処理しているときに本当に同じオブジェクトが更新されているのか
 
-seconds = 10
-
 class Node():
 
     def __init__(self, m, y):
@@ -21,7 +19,7 @@ class Node():
         # メモリ消費が激しかったので不採用
         #self.record = deque(maxlen=100)
         self.record = []
-        self.memory = 100
+        self.memory = 50
         self.children = []
 
     def FindChildren(self):
@@ -111,31 +109,44 @@ def PlayOut(node):
     
     return node
 
-def Search(node):
+def Search(args):
+
+    node = args['node']
+    seconds = args['seconds']
+    args['info'] = {'n_playout':0, 'n_node': 0}
 
     time_before = time.time()
     time_after = time.time()
-    info = {
-        'n_playout': 0,
-        'n_node': 0
-    }
 
     while (time_after - time_before) < seconds:
-        node = PlayOut(node)
-        info['n_playout'] += 1
+        PlayOut(node)
+        args['info']['n_playout'] += 1
         time_after = time.time()
 
     # ノードを数える
-    info['n_node'] = Count(node, 0)
+    args['info']['n_node'] = Count(node, 0)
 
-    return node, info
+    return args
 
-def SearchMulti(node):
+def SearchMulti(args):
 
-    with multiprocessing.Pool() as p:
-        node.children = p.map(Search, node.children)
+    node = args['node']
+    seconds = args['seconds']
+    cores = args['cores']
+
+    lot = len(node.children) // cores
+    if len(node.children) % cores:
+        lot += 1
+    seconds = seconds // lot
+
+    children = [{'node':child, 'seconds':seconds} for child in node.children]
+
+    with multiprocessing.Pool(cores) as p:
+        children = p.map(Search, children)
     
-    return node
+    node.children = [child['node'] for child in children]
+
+    return args
 
 def Count(node, n):
 
