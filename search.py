@@ -4,6 +4,7 @@ from collections import deque
 import time
 import pickle
 import multiprocessing
+import os
 
 # このモジュール関数・メソッドにルールモジュールor関数を渡すような設計がいいな
 # 汎用AIっぽいから
@@ -19,7 +20,7 @@ class Node():
         # メモリ消費が激しかったので不採用
         #self.record = deque(maxlen=100)
         self.record = []
-        self.memory = 50
+        self.memory = 100
         self.children = []
 
     def FindChildren(self):
@@ -109,44 +110,38 @@ def PlayOut(node):
     
     return node
 
-def Search(args):
-
-    node = args['node']
-    seconds = args['seconds']
-    args['info'] = {'n_playout':0, 'n_node': 0}
+def Search(node, seconds):
 
     time_before = time.time()
     time_after = time.time()
+    trial = 0
 
     while (time_after - time_before) < seconds:
         PlayOut(node)
-        args['info']['n_playout'] += 1
         time_after = time.time()
+        trial += 1
 
-    # ノードを数える
-    args['info']['n_node'] = Count(node, 0)
+    print('{} playouts'.format(trial))
 
-    return args
+def WrapSearchMulti(args):
 
-def SearchMulti(args):
+    Search(args[0], args[1])
+    return args[0]
 
-    node = args['node']
-    seconds = args['seconds']
-    cores = args['cores']
+def SearchMulti(node, seconds):
+
+    cores = os.cpu_count()
+
+    node.FindChildren()
 
     lot = len(node.children) // cores
     if len(node.children) % cores:
         lot += 1
     seconds = seconds // lot
 
-    children = [{'node':child, 'seconds':seconds} for child in node.children]
+    with multiprocessing.Pool() as p:
 
-    with multiprocessing.Pool(cores) as p:
-        children = p.map(Search, children)
-    
-    node.children = [child['node'] for child in children]
-
-    return args
+        node.children = p.map(WrapSearchMulti, [(child, seconds) for child in node.children])
 
 def Count(node, n):
 

@@ -1,7 +1,7 @@
 import search
 import widget
 
-def Search(menu, board, seconds):
+def Search(menu, board, node, seconds):
 
     def Search_():
 
@@ -12,10 +12,11 @@ def Search(menu, board, seconds):
             m = board.white
             y = board.black
 
-        node = search.Node(m, y)
         result = search.Search({'node':node, 'seconds':seconds.get()**2})
         node = result['node']
         info = result['info']
+        for child in node.children:
+            print(child.record)
         print(info)
         for panel in board.board:
             panel.config(bg='#FFFFFF')
@@ -38,19 +39,27 @@ def Search(menu, board, seconds):
         black = format(child.m, '064b')
     '''
 
-# 自分も石を置けるようにすればおｋ
 if __name__ == '__main__':
 
+    # もう始めにモード選択しよ…
+    start = widget.Start()
+    start.mainloop()
+
+'''
     root = widget.Root()
 
     menu = widget.Menu(root)
     root['menu'] = menu
 
-    board = widget.Board(master=root, mode=menu.mode, turn=menu.turn)
+    node = search.Node(34628173824, 68853694464)
+
+    board = widget.Board(master=root, mode=menu.mode, turn=menu.turn, node=node)
+    
     control = widget.Control(master=root)
-    control.start.config(command=Search(menu, board, control.seconds))
+    control.start.config(command=Search(menu, board, node, control.seconds))
 
     board.pack()
     control.pack()
 
     root.mainloop()
+'''
