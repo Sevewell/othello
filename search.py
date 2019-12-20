@@ -19,8 +19,9 @@ class Node():
         self.y = y
         # メモリ消費が激しかったので不採用
         #self.record = deque(maxlen=100)
-        self.record = []
-        self.memory = 100
+        k = 65 - bin(self.m | self.y).count('1')
+        self.a = k
+        self.b = k
         self.children = []
 
     def FindChildren(self):
@@ -66,20 +67,14 @@ def End(m, y):
 # 子は必ずいるときのみ呼ばれる
 def ChoiceNode(children):
 
-    probs = [Dice(child) for child in children]
+    probs = [Dice(child.a, child.b) for child in children]
     child_choiced = children[probs.index(min(probs))]
 
     return child_choiced
 
-def Dice(node):
+def Dice(a, b):
 
-    n = len(node.record)
-    k = node.record.count('w')
-
-    alpha = 1 + k
-    beta = 1 + (n - k)
-
-    return random.betavariate(alpha, beta)
+    return random.betavariate(a, b)
 
 def ReverseState(state):
 
@@ -97,18 +92,19 @@ def PlayOut(node):
     if node.children:
 
         child = ChoiceNode(node.children)
-        child = PlayOut(child)
-        state = ReverseState(child.record[-1])
+        child, state = PlayOut(child)
+        state = ReverseState(state)
 
     else:
 
         state = End(node.m, node.y)
 
-    if len(node.record) == node.memory:
-        node.record.pop(0)
-    node.record.append(state)
+    if state == 'w':
+        node.a += 1
+    elif state == 'l':
+        node.b += 1
     
-    return node
+    return node, state
 
 def Search(node, seconds):
 
