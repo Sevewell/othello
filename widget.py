@@ -41,7 +41,9 @@ class Root(tkinter.Tk):
         self.title('Othello')
         self.config(menu=Menu(self, mode))
 
-        self.node = search.Node(34628173824, 68853694464)
+        #self.node = search.Node(34628173824, 68853694464)
+        self.black = 34628173824
+        self.white = 68853694464
         
         self.CreateBoard(mode)
         self.CreateControl()
@@ -69,17 +71,17 @@ class Root(tkinter.Tk):
         self.color_white = tkinter.PhotoImage(file='img/white.png')
         self.color_panel = tkinter.PhotoImage(file='img/panel.png')
 
-        self.Draw(self.node.m, self.node.y)
+        self.Draw()
 
-    def Draw(self, black, white):
+    def Draw(self):
 
         for i,panel in enumerate(self.board):
 
             bit = 2**(63 - i)
 
-            if black & bit:
+            if self.black & bit:
                 color = self.color_black
-            elif white & bit:
+            elif self.white & bit:
                 color = self.color_white
             else:
                 color = self.color_panel
@@ -91,17 +93,8 @@ class Root(tkinter.Tk):
         def Put():
 
             move = 2**(63 - i)
-
-            self.node.FindChildren()
-
-            for child in self.node.children:
-
-                if move & (child.m | child.y): #黒番着手
-                    self.node = child
-                    self.seconds.set(self.seconds.get() - 1)
-                    print(search.Count(self.node, 0), 'nodes')
-                    self.Draw(self.node.y, self.node.m)
-                    break
+            self.black, self.white = search.Move(self.black, self.white, move)
+            self.Draw()
 
         return Put
 
@@ -137,7 +130,7 @@ class Root(tkinter.Tk):
         starter.pack()
 
         self.seconds = tkinter.IntVar()
-        self.seconds.set(60)
+        self.seconds.set(30)
 
         seconds_scale = tkinter.Scale(
             control,
@@ -151,11 +144,8 @@ class Root(tkinter.Tk):
     #着手可能箇所がなかったら？
     def Search(self):
 
-        search.Search(self.node, self.seconds.get()) #白番の探索
-        self.seconds.set(self.seconds.get() - 1)
-        self.node = search.ChoiceNode(self.node.children) #白番の抽選と更新
-        print(search.Count(self.node, 0), 'nodes')
-        self.Draw(self.node.m, self.node.y) # 描画
+        self.white, self.black = search.Search(self.white, self.black, self.seconds.get()) #白番の探索
+        self.Draw() # 描画
 
 class Menu(tkinter.Menu):
 

@@ -65,6 +65,7 @@ def End(m, y):
     return state
 
 # 子は必ずいるときのみ呼ばれる
+# 子が終局のときは確率出力するのおかしくない？
 def ChoiceNode(children):
 
     probs = [Dice(child.a, child.b) for child in children]
@@ -92,7 +93,7 @@ def PlayOut(node):
     if node.children:
 
         child = ChoiceNode(node.children)
-        child, state = PlayOut(child)
+        state = PlayOut(child)
         state = ReverseState(state)
 
     else:
@@ -104,9 +105,13 @@ def PlayOut(node):
     elif state == 'l':
         node.b += 1
     
-    return node, state
+    return state
 
-def Search(node, seconds):
+# 入力は石ふたつと秒
+# 出力は石ふたつ
+def Search(m, y, seconds):
+
+    node = Node(m, y)
 
     time_before = time.time()
     time_after = time.time()
@@ -116,8 +121,14 @@ def Search(node, seconds):
         PlayOut(node)
         time_after = time.time()
         trial += 1
-
     print('{} playouts'.format(trial))
+    print('{} nodes'.format(Count(node, 0)))
+
+    child = ChoiceNode(node.children)
+    winrate = int(Dice(child.b, child.a) * 100)
+    print('{}%'.format(winrate))
+
+    return child.y, child.m
 
 def WrapSearchMulti(args):
 
@@ -138,6 +149,17 @@ def SearchMulti(node, seconds):
     with multiprocessing.Pool() as p:
 
         node.children = p.map(WrapSearchMulti, [(child, seconds) for child in node.children])
+
+def Move(m, y, move):
+
+    movable = rule.GetMovable(m, y)
+
+    if move & movable:
+
+        reversable = rule.GetReversable(m, y, move)
+        m, y = rule.Reverse(m, y, move, reversable)
+
+    return m, y
 
 def Count(node, n):
 
