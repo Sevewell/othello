@@ -144,7 +144,10 @@ class Root(tkinter.Tk):
     #着手可能箇所がなかったら？
     def Search(self):
 
-        self.white, self.black = search.Search(self.white, self.black, self.seconds.get()) #白番の探索
+        #self.white, self.black, info = search.SearchSingle(self.white, self.black, self.seconds.get()) #白番の探索
+        self.white, self.black, info = search.SearchMulti(self.white, self.black, self.seconds.get()) #白番の探索
+        print(info)
+        print('...')
         self.Draw() # 描画
 
 class Menu(tkinter.Menu):

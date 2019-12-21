@@ -17,12 +17,14 @@ class Node():
 
         self.m = m
         self.y = y
-        # メモリ消費が激しかったので不採用
-        #self.record = deque(maxlen=100)
-        k = 65 - bin(self.m | self.y).count('1')
-        self.a = k
-        self.b = k
+        self.SetPrior()
         self.children = []
+
+    def SetPrior(self):
+
+        bits = 65 - bin(self.m | self.y).count('1')
+        self.a = bits ** 3
+        self.b = bits ** 3
 
     def FindChildren(self):
         
@@ -107,11 +109,7 @@ def PlayOut(node):
     
     return state
 
-# 入力は石ふたつと秒
-# 出力は石ふたつ
-def Search(m, y, seconds):
-
-    node = Node(m, y)
+def Search(node, seconds, info):
 
     time_before = time.time()
     time_after = time.time()
@@ -121,24 +119,39 @@ def Search(m, y, seconds):
         PlayOut(node)
         time_after = time.time()
         trial += 1
-    print('{} playouts'.format(trial))
-    print('{} nodes'.format(Count(node, 0)))
+
+    info['playouts'] = trial
+    info['nodes'] = Count(node, 0)
+
+def SearchSingle(m, y, seconds):
+
+    node = Node(m, y)
+    info = {}
+    Search(node, seconds, info)
 
     child = ChoiceNode(node.children)
-    winrate = int(Dice(child.b, child.a) * 100)
-    print('{}%'.format(winrate))
 
-    return child.y, child.m
+    info['winrate'] = int(Dice(child.b, child.a) * 100)
+
+    return child.y, child.m, info
 
 def WrapSearchMulti(args):
 
-    Search(args[0], args[1])
-    return args[0]
+    child = args[0]
+    seconds = args[1]
+    info = {}
 
-def SearchMulti(node, seconds):
+    Search(child, seconds, info)
+
+    info['winrate'] = Dice(child.b, child.a)
+
+    return child.y, child.m, info
+
+def SearchMulti(m, y, seconds):
 
     cores = os.cpu_count()
 
+    node = Node(m, y)
     node.FindChildren()
 
     lot = len(node.children) // cores
@@ -146,9 +159,22 @@ def SearchMulti(node, seconds):
         lot += 1
     seconds = seconds // lot
 
-    with multiprocessing.Pool() as p:
+    with multiprocessing.Pool(cores) as p:
 
-        node.children = p.map(WrapSearchMulti, [(child, seconds) for child in node.children])
+        result_children = p.map(WrapSearchMulti, [(child, seconds) for child in node.children])
+
+    info = {
+        'playouts': sum([result[2]['playouts'] for result in result_children]),
+        'nodes': sum([result[2]['nodes'] for result in result_children])
+    }
+
+    def Key(result):
+        return result[2]['winrate']
+    result_child = max(result_children, key=Key)
+
+    info['winrate'] = result_child[2]['winrate']
+
+    return result_child[0], result_child[1], info
 
 def Move(m, y, move):
 
