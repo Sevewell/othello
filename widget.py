@@ -13,11 +13,11 @@ class Start(tkinter.Tk):
     def CreateMode(self):
 
         self.mode = tkinter.StringVar()
-        self.mode.set('play')
-        game = tkinter.Radiobutton(self, text='対戦', variable=self.mode, value='play')
-        game.pack()
-        question = tkinter.Radiobutton(self, text='詰めオセロ', variable=self.mode, value='question')
-        question.pack()
+        self.mode.set('対戦')
+
+        for mode in ['対戦', '詰め', '観戦']:
+            radiobutton = tkinter.Radiobutton(self, text=mode, variable=self.mode, value=mode)
+            radiobutton.pack()
 
     def CreateStart(self):
 
@@ -60,9 +60,9 @@ class Root(tkinter.Tk):
         board = tkinter.Frame(self)
         board.pack()
 
-        if mode == 'play':
+        if mode == '対戦':
             self.board = [tkinter.Button(board, command=self.Play(i)) for i in range(64)]
-        elif mode == 'question':
+        elif mode == '詰め':
             self.board = [tkinter.Button(board, command=self.Question(i)) for i in range(64)]
         for i,panel in enumerate(self.board):
             panel.grid(column=i%8, row=i//8)
@@ -129,23 +129,23 @@ class Root(tkinter.Tk):
         starter = tkinter.Button(control, text='探索開始', command=self.Search)
         starter.pack()
 
-        self.seconds = tkinter.IntVar()
-        self.seconds.set(30)
+        self.trial = tkinter.IntVar()
+        self.trial.set(50000)
 
-        seconds_scale = tkinter.Scale(
+        trial_scale = tkinter.Scale(
             control,
             orient='horizontal',
-            variable=self.seconds,
+            variable=self.trial,
             from_=1,
-            to=60
+            to=100000
             )
-        seconds_scale.pack()
+        trial_scale.pack()
 
     #着手可能箇所がなかったら？
     def Search(self):
 
         #self.white, self.black, info = search.SearchSingle(self.white, self.black, self.seconds.get()) #白番の探索
-        self.white, self.black, info = search.SearchMulti(self.white, self.black, self.seconds.get()) #白番の探索
+        self.white, self.black, info = search.SearchMulti(self.white, self.black, self.trial.get()) #白番の探索
         print(info)
         print('...')
         self.Draw() # 描画

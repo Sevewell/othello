@@ -109,18 +109,15 @@ def PlayOut(node):
     
     return state
 
-def Search(node, seconds, info):
+def Search(node, trial, info):
 
-    time_before = time.time()
-    time_after = time.time()
-    trial = 0
+    playouts = 0
 
-    while (time_after - time_before) < seconds:
+    while playouts < trial:
         PlayOut(node)
         time_after = time.time()
-        trial += 1
+        playouts += 1
 
-    info['playouts'] = trial
     info['nodes'] = Count(node, 0)
 
 def SearchSingle(m, y, seconds):
@@ -138,33 +135,31 @@ def SearchSingle(m, y, seconds):
 def WrapSearchMulti(args):
 
     child = args[0]
-    seconds = args[1]
+    trial = args[1]
     info = {}
 
-    Search(child, seconds, info)
+    Search(child, trial, info)
 
     info['winrate'] = Dice(child.b, child.a)
 
     return child.y, child.m, info
 
-def SearchMulti(m, y, seconds):
+def SearchMulti(m, y, trial):
 
     cores = os.cpu_count()
 
     node = Node(m, y)
     node.FindChildren()
 
-    lot = len(node.children) // cores
-    if len(node.children) % cores:
-        lot += 1
-    seconds = seconds // lot
+    trial = trial // cores
+    time_before = time.time()
 
     with multiprocessing.Pool(cores) as p:
 
-        result_children = p.map(WrapSearchMulti, [(child, seconds) for child in node.children])
+        result_children = p.map(WrapSearchMulti, [(child, trial) for child in node.children])
 
     info = {
-        'playouts': sum([result[2]['playouts'] for result in result_children]),
+        'time': time.time() - time_before,
         'nodes': sum([result[2]['nodes'] for result in result_children])
     }
 
