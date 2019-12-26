@@ -1,5 +1,7 @@
 import tkinter
 import search
+import threading
+import pickle
 
 class Start(tkinter.Tk):
 
@@ -41,29 +43,33 @@ class Root(tkinter.Tk):
         self.title('Othello')
         self.config(menu=Menu(self, mode))
 
-        #self.node = search.Node(34628173824, 68853694464)
         self.black = 34628173824
         self.white = 68853694464
         
-        self.CreateBoard(mode)
+        self.CreateBoard()
         self.CreateControl()
 
-        # ボードに探索関数を渡す
-        # 探索関数は対戦用詰めオセロ用がある
-        # 探索時間を引数に持つ
-        # ボタンインデックスを引数に持つ
+        if mode == '対戦':
 
-        # ボード生成後にボタンウィジェットに関数セットもあり
+            for i,panel in enumerate(self.board):
+                panel.config(command=self.Play(i))
 
-    def CreateBoard(self, mode):
+        elif mode == '詰め':
+
+            for i,panel in enumerate(self.board):
+                panel.config(command=self.Question(i))
+
+        elif mode == '観戦':
+
+            thread = threading.Thread(target=self.Watch)
+            thread.start()
+
+    def CreateBoard(self):
 
         board = tkinter.Frame(self)
         board.pack()
 
-        if mode == '対戦':
-            self.board = [tkinter.Button(board, command=self.Play(i)) for i in range(64)]
-        elif mode == '詰め':
-            self.board = [tkinter.Button(board, command=self.Question(i)) for i in range(64)]
+        self.board = [tkinter.Button(board) for i in range(64)]
         for i,panel in enumerate(self.board):
             panel.grid(column=i%8, row=i//8)
 
@@ -120,6 +126,57 @@ class Root(tkinter.Tk):
             self.Draw()
 
         return Put
+
+    def Watch(self):
+
+        name = 'record.pkl'
+        if search.os.path.isfile(name):
+            with open('record.pkl', 'rb') as f:
+                record = pickle.load(f)
+        else:
+            record = []
+
+        for i in range(10):
+
+            self.black = 34628173824
+            self.white = 68853694464
+            self.Draw()
+
+            hp_b = search.random.random() * 5
+            hp_w = search.random.random() * 5
+            print('black: {}'.format(hp_b))
+            print('white: {}'.format(hp_w))
+
+            while True:
+
+                if search.CheckEnd(self.black, self.white):
+                    search.hyper_param = hp_b
+                    self.black, self.white, info = search.SearchMulti(self.black, self.white, self.trial.get())
+                    self.Draw()
+                else:
+                    break
+
+                if search.CheckEnd(self.black, self.white):
+                    search.hyper_param = hp_w
+                    self.white, self.black, info = search.SearchMulti(self.white, self.black, self.trial.get())
+                    self.Draw()
+                else:
+                    break
+
+            count_b = bin(self.black).count('1')
+            count_w = bin(self.white).count('1')
+            if count_b > count_w:
+                winner = 'black'
+            elif count_b < count_w:
+                winner = 'white'
+            else:
+                winner = 'draw'
+            print('winner: {}'.format(winner))
+
+            record.append({'hp_b':hp_b, 'hp_w':hp_w, 'winner':winner})
+
+        with open('record.pkl', 'wb') as f:
+            pickle.dump(record, f)
 
     def CreateControl(self):
 

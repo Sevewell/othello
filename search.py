@@ -6,10 +6,7 @@ import pickle
 import multiprocessing
 import os
 
-# このモジュール関数・メソッドにルールモジュールor関数を渡すような設計がいいな
-# 汎用AIっぽいから
-
-# 例えば並列処理しているときに本当に同じオブジェクトが更新されているのか
+hyper_param = 3
 
 class Node():
 
@@ -23,8 +20,8 @@ class Node():
     def SetPrior(self):
 
         bits = 65 - bin(self.m | self.y).count('1')
-        self.a = bits ** 3
-        self.b = bits ** 3
+        self.a = bits ** hyper_param
+        self.b = bits ** hyper_param
 
     def FindChildren(self):
         
@@ -190,14 +187,6 @@ def Count(node, n):
     
     return n
 
-def DumpDB(node):
+def CheckEnd(m, y):
 
-    with open('node.pkl', mode='wb') as f:
-        pickle.dump(node, f)
-
-def LoadDB():
-
-    with open('node.pkl', mode='rb') as f:
-        node = pickle.load(f)
-
-    return node
+    return rule.GetMovable(m, y) | rule.GetMovable(y, m)
