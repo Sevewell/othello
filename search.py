@@ -4,9 +4,8 @@ from collections import deque
 import time
 import pickle
 import multiprocessing
-import os
 
-hyper_param = 3
+hyper_param = 1
 
 class Node():
 
@@ -141,9 +140,7 @@ def WrapSearchMulti(args):
 
     return child.y, child.m, info
 
-def SearchMulti(m, y, trial):
-
-    cores = os.cpu_count()
+def SearchMulti(m, y, trial, cores):
 
     node = Node(m, y)
     node.FindChildren()

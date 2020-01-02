@@ -2,6 +2,7 @@ import tkinter
 import search
 import threading
 import pickle
+import os
 
 class Start(tkinter.Tk):
 
@@ -67,7 +68,7 @@ class Root(tkinter.Tk):
     def CreateBoard(self):
 
         board = tkinter.Frame(self)
-        board.pack()
+        board.pack(side='left')
 
         self.board = [tkinter.Button(board) for i in range(64)]
         for i,panel in enumerate(self.board):
@@ -181,13 +182,10 @@ class Root(tkinter.Tk):
     def CreateControl(self):
 
         control = tkinter.Frame(self)
-        control.pack()
-
-        starter = tkinter.Button(control, text='探索開始', command=self.Search)
-        starter.pack()
+        control.pack(side='right')
 
         self.trial = tkinter.IntVar()
-        self.trial.set(50000)
+        self.trial.set(100000)
 
         trial_scale = tkinter.Scale(
             control,
@@ -198,13 +196,36 @@ class Root(tkinter.Tk):
             )
         trial_scale.pack()
 
+        self.core = tkinter.IntVar()
+        self.core.set(8)
+
+        core_scale = tkinter.Scale(
+            control,
+            orient='horizontal',
+            variable=self.core,
+            from_=1,
+            to=os.cpu_count()
+            )
+        core_scale.pack()
+
+        starter = tkinter.Button(control, text='探索開始', command=threading.Thread(target=self.Search).start)
+        starter.pack()
+
+        '''
+        self.progress = tkinter.ttk.Progressbar(
+            control,
+            orient='horizontal',
+            length=self.trial.get(),
+            mode='determinate'
+        )
+        '''
+
     #着手可能箇所がなかったら？
     def Search(self):
 
         #self.white, self.black, info = search.SearchSingle(self.white, self.black, self.seconds.get()) #白番の探索
-        self.white, self.black, info = search.SearchMulti(self.white, self.black, self.trial.get()) #白番の探索
+        self.white, self.black, info = search.SearchMulti(self.white, self.black, self.trial.get(), self.core.get()) #白番の探索
         print(info)
-        print('...')
         self.Draw() # 描画
 
 class Menu(tkinter.Menu):
