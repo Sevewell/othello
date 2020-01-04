@@ -1,11 +1,10 @@
 import rule
 import random
-from collections import deque
 import time
 import pickle
 import multiprocessing
 
-hyper_param = 1
+hyper_param = 2
 
 class Node():
 
@@ -89,13 +88,10 @@ def PlayOut(node):
     node.FindChildren()
 
     if node.children:
-
         child = ChoiceNode(node.children)
         state = PlayOut(child)
         state = ReverseState(state)
-
     else:
-
         state = End(node.m, node.y)
 
     if state == 'w':
@@ -105,65 +101,40 @@ def PlayOut(node):
     
     return state
 
-def Search(node, trial, info):
-
-    playouts = 0
-
-    while playouts < trial:
-        PlayOut(node)
-        time_after = time.time()
-        playouts += 1
-
-    info['nodes'] = Count(node, 0)
-
-def SearchSingle(m, y, seconds):
-
-    node = Node(m, y)
-    info = {}
-    Search(node, seconds, info)
-
-    child = ChoiceNode(node.children)
-
-    info['winrate'] = int(Dice(child.b, child.a) * 100)
-
-    return child.y, child.m, info
-
 def WrapSearchMulti(args):
 
     child = args[0]
     trial = args[1]
-    info = {}
 
-    Search(child, trial, info)
+    playouts = 0
+    while playouts < trial:
+        PlayOut(child)
+        playouts += 1
 
-    info['winrate'] = Dice(child.b, child.a)
-
-    return child.y, child.m, info
+    return Dice(child.a, child.b)
 
 def SearchMulti(m, y, trial, cores):
 
     node = Node(m, y)
     node.FindChildren()
 
-    trial = trial // cores
+    trial = trial // len(node.children)
     time_before = time.time()
 
+    # プレイアウト進捗とノード数を共有メモリしたい
     with multiprocessing.Pool(cores) as p:
 
-        result_children = p.map(WrapSearchMulti, [(child, trial) for child in node.children])
+        winrates = p.map(WrapSearchMulti, [(child, trial) for child in node.children])
 
-    info = {
-        'time': time.time() - time_before,
-        'nodes': sum([result[2]['nodes'] for result in result_children])
-    }
+    choiced_winrate = min(winrates)
+    choiced_child = node.children[winrates.index(choiced_winrate)]
 
-    def Key(result):
-        return result[2]['winrate']
-    result_child = max(result_children, key=Key)
+    print('time: {}'.format(time.time() - time_before))
+    print('winrate: {}'.format(1 - choiced_winrate))
+    print(choiced_child.y, choiced_child.m)
+    print('...')
 
-    info['winrate'] = result_child[2]['winrate']
-
-    return result_child[0], result_child[1], info
+    return choiced_child.y, choiced_child.m
 
 def Move(m, y, move):
 

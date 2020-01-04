@@ -1,4 +1,5 @@
 import tkinter
+from tkinter import ttk
 import search
 import threading
 import pickle
@@ -42,7 +43,6 @@ class Root(tkinter.Tk):
         
         super().__init__()
         self.title('Othello')
-        self.config(menu=Menu(self, mode))
 
         self.black = 34628173824
         self.white = 68853694464
@@ -131,20 +131,20 @@ class Root(tkinter.Tk):
     def Watch(self):
 
         name = 'record.pkl'
-        if search.os.path.isfile(name):
+        if os.path.isfile(name):
             with open('record.pkl', 'rb') as f:
                 record = pickle.load(f)
         else:
             record = []
 
-        for i in range(10):
+        for i in range(20):
 
             self.black = 34628173824
             self.white = 68853694464
             self.Draw()
 
-            hp_b = search.random.random() * 5
-            hp_w = search.random.random() * 5
+            hp_b = search.random.random() * 4
+            hp_w = search.random.random() * 4
             print('black: {}'.format(hp_b))
             print('white: {}'.format(hp_w))
 
@@ -152,14 +152,14 @@ class Root(tkinter.Tk):
 
                 if search.CheckEnd(self.black, self.white):
                     search.hyper_param = hp_b
-                    self.black, self.white, info = search.SearchMulti(self.black, self.white, self.trial.get())
+                    self.black, self.white = search.SearchMulti(self.black, self.white, self.trial.get(), self.core.get())
                     self.Draw()
                 else:
                     break
 
                 if search.CheckEnd(self.black, self.white):
                     search.hyper_param = hp_w
-                    self.white, self.black, info = search.SearchMulti(self.white, self.black, self.trial.get())
+                    self.white, self.black = search.SearchMulti(self.white, self.black, self.trial.get(), self.core.get())
                     self.Draw()
                 else:
                     break
@@ -184,65 +184,42 @@ class Root(tkinter.Tk):
         control = tkinter.Frame(self)
         control.pack(side='right')
 
+        trial = 100000
         self.trial = tkinter.IntVar()
-        self.trial.set(100000)
+        self.trial.set(trial // 2)
 
         trial_scale = tkinter.Scale(
             control,
             orient='horizontal',
             variable=self.trial,
             from_=1,
-            to=100000
+            to=trial
             )
         trial_scale.pack()
 
+        core = os.cpu_count()
         self.core = tkinter.IntVar()
-        self.core.set(8)
+        self.core.set(core // 2)
 
         core_scale = tkinter.Scale(
             control,
             orient='horizontal',
             variable=self.core,
             from_=1,
-            to=os.cpu_count()
+            to=core
             )
         core_scale.pack()
 
-        starter = tkinter.Button(control, text='探索開始', command=threading.Thread(target=self.Search).start)
+        starter = tkinter.Button(control, text='探索開始', command=self.StartSearch)
         starter.pack()
 
-        '''
-        self.progress = tkinter.ttk.Progressbar(
-            control,
-            orient='horizontal',
-            length=self.trial.get(),
-            mode='determinate'
-        )
-        '''
+    def StartSearch(self):
+
+        thread = threading.Thread(target=self.Search)
+        thread.start()
 
     #着手可能箇所がなかったら？
     def Search(self):
 
-        #self.white, self.black, info = search.SearchSingle(self.white, self.black, self.seconds.get()) #白番の探索
-        self.white, self.black, info = search.SearchMulti(self.white, self.black, self.trial.get(), self.core.get()) #白番の探索
-        print(info)
+        self.white, self.black = search.SearchMulti(self.white, self.black, self.trial.get(), self.core.get()) #白番の探索
         self.Draw() # 描画
-
-class Menu(tkinter.Menu):
-
-    def __init__(self, master, mode):
-
-        super().__init__(master)
-
-        if mode == 'question':
-            self.turn = tkinter.StringVar()
-            self.turn.set('b')
-            self.menu_turn = self.CreateTurn()
-            self.add_cascade(menu=self.menu_turn, label='Turn')
-
-    def CreateTurn(self):
-
-        menu_turn = tkinter.Menu(self)
-        menu_turn.add_radiobutton(label='Black', variable=self.turn, value='b')
-        menu_turn.add_radiobutton(label='White', variable=self.turn, value='w')
-        return menu_turn
