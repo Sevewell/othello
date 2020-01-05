@@ -98,6 +98,9 @@ def PlayOut(node):
         node.a += 1
     elif state == 'l':
         node.b += 1
+    else:
+        node.a += 1
+        node.b += 1
     
     return state
 
