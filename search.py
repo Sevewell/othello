@@ -1,4 +1,5 @@
 import rule
+import engine
 import random
 import time
 import pickle
@@ -30,20 +31,21 @@ class Node():
 
         else:
 
-            movable = rule.GetMovable(self.m, self.y)
+            movable = engine.GetMovable(self.m, self.y)
 
             if movable:
 
                 while movable:
                     move = movable & (-movable)
-                    reversable = rule.GetReversable(self.m, self.y, move)
-                    m, y = rule.Reverse(self.m, self.y, move, reversable)
+                    reversable = engine.GetReversable(self.m, self.y, move)
+                    m = self.m | move | reversable
+                    y = self.y ^ reversable
                     self.children.append(Node(y, m))
                     movable ^= move
 
             else:
                 
-                if rule.GetMovable(self.y, self.m):
+                if engine.GetMovable(self.y, self.m):
                     self.children.append(Node(self.y, self.m))
 
 # FindChildrenしても空だったら
@@ -141,12 +143,13 @@ def SearchMulti(m, y, trial, cores):
 
 def Move(m, y, move):
 
-    movable = rule.GetMovable(m, y)
+    movable = engine.GetMovable(m, y)
 
     if move & movable:
 
-        reversable = rule.GetReversable(m, y, move)
-        m, y = rule.Reverse(m, y, move, reversable)
+        reversable = engine.GetReversable(m, y, move)
+        m |= move | reversable
+        y ^= reversable
 
     return m, y
 
@@ -160,4 +163,4 @@ def Count(node, n):
 
 def CheckEnd(m, y):
 
-    return rule.GetMovable(m, y) | rule.GetMovable(y, m)
+    return engine.GetMovable(m, y) | engine.GetMovable(y, m)
