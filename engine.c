@@ -1,5 +1,6 @@
 #define PY_SSIZE_T_CLEAN
 #include <Python.h>
+#include <math.h>
 
 unsigned long long GetMovableL
 (unsigned long long player, unsigned long long masked, unsigned long long blank, int dir)
@@ -185,26 +186,47 @@ struct Node* CreateNode(unsigned long long m, unsigned long long y)
     return node;
 }
 
-int compare(const void *a, const void *b)
+double SampleNormal()
 {
-    return *(int*)a - *(int*)b;
+    int sum = 0;
+    for (int i = 0; i < 12; i++)
+    {
+        sum += rand();
+    }
+    return (double)sum / (double)RAND_MAX - 6;
 }
 
-double Dice(int a, int b)
+double SampleGamma(double alpha)
 {
-    int size = a + b - 1;
-    int *uniform  = (int*)malloc(sizeof(int) * size);
-
-    for (int i = 0; i < size; i++)
+    double c1 = alpha - 1.0 / 3.0;
+    double c2 = 1.0 / sqrt(9.0 * c1);
+    while (1)
     {
-        uniform[i] = rand();
+        double norm = SampleNormal();
+        if (c2 * norm <= -1.0) continue;
+        double v = pow(1.0 + c2 * norm, 3.0);
+        double u = (double)rand() / (double)RAND_MAX;
+        if (u < 1.0 - 0.331 * pow(norm, 4.0)) return c1 * v;
+        if (log(u) < 0.5 * pow(norm, 2.0) + c1 * (1.0 - v + log(v))) return c1 * v;
+        continue;
     }
-    qsort(uniform, size, sizeof(int), compare);
+}
 
-    int order = uniform[a - 1];
-    free(uniform);
+PyObject *SampleBeta(PyObject *self, PyObject *args)
+{
+    double a;
+    double b;
 
-    return (double)order / (double)RAND_MAX;
+    if (!PyArg_ParseTuple(args, "dd", &a, &b))
+    {
+        return NULL;
+    }
+
+    double gamma1 = SampleGamma(a);
+    double gamma2 = SampleGamma(b);
+    double beta = gamma1 / (gamma1 + gamma2);
+
+    return Py_BuildValue("d", beta);
 }
 
 PyObject *Search(PyObject *self, PyObject *args)
@@ -219,15 +241,13 @@ PyObject *Search(PyObject *self, PyObject *args)
 
     struct Node *node = CreateNode(m, y);
 
-    node->a = 8000;
-    node->b = 2000;
-
-    return Py_BuildValue("d", Dice(node->a, node->b));
+    return Py_BuildValue("d", 1.0);
 }
 
 static PyMethodDef engine_methods[] = {
     {"GetMovable", GetMovable, METH_VARARGS},
     {"GetReversable", GetReversable, METH_VARARGS},
+    {"SampleBeta", SampleBeta, METH_VARARGS},
     {"Search", Search, METH_VARARGS},
     {NULL}
 };

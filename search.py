@@ -1,6 +1,5 @@
 import rule
 import engine
-import random
 import time
 import pickle
 import multiprocessing
@@ -13,14 +12,10 @@ class Node():
 
         self.m = m
         self.y = y
-        self.SetPrior()
-        self.children = []
-
-    def SetPrior(self):
-
         bits = 65 - bin(self.m | self.y).count('1')
         self.a = bits ** hyper_param
         self.b = bits ** hyper_param
+        self.children = []
 
     def FindChildren(self):
         
@@ -48,61 +43,38 @@ class Node():
                 if engine.GetMovable(self.y, self.m):
                     self.children.append(Node(self.y, self.m))
 
-# FindChildrenしても空だったら
-def End(m, y):
-
-    count_m = bin(m).count('1')
-    count_y = bin(y).count('1')
-
-    if count_m > count_y:
-        state = 'w'
-    elif count_m < count_y:
-        state = 'l'
-    elif count_m == count_y:
-        state = 'd'
-
-    return state
-
-# 子は必ずいるときのみ呼ばれる
-# 子が終局のときは確率出力するのおかしくない？
-def ChoiceNode(children):
-
-    probs = [Dice(child.a, child.b) for child in children]
-    child_choiced = children[probs.index(min(probs))]
-
-    return child_choiced
-
-def Dice(a, b):
-
-    return random.betavariate(a, b)
-
-def ReverseState(state):
-
-    if state == 'w':
-        state = 'l'
-    elif state == 'l':
-        state = 'w'
-
-    return state
-
 def PlayOut(node):
     
     node.FindChildren()
 
     if node.children:
-        child = ChoiceNode(node.children)
+
+        probs = [engine.SampleBeta(child.a, child.b) for child in node.children]
+        child = node.children[probs.index(min(probs))]
         state = PlayOut(child)
-        state = ReverseState(state)
+        if state == 'w':
+            state = 'l'
+        elif state == 'l':
+            state = 'w'
+
     else:
-        state = End(node.m, node.y)
+
+        count_m = bin(node.m).count('1')
+        count_y = bin(node.y).count('1')
+        if count_m > count_y:
+            state = 'w'
+        elif count_m < count_y:
+            state = 'l'
+        else:
+            state = 'd'
 
     if state == 'w':
         node.a += 1
     elif state == 'l':
         node.b += 1
     else:
-        node.a += 1
-        node.b += 1
+        node.a += 0.5
+        node.b += 0.5
     
     return state
 
@@ -116,7 +88,7 @@ def WrapSearchMulti(args):
         PlayOut(child)
         playouts += 1
 
-    return Dice(child.a, child.b)
+    return engine.SampleBeta(child.a, child.b)
 
 def SearchMulti(m, y, trial, cores):
 
