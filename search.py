@@ -108,7 +108,6 @@ def SearchMulti(m, y, trial, cores):
 
     print('time: {}'.format(time.time() - time_before))
     print('winrate: {}'.format(1 - choiced_winrate))
-    print(choiced_child.y, choiced_child.m)
     print('...')
 
     return choiced_child.y, choiced_child.m

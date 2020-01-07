@@ -102,6 +102,7 @@ class Root(tkinter.Tk):
             move = 2**(63 - i)
             self.black, self.white = search.Move(self.black, self.white, move)
             self.Draw()
+            self.turn.set('白番')
 
         return Put
 
@@ -184,6 +185,11 @@ class Root(tkinter.Tk):
         control = tkinter.Frame(self)
         control.pack(side='right')
 
+        self.turn = tkinter.StringVar()
+        self.turn.set('黒番')
+        label_turn = tkinter.Label(control, textvariable=self.turn)
+        label_turn.pack()
+
         trial = 100000
         self.trial = tkinter.IntVar()
         self.trial.set(trial // 2)
@@ -223,3 +229,8 @@ class Root(tkinter.Tk):
 
         self.white, self.black = search.SearchMulti(self.white, self.black, self.trial.get(), self.core.get()) #白番の探索
         self.Draw() # 描画
+        turn = self.turn.get()
+        if turn == '黒番':
+            self.turn.set('白番')
+        elif turn == '白番':
+            self.turn.set('黒番')
