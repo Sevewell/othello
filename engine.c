@@ -143,9 +143,92 @@ PyObject *GetReversable(PyObject *self, PyObject *args)
     return Py_BuildValue("K", rev);
 }
 
+struct Node
+{
+    unsigned long long m;
+    unsigned long long y;
+    int a;
+    int b;
+    struct Node *child;
+    struct Node *next;
+};
+
+int PopCount(unsigned long long x)
+{
+    int count = 0;
+
+    for (int i = 0; i < 64; i++)
+    {
+        if (x % 2)
+        {
+            count += 1;
+        }
+        x >>= 1;
+    }
+
+    return count;
+}
+
+struct Node* CreateNode(unsigned long long m, unsigned long long y)
+{
+    struct Node *node;
+    node = (struct Node*)malloc(sizeof(struct Node));
+
+    node->m = m;
+    node->y = y;
+    int count = 65 - PopCount(m | y);
+    node->a = count;
+    node->b = count;
+    node->child = NULL;
+    node->next = NULL;
+
+    return node;
+}
+
+int compare(const void *a, const void *b)
+{
+    return *(int*)a - *(int*)b;
+}
+
+double Dice(int a, int b)
+{
+    int size = a + b - 1;
+    int *uniform  = (int*)malloc(sizeof(int) * size);
+
+    for (int i = 0; i < size; i++)
+    {
+        uniform[i] = rand();
+    }
+    qsort(uniform, size, sizeof(int), compare);
+
+    int order = uniform[a - 1];
+    free(uniform);
+
+    return (double)order / (double)RAND_MAX;
+}
+
+PyObject *Search(PyObject *self, PyObject *args)
+{
+    unsigned long long m;
+    unsigned long long y;
+
+    if (!PyArg_ParseTuple(args, "KK", &m, &y))
+    {
+        return NULL;
+    }
+
+    struct Node *node = CreateNode(m, y);
+
+    node->a = 8000;
+    node->b = 2000;
+
+    return Py_BuildValue("d", Dice(node->a, node->b));
+}
+
 static PyMethodDef engine_methods[] = {
     {"GetMovable", GetMovable, METH_VARARGS},
     {"GetReversable", GetReversable, METH_VARARGS},
+    {"Search", Search, METH_VARARGS},
     {NULL}
 };
 
