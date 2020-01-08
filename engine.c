@@ -30,16 +30,8 @@ unsigned long long GetMovableR
     return blank & (tmp >> dir);
 }
 
-PyObject *GetMovable(PyObject *self, PyObject *args)
+unsigned long long GetMovable(unsigned long long m, unsigned long long y)
 {
-    unsigned long long m;
-    unsigned long long y;
-
-    if (!PyArg_ParseTuple(args, "KK", &m, &y))
-    {
-        return NULL;
-    }
-
     unsigned long long blank = ~(m | y);
     unsigned long long h = y & 0x7e7e7e7e7e7e7e7e;
     unsigned long long v = y & 0x00ffffffffffff00;
@@ -54,7 +46,7 @@ PyObject *GetMovable(PyObject *self, PyObject *args)
     legal |= GetMovableR(m, a, blank, 7);
     legal |= GetMovableR(m, a, blank, 9);
 
-    return Py_BuildValue("K", legal);
+    return legal;
 }
 
 unsigned long long GetReversableL
@@ -117,17 +109,9 @@ unsigned long long GetReversableR
     return rev;
 }
 
-PyObject *GetReversable(PyObject *self, PyObject *args)
+unsigned long long GetReversable
+(unsigned long long m, unsigned long long y, unsigned long long move)
 {
-    unsigned long long m;
-    unsigned long long y;
-    unsigned long long move;
-
-    if (!PyArg_ParseTuple(args, "KKK", &m, &y, &move))
-    {
-        return NULL;
-    }
-
     unsigned long long blank_h = ~(m | y & 0x7e7e7e7e7e7e7e7e);
     unsigned long long blank_v = ~(m | y & 0x00ffffffffffff00);
     unsigned long long blank_a = ~(m | y & 0x007e7e7e7e7e7e00);
@@ -141,15 +125,47 @@ PyObject *GetReversable(PyObject *self, PyObject *args)
     rev |= GetReversableR(m, blank_a, move, 7);
     rev |= GetReversableR(m, blank_a, move, 9);
     
-    return Py_BuildValue("K", rev);
+    return rev;
+}
+
+double SampleNormal()
+{
+    int sum = 0;
+    for (int i = 0; i < 12; i++)
+    {
+        sum += rand();
+    }
+    return (double)sum / (double)RAND_MAX - 6.0;
+}
+
+double SampleGamma(double alpha)
+{
+    double c1 = alpha - 1.0 / 3.0;
+    double c2 = 1.0 / sqrt(9.0 * c1);
+    while (1)
+    {
+        double norm = SampleNormal();
+        if (c2 * norm <= -1.0) continue;
+        double v = pow(1.0 + c2 * norm, 3.0);
+        double u = (double)rand() / (double)RAND_MAX;
+        if (u < 1.0 - 0.331 * pow(norm, 4.0)) return c1 * v;
+        if (log(u) < 0.5 * pow(norm, 2.0) + c1 * (1.0 - v + log(v))) return c1 * v;
+    }
+}
+
+double SampleBeta(double a, double b)
+{
+    double gamma1 = SampleGamma(a);
+    double gamma2 = SampleGamma(b);
+    return gamma1 / (gamma1 + gamma2);
 }
 
 struct Node
 {
     unsigned long long m;
     unsigned long long y;
-    int a;
-    int b;
+    double a;
+    double b;
     struct Node *child;
     struct Node *next;
 };
@@ -172,12 +188,12 @@ int PopCount(unsigned long long x)
 
 struct Node* CreateNode(unsigned long long m, unsigned long long y)
 {
-    struct Node *node;
+    struct Node* node;
     node = (struct Node*)malloc(sizeof(struct Node));
 
     node->m = m;
     node->y = y;
-    int count = 65 - PopCount(m | y);
+    double count = pow(65.0 - (double)PopCount(m | y), 2.0);
     node->a = count;
     node->b = count;
     node->child = NULL;
@@ -186,68 +202,154 @@ struct Node* CreateNode(unsigned long long m, unsigned long long y)
     return node;
 }
 
-double SampleNormal()
+void Free(struct Node* node)
 {
-    int sum = 0;
-    for (int i = 0; i < 12; i++)
-    {
-        sum += rand();
-    }
-    return (double)sum / (double)RAND_MAX - 6;
+    if (node == NULL) return;
+    Free(node->child);
+    Free(node->next);
+    free(node);
+    node = NULL;
 }
 
-double SampleGamma(double alpha)
+void AddChild(struct Node *node, struct Node *child)
 {
-    double c1 = alpha - 1.0 / 3.0;
-    double c2 = 1.0 / sqrt(9.0 * c1);
-    while (1)
+    if (node->child == NULL)
     {
-        double norm = SampleNormal();
-        if (c2 * norm <= -1.0) continue;
-        double v = pow(1.0 + c2 * norm, 3.0);
-        double u = (double)rand() / (double)RAND_MAX;
-        if (u < 1.0 - 0.331 * pow(norm, 4.0)) return c1 * v;
-        if (log(u) < 0.5 * pow(norm, 2.0) + c1 * (1.0 - v + log(v))) return c1 * v;
-        continue;
+        node->child = child;
+    }
+    else
+    {
+        struct Node *last = node->child;
+        while (last->next != NULL)
+        {
+            last = last->next;
+        }
+        last->next = child;
     }
 }
 
-PyObject *SampleBeta(PyObject *self, PyObject *args)
+void FindChildren(struct Node *node)
 {
-    double a;
-    double b;
+    if (node->child != NULL) return;
 
-    if (!PyArg_ParseTuple(args, "dd", &a, &b))
+    // signed for bit computation
+    long long movable = GetMovable(node->m, node->y);
+    if (movable)
     {
-        return NULL;
+        unsigned long long move;
+        unsigned long long reversable;
+        unsigned long long m;
+        unsigned long long y;
+        //struct Node* last = node->child; Why cannot work?
+
+        while (movable)
+        {
+            move = (unsigned long long)(movable & -movable);
+            reversable = GetReversable(node->m, node->y, move);
+            m = node->m | move | reversable;
+            y = node->y ^ reversable;
+            AddChild(node, CreateNode(y, m));
+            movable ^= move;
+        }
+    }
+    else if (GetMovable(node->y, node->m))
+    {
+        node->child = CreateNode(node->y, node->m);
+    }
+}
+
+int ChoiceChild(struct Node* node)
+{
+    int index;
+    int count = 0;
+    double winrate = 1.0;
+    struct Node* child = node->child;
+    double sample;
+
+    while (child != NULL)
+    {
+        sample = SampleBeta(child->a, child->b);
+        if (sample < winrate)
+        {
+            index = count;
+            winrate = sample;
+        }
+        child = child->next;
+        count++;
     }
 
-    double gamma1 = SampleGamma(a);
-    double gamma2 = SampleGamma(b);
-    double beta = gamma1 / (gamma1 + gamma2);
+    return index;
+}
 
-    return Py_BuildValue("d", beta);
+char PlayOut(struct Node* node)
+{
+    char state;
+    FindChildren(node);
+
+    if (node->child != NULL)
+    {
+        int index = ChoiceChild(node);
+        struct Node* child = node->child;
+        for (int i = 0; i < index; i++)
+        {
+            child = child->next;
+        }
+        state = PlayOut(child);
+        if (state == 'w') state = 'l';
+        else if (state == 'l') state = 'w';
+    }
+    else
+    {
+        int count_m = PopCount(node->m);
+        int count_y = PopCount(node->y);
+        if (count_m > count_y) state = 'w';
+        else if (count_m < count_y) state = 'l';
+    }
+
+    if (state == 'w') node->a += 1.0;
+    else if (state == 'l') node->b += 1.0;
+    else
+    {
+        node->a += 0.5;
+        node->b += 0.5;
+    }
+
+    return state;
 }
 
 PyObject *Search(PyObject *self, PyObject *args)
 {
     unsigned long long m;
     unsigned long long y;
+    int trial;
 
-    if (!PyArg_ParseTuple(args, "KK", &m, &y))
+    if (!PyArg_ParseTuple(args, "KKi", &m, &y, &trial))
     {
         return NULL;
     }
 
-    struct Node *node = CreateNode(m, y);
+    struct Node* node = CreateNode(m, y);
+    for (int i = 0; i < trial; i++)
+    {
+        PlayOut(node);
+    }
 
-    return Py_BuildValue("d", 1.0);
+    // no movable case
+    int index = ChoiceChild(node);
+    struct Node* child = node->child;
+    for (int i = 0; i < index; i++)
+    {
+        child = child->next;
+    }
+    m = child->y;
+    y = child->m;
+    printf("%lf\n", child->b / (child->a + child->b));
+    Free(node);
+
+    return Py_BuildValue("KK", m, y);
 }
 
 static PyMethodDef engine_methods[] = {
-    {"GetMovable", GetMovable, METH_VARARGS},
-    {"GetReversable", GetReversable, METH_VARARGS},
-    {"SampleBeta", SampleBeta, METH_VARARGS},
     {"Search", Search, METH_VARARGS},
     {NULL}
 };

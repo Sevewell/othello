@@ -227,7 +227,8 @@ class Root(tkinter.Tk):
     #着手可能箇所がなかったら？
     def Search(self):
 
-        self.white, self.black = search.SearchMulti(self.white, self.black, self.trial.get(), self.core.get()) #白番の探索
+        #self.white, self.black = search.SearchMulti(self.white, self.black, self.trial.get(), self.core.get()) #白番の探索
+        self.white, self.black = search.SearchC(self.white, self.black, self.trial.get())
         self.Draw() # 描画
         turn = self.turn.get()
         if turn == '黒番':

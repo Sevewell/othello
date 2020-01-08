@@ -1,5 +1,6 @@
 import rule
 import engine
+import random
 import time
 import pickle
 import multiprocessing
@@ -26,13 +27,13 @@ class Node():
 
         else:
 
-            movable = engine.GetMovable(self.m, self.y)
+            movable = rule.GetMovable(self.m, self.y)
 
             if movable:
 
                 while movable:
                     move = movable & (-movable)
-                    reversable = engine.GetReversable(self.m, self.y, move)
+                    reversable = rule.GetReversable(self.m, self.y, move)
                     m = self.m | move | reversable
                     y = self.y ^ reversable
                     self.children.append(Node(y, m))
@@ -40,7 +41,7 @@ class Node():
 
             else:
                 
-                if engine.GetMovable(self.y, self.m):
+                if rule.GetMovable(self.y, self.m):
                     self.children.append(Node(self.y, self.m))
 
 def PlayOut(node):
@@ -49,7 +50,7 @@ def PlayOut(node):
 
     if node.children:
 
-        probs = [engine.SampleBeta(child.a, child.b) for child in node.children]
+        probs = [random.betavariate(child.a, child.b) for child in node.children]
         child = node.children[probs.index(min(probs))]
         state = PlayOut(child)
         if state == 'w':
@@ -88,7 +89,12 @@ def WrapSearchMulti(args):
         PlayOut(child)
         playouts += 1
 
-    return engine.SampleBeta(child.a, child.b)
+    return random.betavariate(child.a, child.b)
+
+def SearchC(m, y, trial):
+
+    m, y = engine.Search(m, y, trial)
+    return m, y
 
 def SearchMulti(m, y, trial, cores):
 
@@ -114,11 +120,11 @@ def SearchMulti(m, y, trial, cores):
 
 def Move(m, y, move):
 
-    movable = engine.GetMovable(m, y)
+    movable = rule.GetMovable(m, y)
 
     if move & movable:
 
-        reversable = engine.GetReversable(m, y, move)
+        reversable = rule.GetReversable(m, y, move)
         m |= move | reversable
         y ^= reversable
 
@@ -134,4 +140,4 @@ def Count(node, n):
 
 def CheckEnd(m, y):
 
-    return engine.GetMovable(m, y) | engine.GetMovable(y, m)
+    return rule.GetMovable(m, y) | rule.GetMovable(y, m)
