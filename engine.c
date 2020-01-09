@@ -1,6 +1,8 @@
 #define PY_SSIZE_T_CLEAN
 #include <Python.h>
 #include <math.h>
+#include <omp.h>
+#include <time.h>
 
 unsigned long long GetMovableL
 (unsigned long long player, unsigned long long masked, unsigned long long blank, int dir)
@@ -329,24 +331,18 @@ PyObject *Search(PyObject *self, PyObject *args)
     }
 
     struct Node* node = CreateNode(m, y);
-    for (int i = 0; i < trial; i++)
+
+    for (int j = 0; j < trial; j++)
     {
         PlayOut(node);
+        //printf("\r%d/%d", i, trial);
     }
+    //printf("\r\n");
 
-    // no movable case
-    int index = ChoiceChild(node);
-    struct Node* child = node->child;
-    for (int i = 0; i < index; i++)
-    {
-        child = child->next;
-    }
-    m = child->y;
-    y = child->m;
-    printf("%lf\n", child->b / (child->a + child->b));
+    double winrate = node->a / (node->a + node->b);
     Free(node);
 
-    return Py_BuildValue("KK", m, y);
+    return Py_BuildValue("d", winrate);
 }
 
 static PyMethodDef engine_methods[] = {

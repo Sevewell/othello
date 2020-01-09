@@ -84,17 +84,15 @@ def WrapSearchMulti(args):
     child = args[0]
     trial = args[1]
 
+    '''
     playouts = 0
     while playouts < trial:
         PlayOut(child)
         playouts += 1
-
     return random.betavariate(child.a, child.b)
+    '''
 
-def SearchC(m, y, trial):
-
-    m, y = engine.Search(m, y, trial)
-    return m, y
+    return engine.Search(child.m, child.y, trial)
 
 def SearchMulti(m, y, trial, cores):
 
