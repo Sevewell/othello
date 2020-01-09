@@ -102,7 +102,6 @@ class Root(tkinter.Tk):
             move = 2**(63 - i)
             self.black, self.white = search.Move(self.black, self.white, move)
             self.Draw()
-            self.turn.set('白番')
 
         return Put
 
@@ -138,7 +137,7 @@ class Root(tkinter.Tk):
         else:
             record = []
 
-        for i in range(20):
+        for i in range(10):
 
             self.black = 34628173824
             self.white = 68853694464
@@ -146,21 +145,23 @@ class Root(tkinter.Tk):
 
             hp_b = search.random.random() * 4
             hp_w = search.random.random() * 4
-            print('black: {}'.format(hp_b))
-            print('white: {}'.format(hp_w))
+            n_b = search.random.randint(100000, 200000)
+            n_w = search.random.randint(100000, 200000)
+            print('black: {} {}'.format(hp_b, n_b))
+            print('white: {} {}'.format(hp_w, n_w))
 
             while True:
 
                 if search.CheckEnd(self.black, self.white):
                     search.hyper_param = hp_b
-                    self.black, self.white = search.SearchMulti(self.black, self.white, self.trial.get(), self.core.get())
+                    self.black, self.white = search.SearchMulti(self.black, self.white, n_b, self.core.get())
                     self.Draw()
                 else:
                     break
 
                 if search.CheckEnd(self.black, self.white):
                     search.hyper_param = hp_w
-                    self.white, self.black = search.SearchMulti(self.white, self.black, self.trial.get(), self.core.get())
+                    self.white, self.black = search.SearchMulti(self.white, self.black, n_w, self.core.get())
                     self.Draw()
                 else:
                     break
@@ -175,7 +176,7 @@ class Root(tkinter.Tk):
                 winner = 'draw'
             print('winner: {}'.format(winner))
 
-            record.append({'hp_b':hp_b, 'hp_w':hp_w, 'winner':winner})
+            record.append({'hp_b':hp_b, 'hp_w':hp_w, 'n_b':n_b, 'n_w':n_w, 'winner':winner})
 
         with open('record.pkl', 'wb') as f:
             pickle.dump(record, f)
@@ -187,13 +188,24 @@ class Root(tkinter.Tk):
 
         self.turn = tkinter.StringVar()
         self.turn.set('黒番')
-        label_turn = tkinter.Label(control, textvariable=self.turn)
-        label_turn.pack()
+        button_turn_b = tkinter.Radiobutton(
+            control,
+            text='黒番',
+            value='黒番',
+            variable=self.turn
+        )
+        button_turn_w = tkinter.Radiobutton(
+            control,
+            text='白番',
+            value='白番',
+            variable=self.turn
+        )
+        button_turn_b.pack()
+        button_turn_w.pack()
 
         trial = 200000
         self.trial = tkinter.IntVar()
         self.trial.set(trial // 2)
-
         trial_scale = tkinter.Scale(
             control,
             orient='horizontal',
@@ -203,10 +215,22 @@ class Root(tkinter.Tk):
             )
         trial_scale.pack()
 
+        param = 4
+        self.param = tkinter.DoubleVar()
+        self.param.set(param / 2)
+        scale_param = tkinter.Scale(
+            control,
+            orient='horizontal',
+            variable=self.param,
+            resolution=0.01,
+            from_=0,
+            to=param
+            )
+        scale_param.pack()
+
         core = os.cpu_count()
         self.core = tkinter.IntVar()
         self.core.set(core // 2)
-
         core_scale = tkinter.Scale(
             control,
             orient='horizontal',
@@ -227,10 +251,25 @@ class Root(tkinter.Tk):
     #着手可能箇所がなかったら？
     def Search(self):
 
-        self.white, self.black = search.SearchMulti(self.white, self.black, self.trial.get(), self.core.get()) #白番の探索
-        self.Draw() # 描画
         turn = self.turn.get()
+
         if turn == '黒番':
+            self.black, self.white = search.Search(
+                self.black,
+                self.white,
+                self.param.get(),
+                self.trial.get(),
+                self.core.get()
+            )
             self.turn.set('白番')
         elif turn == '白番':
+            self.white, self.black = search.Search(
+                self.white,
+                self.black,
+                self.param.get(),
+                self.trial.get(),
+                self.core.get()
+            )
             self.turn.set('黒番')
+
+        self.Draw()

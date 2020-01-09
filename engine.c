@@ -4,6 +4,8 @@
 #include <omp.h>
 #include <time.h>
 
+double param;
+
 unsigned long long GetMovableL
 (unsigned long long player, unsigned long long masked, unsigned long long blank, int dir)
 {
@@ -195,7 +197,7 @@ struct Node* CreateNode(unsigned long long m, unsigned long long y)
 
     node->m = m;
     node->y = y;
-    double count = pow(65.0 - (double)PopCount(m | y), 2.0);
+    double count = pow(65.0 - (double)PopCount(m | y), param);
     node->a = count;
     node->b = count;
     node->child = NULL;
@@ -325,7 +327,7 @@ PyObject *Search(PyObject *self, PyObject *args)
     unsigned long long y;
     int trial;
 
-    if (!PyArg_ParseTuple(args, "KKi", &m, &y, &trial))
+    if (!PyArg_ParseTuple(args, "KKdi", &m, &y, &param, &trial))
     {
         return NULL;
     }

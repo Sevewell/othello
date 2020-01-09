@@ -79,10 +79,11 @@ def PlayOut(node):
     
     return state
 
-def WrapSearchMulti(args):
+def WrapSearch(args):
 
     child = args[0]
-    trial = args[1]
+    param = args[1]
+    trial = args[2]
 
     '''
     playouts = 0
@@ -92,9 +93,9 @@ def WrapSearchMulti(args):
     return random.betavariate(child.a, child.b)
     '''
 
-    return engine.Search(child.m, child.y, trial)
+    return engine.Search(child.m, child.y, param, trial)
 
-def SearchMulti(m, y, trial, cores):
+def Search(m, y, param, trial, cores):
 
     node = Node(m, y)
     node.FindChildren()
@@ -105,7 +106,7 @@ def SearchMulti(m, y, trial, cores):
     # プレイアウト進捗とノード数を共有メモリしたい
     with multiprocessing.Pool(cores) as p:
 
-        winrates = p.map(WrapSearchMulti, [(child, trial) for child in node.children])
+        winrates = p.map(WrapSearch, [(child, param, trial) for child in node.children])
 
     choiced_winrate = min(winrates)
     choiced_child = node.children[winrates.index(choiced_winrate)]
