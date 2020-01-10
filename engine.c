@@ -169,6 +169,7 @@ struct Node
     unsigned long long y;
     double a;
     double b;
+    char result;
     struct Node *child;
     struct Node *next;
 };
@@ -199,6 +200,7 @@ struct Node* CreateNode(unsigned long long m, unsigned long long y)
     double count = pow(65.0 - (double)PopCount(m | y), param);
     node->a = count;
     node->b = count;
+    node->result = 'n';
     node->child = NULL;
     node->next = NULL;
 
@@ -231,9 +233,12 @@ void AddChild(struct Node *node, struct Node *child)
     }
 }
 
-void FindChildren(struct Node *node)
+int FindChildrenAndEnd(struct Node *node)
 {
-    if (node->child != NULL) return;
+    if (node->result != 'n') return 1;
+    if (node->child != NULL) return 0;
+    
+    int end;
 
     // signed for bit computation
     long long movable = GetMovable(node->m, node->y);
@@ -254,70 +259,121 @@ void FindChildren(struct Node *node)
             AddChild(node, CreateNode(y, m));
             movable ^= move;
         }
+
+        end = 0;
     }
     else if (GetMovable(node->y, node->m))
     {
         node->child = CreateNode(node->y, node->m);
-    }
-}
-
-int ChoiceChild(struct Node* node)
-{
-    int index;
-    int count = 0;
-    double winrate = 1.0;
-    struct Node* child = node->child;
-    double sample;
-
-    while (child != NULL)
-    {
-        sample = SampleBeta(child->a, child->b);
-        if (sample < winrate)
-        {
-            index = count;
-            winrate = sample;
-        }
-        child = child->next;
-        count++;
-    }
-
-    return index;
-}
-
-char PlayOut(struct Node* node)
-{
-    char state;
-    FindChildren(node);
-
-    if (node->child != NULL)
-    {
-        int index = ChoiceChild(node);
-        struct Node* child = node->child;
-        for (int i = 0; i < index; i++)
-        {
-            child = child->next;
-        }
-        state = PlayOut(child);
-        if (state == 'w') state = 'l';
-        else if (state == 'l') state = 'w';
+        end = 0;
     }
     else
     {
         int count_m = PopCount(node->m);
         int count_y = PopCount(node->y);
-        if (count_m > count_y) state = 'w';
-        else if (count_m < count_y) state = 'l';
+        if (count_m > count_y) node->result = 'w';
+        else if (count_m < count_y) node->result = 'l';
+        else node->result = 'd';
+        end = 1;
     }
 
-    if (state == 'w') node->a += 1.0;
-    else if (state == 'l') node->b += 1.0;
+    return end;
+}
+
+int PickOrDeleteChild(struct Node* node)
+{
+    int index = 0;
+    int count = 0;
+    double winrate = 1.0;
+    struct Node* child = node->child;
+    double uniform;
+
+    while (child != NULL)
+    {
+        if (child->result == 'w')
+        {
+            uniform = 1.0;
+        }
+        else if (child->result == 'l')
+        {
+            node->result = 'w';
+            Free(node->child);
+            return index;
+        }
+        else if (child->result == 'd')
+        {
+            uniform = 1.0;
+        }
+        else
+        {
+            uniform = (double)rand() / (double)(RAND_MAX + 1);
+        }
+
+        if (uniform <= winrate)
+        {
+            index = count;
+            winrate = uniform;
+        }
+        child = child->next;
+        count++;
+    }
+
+    // All Win or Draw
+    if (winrate == 1.0)
+    {
+        node->result = 'l';
+        Free(node->child);
+    }
+
+    return index;
+}
+
+int PlayOut(struct Node* node)
+{
+    printf("%llu %llu\n", node->m, node->y);
+    char result;
+    int end = FindChildrenAndEnd(node);
+
+    if (end)
+    {
+        return node->result;
+    }
     else
     {
-        node->a += 0.5;
-        node->b += 0.5;
-    }
+        int index = PickOrDeleteChild(node);
+        if (node->child == NULL) // 
+        {
+            return node->result;
+        }
+        else
+        {
+            struct Node* child = node->child;
+            for (int i = 0; i < index; i++)
+            {
+                child = child->next;
+            }
+            result = PlayOut(child);
 
-    return state;
+            if (result == 'w') result = 'l';
+            else if (result == 'l') result = 'w';
+            else if (result == 'd') result = 'd';
+            if (result == 'w')
+            {
+                node->a += 1.0;
+            }
+            else if (result == 'l')
+            {
+                node->b += 1.0;
+            }
+            else if (result == 'd')
+            {
+                node->a += 0.5;
+                node->b += 0.5;
+            }
+
+            return result;
+        }
+    }
 }
 
 PyObject *Search(PyObject *self, PyObject *args)
