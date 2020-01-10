@@ -6,21 +6,37 @@ with open('record.pkl', 'rb') as f:
 
 print(len(record))
 
-for winner in ['black', 'white', 'draw']:
+point = 'black'
 
-    hp_b = []
-    hp_w = []
+if point == 'black':
 
-    for row in record:
+    for winner in ['black', 'white', 'draw']:
 
-        if row['winner'] == winner:
-            hp_b.append(row['hp_b'])
-            hp_w.append(row['hp_w'])
+        difference_trial = []
+        difference_param = []
+        difference_syner = []
+        trial_m = []
+        trial_y = []
+        param_m = []
+        if winner == 'black':
+            result = 'win'
+        elif winner == 'white':
+            result = 'lose'
+        else:
+            result = 'draw'
 
-    pyplot.scatter(hp_b, hp_w, alpha=0.5, label=winner)
+        for row in record:
+            if winner == row['winner']:
+                difference_trial.append(row['n_b'] - row['n_w'])
+                difference_param.append(row['hp_b'] - row['hp_w'])
+                trial_m.append(row['n_b'])
+                trial_y.append(row['n_w'])
+                param_m.append(row['hp_b'])
 
-pyplot.xlabel('black')
-pyplot.ylabel('white')
+        pyplot.scatter(trial_m, param_m, alpha=0.5, label=result)
+
+pyplot.xlabel('trial')
+pyplot.ylabel('param')
 pyplot.legend()
 
 pyplot.show()

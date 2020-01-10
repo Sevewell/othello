@@ -1,7 +1,6 @@
 #define PY_SSIZE_T_CLEAN
 #include <Python.h>
 #include <math.h>
-#include <omp.h>
 #include <time.h>
 
 double param;
@@ -331,6 +330,8 @@ PyObject *Search(PyObject *self, PyObject *args)
     {
         return NULL;
     }
+
+    srand((unsigned int)time(NULL));
 
     struct Node* node = CreateNode(m, y);
 
