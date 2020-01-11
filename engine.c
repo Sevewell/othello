@@ -163,6 +163,12 @@ double SampleBeta(double a, double b)
     return gamma1 / (gamma1 + gamma2);
 }
 
+double SampleLogistic(double p)
+{
+    double u = (double)(rand() + 1) / (double)(RAND_MAX + 2);
+    return p + p * param * log(u / (1.0 - u));
+}
+
 struct Node
 {
     unsigned long long m;
@@ -242,6 +248,7 @@ int FindChildrenAndEnd(struct Node *node)
 
     // signed for bit computation
     long long movable = GetMovable(node->m, node->y);
+    printf("%lld\n", movable);
     if (movable)
     {
         unsigned long long move;
@@ -271,6 +278,7 @@ int FindChildrenAndEnd(struct Node *node)
     {
         int count_m = PopCount(node->m);
         int count_y = PopCount(node->y);
+        printf("%d %d\n", count_m, count_y);
         if (count_m > count_y) node->result = 'w';
         else if (count_m < count_y) node->result = 'l';
         else node->result = 'd';
@@ -306,7 +314,7 @@ int PickOrDeleteChild(struct Node* node)
         }
         else
         {
-            uniform = (double)rand() / (double)(RAND_MAX + 1);
+            uniform = (double)(rand() + 1) / (double)(RAND_MAX + 2);
         }
 
         if (uniform <= winrate)
@@ -318,7 +326,6 @@ int PickOrDeleteChild(struct Node* node)
         count++;
     }
 
-    // All Win or Draw
     if (winrate == 1.0)
     {
         node->result = 'l';
@@ -328,21 +335,22 @@ int PickOrDeleteChild(struct Node* node)
     return index;
 }
 
-int PlayOut(struct Node* node)
+int PlayOut(struct Node* node, int depth)
 {
-    printf("%llu %llu\n", node->m, node->y);
     char result;
     int end = FindChildrenAndEnd(node);
 
     if (end)
     {
+        //printf("%d\n", depth);
         return node->result;
     }
     else
     {
         int index = PickOrDeleteChild(node);
-        if (node->child == NULL) // 
+        if (node->child == NULL)
         {
+            //printf("%d\n", depth);
             return node->result;
         }
         else
@@ -352,25 +360,14 @@ int PlayOut(struct Node* node)
             {
                 child = child->next;
             }
-            result = PlayOut(child);
+            printf("%llu %llu ", child->m, child->y);
+            printf("%c\n", child->result);
+            depth++;
+            result = PlayOut(child, depth);
 
             if (result == 'w') result = 'l';
             else if (result == 'l') result = 'w';
             else if (result == 'd') result = 'd';
-            if (result == 'w')
-            {
-                node->a += 1.0;
-            }
-            else if (result == 'l')
-            {
-                node->b += 1.0;
-            }
-            else if (result == 'd')
-            {
-                node->a += 0.5;
-                node->b += 0.5;
-            }
-
             return result;
         }
     }
@@ -393,8 +390,8 @@ PyObject *Search(PyObject *self, PyObject *args)
 
     for (int j = 0; j < trial; j++)
     {
-        PlayOut(node);
-        //printf("\r%d/%d", i, trial);
+        PlayOut(node, 1);
+        //printf("\r%d/%d", j, trial);
     }
     //printf("\r\n");
 

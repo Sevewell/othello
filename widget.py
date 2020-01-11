@@ -44,8 +44,16 @@ class Root(tkinter.Tk):
         super().__init__()
         self.title('Othello')
 
-        self.black = 34628173824
-        self.white = 68853694464
+        #self.black = 34628173824
+        #self.white = 68853694464
+        self.black = 136391182778368
+        self.white = 68988960768
+        #self.black = 1152324562583552
+        #self.white = 481036337152
+        #self.black = 9230168337524523777
+        #self.white = 9216575736185027838
+        #self.black = 136391316996096
+        #self.white = 68853956608
         
         self.CreateBoard()
         self.CreateControl()
@@ -259,7 +267,7 @@ class Root(tkinter.Tk):
         turn = self.turn.get()
 
         if turn == '黒番':
-            self.black, self.white = search.Search(
+            self.black, self.white = search.SearchC(
                 self.black,
                 self.white,
                 self.param.get(),
@@ -268,7 +276,7 @@ class Root(tkinter.Tk):
             )
             self.turn.set('白番')
         elif turn == '白番':
-            self.white, self.black = search.Search(
+            self.white, self.black = search.SearchC(
                 self.white,
                 self.black,
                 self.param.get(),

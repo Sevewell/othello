@@ -79,6 +79,13 @@ def PlayOut(node):
     
     return state
 
+def SearchC(m, y, param, trial, core):
+
+    winrate = engine.Search(m, y, 1.0, trial)
+    print(winrate)
+
+    return m, y
+
 def WrapSearch(args):
 
     child = args[0]
