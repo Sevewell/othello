@@ -44,10 +44,10 @@ class Root(tkinter.Tk):
         super().__init__()
         self.title('Othello')
 
-        #self.black = 34628173824
-        #self.white = 68853694464
-        self.black = 136391182778368
-        self.white = 68988960768
+        self.black = 34628173824
+        self.white = 68853694464
+        #self.black = 136391182778368
+        #self.white = 68988960768
         #self.black = 1152324562583552
         #self.white = 481036337152
         #self.black = 9230168337524523777
@@ -228,7 +228,7 @@ class Root(tkinter.Tk):
             )
         trial_scale.pack()
 
-        param = 5
+        param = 2.0
         self.param = tkinter.DoubleVar()
         self.param.set(param / 2)
         scale_param = tkinter.Scale(
@@ -267,7 +267,7 @@ class Root(tkinter.Tk):
         turn = self.turn.get()
 
         if turn == '黒番':
-            self.black, self.white = search.SearchC(
+            self.black, self.white = search.Search(
                 self.black,
                 self.white,
                 self.param.get(),
@@ -276,7 +276,7 @@ class Root(tkinter.Tk):
             )
             self.turn.set('白番')
         elif turn == '白番':
-            self.white, self.black = search.SearchC(
+            self.white, self.black = search.Search(
                 self.white,
                 self.black,
                 self.param.get(),

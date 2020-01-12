@@ -1,9 +1,10 @@
 #define PY_SSIZE_T_CLEAN
 #include <Python.h>
+#include <intrin.h>
 #include <math.h>
 #include <time.h>
 
-double param;
+double learning_rate;
 
 unsigned long long GetMovableL
 (unsigned long long player, unsigned long long masked, unsigned long long blank, int dir)
@@ -163,10 +164,10 @@ double SampleBeta(double a, double b)
     return gamma1 / (gamma1 + gamma2);
 }
 
-double SampleLogistic(double p)
+double SampleLogistic(double m, double s)
 {
     double u = (double)(rand() + 1) / (double)(RAND_MAX + 2);
-    return p + p * param * log(u / (1.0 - u));
+    return m + s * log(u / (1.0 - u));
 }
 
 struct Node
@@ -175,26 +176,11 @@ struct Node
     unsigned long long y;
     double a;
     double b;
+    double value;
     char result;
     struct Node *child;
     struct Node *next;
 };
-
-int PopCount(unsigned long long x)
-{
-    int count = 0;
-
-    for (int i = 0; i < 64; i++)
-    {
-        if (x % 2)
-        {
-            count += 1;
-        }
-        x >>= 1;
-    }
-
-    return count;
-}
 
 struct Node* CreateNode(unsigned long long m, unsigned long long y)
 {
@@ -203,9 +189,9 @@ struct Node* CreateNode(unsigned long long m, unsigned long long y)
 
     node->m = m;
     node->y = y;
-    double count = pow(65.0 - (double)PopCount(m | y), param);
-    node->a = count;
-    node->b = count;
+    node->a = 1;
+    node->b = 1;
+    node->value = (double)(__popcnt64(m) + __popcnt64(y));
     node->result = 'n';
     node->child = NULL;
     node->next = NULL;
@@ -239,16 +225,13 @@ void AddChild(struct Node *node, struct Node *child)
     }
 }
 
-int FindChildrenAndEnd(struct Node *node)
+void FindChildrenAndEnd(struct Node *node)
 {
-    if (node->result != 'n') return 1;
-    if (node->child != NULL) return 0;
+    if (node->result != 'n') return;
+    if (node->child != NULL) return;
     
-    int end;
-
     // signed for bit computation
     long long movable = GetMovable(node->m, node->y);
-    printf("%lld\n", movable);
     if (movable)
     {
         unsigned long long move;
@@ -266,26 +249,19 @@ int FindChildrenAndEnd(struct Node *node)
             AddChild(node, CreateNode(y, m));
             movable ^= move;
         }
-
-        end = 0;
     }
     else if (GetMovable(node->y, node->m))
     {
         node->child = CreateNode(node->y, node->m);
-        end = 0;
     }
     else
     {
-        int count_m = PopCount(node->m);
-        int count_y = PopCount(node->y);
-        printf("%d %d\n", count_m, count_y);
+        int count_m = (int)__popcnt64(node->m);
+        int count_y = (int)__popcnt64(node->y);
         if (count_m > count_y) node->result = 'w';
         else if (count_m < count_y) node->result = 'l';
         else node->result = 'd';
-        end = 1;
     }
-
-    return end;
 }
 
 int PickOrDeleteChild(struct Node* node)
@@ -294,33 +270,36 @@ int PickOrDeleteChild(struct Node* node)
     int count = 0;
     double winrate = 1.0;
     struct Node* child = node->child;
-    double uniform;
+    double sample;
 
     while (child != NULL)
     {
         if (child->result == 'w')
         {
-            uniform = 1.0;
+            sample = 1.0;
         }
         else if (child->result == 'l')
         {
+            sample = 0.0;
+            //printf("%s\n", "Cut Node.");
             node->result = 'w';
-            Free(node->child);
-            return index;
+            return count;
         }
         else if (child->result == 'd')
         {
-            uniform = 1.0;
+            sample = 1.0;
         }
         else
         {
-            uniform = (double)(rand() + 1) / (double)(RAND_MAX + 2);
+            //sample = (double)(rand() + 1) / (double)(RAND_MAX + 2);
+            //sample = SampleLogistic(child->a, child->b); //not 0~1
+            sample = SampleBeta(child->a, child->b);
         }
 
-        if (uniform <= winrate)
+        if (sample <= winrate)
         {
             index = count;
-            winrate = uniform;
+            winrate = sample;
         }
         child = child->next;
         count++;
@@ -328,58 +307,68 @@ int PickOrDeleteChild(struct Node* node)
 
     if (winrate == 1.0)
     {
+        //printf("%s\n", "Cut Node.");
         node->result = 'l';
-        Free(node->child);
     }
 
     return index;
 }
 
+void Update(struct Node* node, char result, int depth) // What should be?
+{
+    double value = (double)depth * learning_rate;
+
+    if (result == 'w')
+    {
+        node->a += value;
+    }
+    else if (result == 'l')
+    {
+        node->b += value;
+    }
+    else if (result == 'd')
+    {
+        node->a += value / 2;
+        node->b += value / 2;
+    }
+}
+
 int PlayOut(struct Node* node, int depth)
 {
-    char result;
-    int end = FindChildrenAndEnd(node);
+    FindChildrenAndEnd(node);
 
-    if (end)
+    if (node->result != 'n')
     {
-        //printf("%d\n", depth);
+        //Free(node->child);
         return node->result;
     }
     else
     {
         int index = PickOrDeleteChild(node);
-        if (node->child == NULL)
+        struct Node* child = node->child;
+        for (int i = 0; i < index; i++)
         {
-            //printf("%d\n", depth);
-            return node->result;
+            child = child->next;
         }
-        else
-        {
-            struct Node* child = node->child;
-            for (int i = 0; i < index; i++)
-            {
-                child = child->next;
-            }
-            printf("%llu %llu ", child->m, child->y);
-            printf("%c\n", child->result);
-            depth++;
-            result = PlayOut(child, depth);
+        depth++;
+        char result = PlayOut(child, depth);
 
-            if (result == 'w') result = 'l';
-            else if (result == 'l') result = 'w';
-            else if (result == 'd') result = 'd';
-            return result;
-        }
+        if (result == 'w') result = 'l';
+        else if (result == 'l') result = 'w';
+        else if (result == 'd') result = 'd';
+        Update(node, result, depth);
+        return result;
     }
 }
 
+// can be static?
 PyObject *Search(PyObject *self, PyObject *args)
 {
     unsigned long long m;
     unsigned long long y;
     int trial;
 
-    if (!PyArg_ParseTuple(args, "KKdi", &m, &y, &param, &trial))
+    if (!PyArg_ParseTuple(args, "KKdi", &m, &y, &learning_rate, &trial))
     {
         return NULL;
     }
@@ -392,11 +381,22 @@ PyObject *Search(PyObject *self, PyObject *args)
     {
         PlayOut(node, 1);
         //printf("\r%d/%d", j, trial);
+        if (node->result == 'w')
+        {
+            node->b = 0;
+            break;
+        }
+        else if (node->result == 'l')
+        {
+            node->a = 0;
+            break;
+        }
     }
     //printf("\r\n");
 
     double winrate = node->a / (node->a + node->b);
     Free(node);
+    printf("%lf\n", winrate);
 
     return Py_BuildValue("d", winrate);
 }
