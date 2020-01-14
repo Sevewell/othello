@@ -271,6 +271,8 @@ int PickOrDeleteChild(struct Node* node)
     double winrate = 1.0;
     struct Node* child = node->child;
     double sample;
+    int win = 1;
+    int draw = 0;
 
     while (child != NULL)
     {
@@ -280,17 +282,18 @@ int PickOrDeleteChild(struct Node* node)
         }
         else if (child->result == 'l')
         {
-            sample = 0.0;
             //printf("%s\n", "Cut Node.");
             node->result = 'w';
             return count;
         }
         else if (child->result == 'd')
         {
-            sample = 1.0;
+            sample = 0.5;
+            draw = 1;
         }
         else
         {
+            win = 0;
             //sample = (double)(rand() + 1) / (double)(RAND_MAX + 2);
             //sample = SampleLogistic(child->a, child->b); //not 0~1
             sample = SampleBeta(child->a, child->b);
@@ -305,10 +308,11 @@ int PickOrDeleteChild(struct Node* node)
         count++;
     }
 
-    if (winrate == 1.0)
+    if (win)
     {
         //printf("%s\n", "Cut Node.");
-        node->result = 'l';
+        if (draw) node->result = 'd';
+        else node->result = 'l';
     }
 
     return index;
@@ -316,7 +320,7 @@ int PickOrDeleteChild(struct Node* node)
 
 void Update(struct Node* node, char result, int depth) // What should be?
 {
-    double value = (double)depth * learning_rate;
+    double value = pow(depth, learning_rate);
 
     if (result == 'w')
     {
@@ -378,8 +382,7 @@ PyObject *Search(PyObject *self, PyObject *args)
     struct Node* node = CreateNode(m, y);
 
     for (int j = 0; j < trial; j++)
-    {
-        PlayOut(node, 1);
+    {  
         //printf("\r%d/%d", j, trial);
         if (node->result == 'w')
         {
@@ -391,12 +394,21 @@ PyObject *Search(PyObject *self, PyObject *args)
             node->a = 0;
             break;
         }
+        else if (node->result == 'd')
+        {
+            node->a = 1;
+            node->b = 1;
+            break;
+        }
+        else
+        {
+            PlayOut(node, 1);
+        }
     }
     //printf("\r\n");
 
     double winrate = node->a / (node->a + node->b);
     Free(node);
-    printf("%lf\n", winrate);
 
     return Py_BuildValue("d", winrate);
 }

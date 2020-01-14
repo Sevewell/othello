@@ -46,14 +46,6 @@ class Root(tkinter.Tk):
 
         self.black = 34628173824
         self.white = 68853694464
-        #self.black = 136391182778368
-        #self.white = 68988960768
-        #self.black = 1152324562583552
-        #self.white = 481036337152
-        #self.black = 9230168337524523777
-        #self.white = 9216575736185027838
-        #self.black = 136391316996096
-        #self.white = 68853956608
         
         self.CreateBoard()
         self.CreateControl()
@@ -154,18 +146,16 @@ class Root(tkinter.Tk):
 
             self.black = 34628173824
             self.white = 68853694464
+            self.turn.set('黒番')
             self.Draw()
 
-            hp_b = search.random.random() * 5
-            hp_w = search.random.random() * 5
-            n_b = search.random.randint(10000, 200000)
-            n_w = search.random.randint(10000, 200000)
+            hp_b = search.random.random() * 4 - 1
+            hp_w = search.random.random() * 4 - 1
 
             while True:
 
                 if search.CheckEnd(self.black, self.white):
                     self.param.set(hp_b)
-                    self.trial.set(n_b)
                     self.Search()
                     self.Draw()
                 else:
@@ -173,7 +163,6 @@ class Root(tkinter.Tk):
 
                 if search.CheckEnd(self.black, self.white):
                     self.param.set(hp_w)
-                    self.trial.set(n_w)
                     self.Search()
                     self.Draw()
                 else:
@@ -189,7 +178,7 @@ class Root(tkinter.Tk):
                 winner = 'draw'
             print('winner: {}'.format(winner))
 
-            record.append({'hp_b':hp_b, 'hp_w':hp_w, 'n_b':n_b, 'n_w':n_w, 'winner':winner})
+            record.append({'hp_b':hp_b, 'hp_w':hp_w, 'winner':winner})
 
         with open('record.pkl', 'wb') as f:
             pickle.dump(record, f)
@@ -216,7 +205,7 @@ class Root(tkinter.Tk):
         button_turn_b.pack()
         button_turn_w.pack()
 
-        trial = 200000
+        trial = 500000
         self.trial = tkinter.IntVar()
         self.trial.set(trial // 2)
         trial_scale = tkinter.Scale(
@@ -228,16 +217,15 @@ class Root(tkinter.Tk):
             )
         trial_scale.pack()
 
-        param = 2.0
         self.param = tkinter.DoubleVar()
-        self.param.set(param / 2)
+        self.param.set(1)
         scale_param = tkinter.Scale(
             control,
             orient='horizontal',
             variable=self.param,
             resolution=0.01,
-            from_=0,
-            to=param
+            from_=-1,
+            to=3
             )
         scale_param.pack()
 

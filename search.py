@@ -118,9 +118,10 @@ def Search(m, y, param, trial, cores):
     choiced_winrate = min(winrates)
     choiced_child = node.children[winrates.index(choiced_winrate)]
 
-    print('time: {}'.format(time.time() - time_before))
-    print('winrate: {}'.format(1 - choiced_winrate))
-    print('...')
+    print({
+        'time': time.time() - time_before,
+        'winrate': 1 - choiced_winrate
+    })
 
     return choiced_child.y, choiced_child.m
 
