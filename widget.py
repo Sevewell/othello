@@ -142,15 +142,15 @@ class Root(tkinter.Tk):
         else:
             record = []
 
-        for i in range(10):
+        for i in range(20):
 
             self.black = 34628173824
             self.white = 68853694464
             self.turn.set('黒番')
             self.Draw()
 
-            hp_b = search.random.random() * 4 - 1
-            hp_w = search.random.random() * 4 - 1
+            hp_b = search.random.random() * 3 - 1
+            hp_w = search.random.random() * 3 - 1
 
             while True:
 
@@ -205,7 +205,7 @@ class Root(tkinter.Tk):
         button_turn_b.pack()
         button_turn_w.pack()
 
-        trial = 500000
+        trial = 5000000
         self.trial = tkinter.IntVar()
         self.trial.set(trial // 2)
         trial_scale = tkinter.Scale(
@@ -223,9 +223,9 @@ class Root(tkinter.Tk):
             control,
             orient='horizontal',
             variable=self.param,
-            resolution=0.01,
+            resolution=0.001,
             from_=-1,
-            to=3
+            to=2
             )
         scale_param.pack()
 

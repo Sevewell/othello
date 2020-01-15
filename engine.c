@@ -164,6 +164,14 @@ double SampleBeta(double a, double b)
     return gamma1 / (gamma1 + gamma2);
 }
 
+double Sample(double a, double b)
+{
+    double m = a / (a + b);
+    double sd = sqrt(a * b) / ((a + b) * sqrt(a + b + 1));
+    double uniform = (double)rand() / (double)RAND_MAX;
+    return uniform * 2 * sd + (m - sd);
+}
+
 double SampleLogistic(double m, double s)
 {
     double u = (double)(rand() + 1) / (double)(RAND_MAX + 2);
@@ -294,9 +302,8 @@ int PickOrDeleteChild(struct Node* node)
         else
         {
             win = 0;
-            //sample = (double)(rand() + 1) / (double)(RAND_MAX + 2);
-            //sample = SampleLogistic(child->a, child->b); //not 0~1
-            sample = SampleBeta(child->a, child->b);
+            //sample = SampleBeta(child->a, child->b);
+            sample = Sample(child->a, child->b);
         }
 
         if (sample <= winrate)
