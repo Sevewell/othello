@@ -142,15 +142,16 @@ class Root(tkinter.Tk):
         else:
             record = []
 
-        for i in range(20):
+        for i in range(1):
 
             self.black = 34628173824
             self.white = 68853694464
             self.turn.set('黒番')
             self.Draw()
 
-            hp_b = search.random.random() * 3 - 1
-            hp_w = search.random.random() * 3 - 1
+            hp_b = 0.75
+            hp_w = 0.75
+            self.trial.set(500000)
 
             while True:
 
@@ -178,7 +179,13 @@ class Root(tkinter.Tk):
                 winner = 'draw'
             print('winner: {}'.format(winner))
 
-            record.append({'hp_b':hp_b, 'hp_w':hp_w, 'winner':winner})
+            record.append(
+                {
+                    'hp_b':hp_b,
+                    'hp_w':hp_w,
+                    'winner':winner
+                }
+            )
 
         with open('record.pkl', 'wb') as f:
             pickle.dump(record, f)
@@ -224,7 +231,7 @@ class Root(tkinter.Tk):
             orient='horizontal',
             variable=self.param,
             resolution=0.001,
-            from_=-1,
+            from_=0,
             to=2
             )
         scale_param.pack()

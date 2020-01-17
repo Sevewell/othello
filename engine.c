@@ -159,17 +159,25 @@ double SampleGamma(double alpha)
 
 double SampleBeta(double a, double b)
 {
-    double gamma1 = SampleGamma(a);
-    double gamma2 = SampleGamma(b);
-    return gamma1 / (gamma1 + gamma2);
+    if ((a == 1.0) && (b == 1.0))
+    {
+        return (double)rand() / (double)RAND_MAX;
+    }
+    else
+    {
+        double gamma1 = SampleGamma(a);
+        double gamma2 = SampleGamma(b);
+        return gamma1 / (gamma1 + gamma2);
+    }
 }
 
-double Sample(double a, double b)
+double SampleBetaSimple(double a, double b)
 {
     double m = a / (a + b);
     double sd = sqrt(a * b) / ((a + b) * sqrt(a + b + 1));
+    double distance = 2 * sd;
     double uniform = (double)rand() / (double)RAND_MAX;
-    return uniform * 2 * sd + (m - sd);
+    return uniform * 2 * distance + (m - distance);
 }
 
 double SampleLogistic(double m, double s)
@@ -184,7 +192,6 @@ struct Node
     unsigned long long y;
     double a;
     double b;
-    double value;
     char result;
     struct Node *child;
     struct Node *next;
@@ -199,7 +206,6 @@ struct Node* CreateNode(unsigned long long m, unsigned long long y)
     node->y = y;
     node->a = 1;
     node->b = 1;
-    node->value = (double)(__popcnt64(m) + __popcnt64(y));
     node->result = 'n';
     node->child = NULL;
     node->next = NULL;
@@ -302,11 +308,13 @@ int PickOrDeleteChild(struct Node* node)
         else
         {
             win = 0;
-            //sample = SampleBeta(child->a, child->b);
-            sample = Sample(child->a, child->b);
+            sample = SampleBeta(child->a, child->b);
+            //sample = SampleBetaSimple(child->a, child->b);
+            // Warning for simple sample,
+            // can be more than 1.0 and less than 0.0
         }
 
-        if (sample <= winrate)
+        if (sample < winrate)
         {
             index = count;
             winrate = sample;
@@ -327,7 +335,7 @@ int PickOrDeleteChild(struct Node* node)
 
 void Update(struct Node* node, char result, int depth) // What should be?
 {
-    double value = pow(depth, learning_rate);
+    double value = pow(depth + 1, learning_rate) - 1;
 
     if (result == 'w')
     {
@@ -361,8 +369,7 @@ int PlayOut(struct Node* node, int depth)
         {
             child = child->next;
         }
-        depth++;
-        char result = PlayOut(child, depth);
+        char result = PlayOut(child, depth + 1);
 
         if (result == 'w') result = 'l';
         else if (result == 'l') result = 'w';
