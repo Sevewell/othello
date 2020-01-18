@@ -142,15 +142,15 @@ class Root(tkinter.Tk):
         else:
             record = []
 
-        for i in range(1):
+        for i in range(10):
 
             self.black = 34628173824
             self.white = 68853694464
             self.turn.set('黒番')
             self.Draw()
 
-            hp_b = 0.75
-            hp_w = 0.75
+            hp_b = search.random.random() / 5 + 0.8
+            hp_w = search.random.random() / 5 + 0.8
             self.trial.set(500000)
 
             while True:
@@ -179,13 +179,7 @@ class Root(tkinter.Tk):
                 winner = 'draw'
             print('winner: {}'.format(winner))
 
-            record.append(
-                {
-                    'hp_b':hp_b,
-                    'hp_w':hp_w,
-                    'winner':winner
-                }
-            )
+            record.append({'hp_b': hp_b, 'hp_w': hp_w, 'winner': winner})
 
         with open('record.pkl', 'wb') as f:
             pickle.dump(record, f)
@@ -212,7 +206,7 @@ class Root(tkinter.Tk):
         button_turn_b.pack()
         button_turn_w.pack()
 
-        trial = 5000000
+        trial = 500000
         self.trial = tkinter.IntVar()
         self.trial.set(trial // 2)
         trial_scale = tkinter.Scale(
@@ -225,14 +219,14 @@ class Root(tkinter.Tk):
         trial_scale.pack()
 
         self.param = tkinter.DoubleVar()
-        self.param.set(1)
+        self.param.set(0.9)
         scale_param = tkinter.Scale(
             control,
             orient='horizontal',
             variable=self.param,
             resolution=0.001,
-            from_=0,
-            to=2
+            from_=0.8,
+            to=1.0
             )
         scale_param.pack()
 

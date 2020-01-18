@@ -180,12 +180,6 @@ double SampleBetaSimple(double a, double b)
     return uniform * 2 * distance + (m - distance);
 }
 
-double SampleLogistic(double m, double s)
-{
-    double u = (double)(rand() + 1) / (double)(RAND_MAX + 2);
-    return m + s * log(u / (1.0 - u));
-}
-
 struct Node
 {
     unsigned long long m;
@@ -333,33 +327,42 @@ int PickOrDeleteChild(struct Node* node)
     return index;
 }
 
-void Update(struct Node* node, char result, int depth) // What should be?
+double Update(struct Node* node, double result)
 {
-    double value = pow(depth + 1, learning_rate) - 1;
-
-    if (result == 'w')
+    double value = fabs(result) * learning_rate;
+    if (result > 0)
     {
         node->a += value;
+        return -value;
     }
-    else if (result == 'l')
+    else
     {
         node->b += value;
-    }
-    else if (result == 'd')
-    {
-        node->a += value / 2;
-        node->b += value / 2;
+        return value;
     }
 }
 
-int PlayOut(struct Node* node, int depth)
+double PlayOut(struct Node* node, int depth)
 {
     FindChildrenAndEnd(node);
 
     if (node->result != 'n')
     {
-        //Free(node->child);
-        return node->result;
+        double value = 1.0;
+        if (node->result == 'w') 
+        {
+            node->a += value;
+            return -value;
+        }
+        else if (node->result == 'l')
+        {
+            node->b += value;
+            return value;
+        }
+        else
+        {
+            return 0.0;
+        }
     }
     else
     {
@@ -369,12 +372,8 @@ int PlayOut(struct Node* node, int depth)
         {
             child = child->next;
         }
-        char result = PlayOut(child, depth + 1);
-
-        if (result == 'w') result = 'l';
-        else if (result == 'l') result = 'w';
-        else if (result == 'd') result = 'd';
-        Update(node, result, depth);
+        double result = PlayOut(child, depth + 1);
+        result = Update(node, result);
         return result;
     }
 }
@@ -398,26 +397,7 @@ PyObject *Search(PyObject *self, PyObject *args)
     for (int j = 0; j < trial; j++)
     {  
         //printf("\r%d/%d", j, trial);
-        if (node->result == 'w')
-        {
-            node->b = 0;
-            break;
-        }
-        else if (node->result == 'l')
-        {
-            node->a = 0;
-            break;
-        }
-        else if (node->result == 'd')
-        {
-            node->a = 1;
-            node->b = 1;
-            break;
-        }
-        else
-        {
-            PlayOut(node, 1);
-        }
+        PlayOut(node, 1);
     }
     //printf("\r\n");
 
