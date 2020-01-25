@@ -3,6 +3,7 @@
 #include <intrin.h>
 #include <math.h>
 #include <time.h>
+#include <stdint.h>
 
 double learning_rate;
 
@@ -132,26 +133,47 @@ unsigned long long GetReversable
     return rev;
 }
 
+double SampleUniform()
+{
+    static uint64_t x = 88172645463325252ULL;
+    x = x ^ (x << 7);
+    x = x ^ (x >> 9);
+    return (double)x / (double)UINT64_MAX;
+}
+
+PyObject *SetSeed(PyObject *self, PyObject *args)
+{
+    int seed = (unsigned int)time(NULL) % 100;
+    for (int i = 0; i < seed; i++)
+    {
+        SampleUniform();
+    }
+    return Py_None;
+}
+
 double SampleNormal()
 {
-    int sum = 0;
+    double sum = 0;
     for (int i = 0; i < 12; i++)
     {
-        sum += rand();
+        sum += SampleUniform();
     }
-    return (double)sum / (double)RAND_MAX - 6.0;
+    return sum - 6.0;
 }
 
 double SampleGamma(double alpha)
 {
     double c1 = alpha - 1.0 / 3.0;
     double c2 = 1.0 / sqrt(9.0 * c1);
+    double norm;
+    double v;
+    double u;
     while (1)
     {
-        double norm = SampleNormal();
+        norm = SampleNormal();
         if (c2 * norm <= -1.0) continue;
-        double v = pow(1.0 + c2 * norm, 3.0);
-        double u = (double)rand() / (double)RAND_MAX;
+        v = pow(1.0 + c2 * norm, 3.0);
+        u = SampleUniform();
         if (u < 1.0 - 0.331 * pow(norm, 4.0)) return c1 * v;
         if (log(u) < 0.5 * pow(norm, 2.0) + c1 * (1.0 - v + log(v))) return c1 * v;
     }
@@ -161,7 +183,7 @@ double SampleBeta(double a, double b)
 {
     if ((a == 1.0) && (b == 1.0))
     {
-        return (double)rand() / (double)RAND_MAX;
+        return SampleUniform();
     }
     else
     {
@@ -171,13 +193,15 @@ double SampleBeta(double a, double b)
     }
 }
 
-double SampleBetaSimple(double a, double b)
+PyObject *WrapSampleBeta(PyObject *self, PyObject *args)
 {
-    double m = a / (a + b);
-    double sd = sqrt(a * b) / ((a + b) * sqrt(a + b + 1));
-    double distance = 2 * sd;
-    double uniform = (double)rand() / (double)RAND_MAX;
-    return uniform * 2 * distance + (m - distance);
+    double a;
+    double b;
+    if (!PyArg_ParseTuple(args, "dd", &a, &b))
+    {
+        return NULL;
+    }
+    return Py_BuildValue("d", SampleBeta(a, b));
 }
 
 struct Node
@@ -379,6 +403,7 @@ double PlayOut(struct Node* node, int depth)
 }
 
 // can be static?
+// All processes are same seeds?
 PyObject *Search(PyObject *self, PyObject *args)
 {
     unsigned long long m;
@@ -389,8 +414,6 @@ PyObject *Search(PyObject *self, PyObject *args)
     {
         return NULL;
     }
-
-    srand((unsigned int)time(NULL));
 
     struct Node* node = CreateNode(m, y);
 
@@ -408,7 +431,9 @@ PyObject *Search(PyObject *self, PyObject *args)
 }
 
 static PyMethodDef engine_methods[] = {
+    {"SetSeed", SetSeed, METH_VARARGS},
     {"Search", Search, METH_VARARGS},
+    {"WrapSampleBeta", WrapSampleBeta, METH_VARARGS},
     {NULL}
 };
 
