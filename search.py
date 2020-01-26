@@ -5,7 +5,7 @@ import time
 import pickle
 import multiprocessing
 
-engine.SetSeed()
+engine.SetSeed(random.randint(0, 100))
 hyper_param = 2
 
 class Node():

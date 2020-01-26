@@ -1,8 +1,9 @@
 import engine
 from matplotlib import pyplot
 import time
+import random
 
-engine.SetSeed()
+engine.SetSeed(random.randint(0, 100))
 
 time_before = time.time()
 sample = [engine.WrapSampleBeta(8, 2) for i in range(10000)]

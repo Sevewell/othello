@@ -143,7 +143,11 @@ double SampleUniform()
 
 PyObject *SetSeed(PyObject *self, PyObject *args)
 {
-    int seed = (unsigned int)time(NULL) % 100;
+    int seed;
+    if (!PyArg_ParseTuple(args, "i", &seed))
+    {
+        return NULL;
+    }
     for (int i = 0; i < seed; i++)
     {
         SampleUniform();
