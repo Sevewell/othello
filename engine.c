@@ -264,6 +264,19 @@ struct Node* GetChild(struct Node* node, unsigned long long movable, int index)
     return child;
 }
 
+void Test0GetChild()
+{
+    struct Node* node = CreateNode(34628173824, 68853694464);
+    unsigned long long movable = GetMovable(node->m, node->y);
+    int index = 0;
+
+    struct Node* child = GetChild(node, movable, index);
+    if (node->child == NULL)
+    {
+        printf("Error: Failed AppEnd.\n");
+    }
+}
+
 void Test1GetChild()
 {
     struct Node* node = CreateNode(34628173824, 68853694464);
@@ -342,10 +355,15 @@ void Test4GetChild()
 
 PyObject *TestGetChild(PyObject *self, PyObject *args)
 {
+    Test0GetChild();
     Test1GetChild();
     Test2GetChild();
     Test3GetChild();
     Test4GetChild();
+
+    // append child?
+
+    printf("TestGetChild done.\n");
     return Py_None;
 }
 
@@ -414,6 +432,40 @@ int ChoiceChild(struct Node* node, unsigned long long movable)
     return index;
 }
 
+PyObject *TestChoiceChild(PyObject *self, PyObject *args)
+{
+    struct Node* node = CreateNode(34628173824, 68853694464);
+    unsigned long long movable = GetMovable(node->m, node->y);
+
+    int seed = rand() % 100;
+    for (int i = 0; i < seed; i++)
+    {
+        SampleUniform();
+    }
+    node->child = CreateNode(68719476736, 34762915840);
+    node->child->b = 9.0;
+    for (int i = 0; i < 20; i++)
+    {
+        printf("%d\n", ChoiceChild(node, movable));
+    }
+
+    printf("\n");
+    node->child->result = 'l';
+    for (int i = 0; i < 20; i++)
+    {
+        printf("%d\n", ChoiceChild(node, movable));
+    }
+    if (node->result != 'w')
+    {
+        printf("Error\n");
+    }
+
+    // if children are all win.
+
+    printf("TestChoiceChild done.\n");
+    return Py_None;
+}
+
 double Update(struct Node* node, double result)
 {
     double value = fabs(result);
@@ -427,6 +479,34 @@ double Update(struct Node* node, double result)
         node->b += value;
         return value * learning_rate;
     }
+}
+
+PyObject *TestUpdate(PyObject *self, PyObject *args)
+{
+    struct Node* node = CreateNode(34628173824, 68853694464);
+    learning_rate = 0.9;
+
+    Update(node, 1.0);
+    if (node->a != 2.0)
+    {
+        printf("Error\n");
+    }
+    Update(node, -1.0);
+    if (node->b != 2.0)
+    {
+        printf("Error\n");
+    }
+    if (Update(node, 1.0) != -0.9)
+    {
+        printf("Error\n");
+    }
+    if (Update(node, -1.0) != 0.9)
+    {
+        printf("Error\n");
+    }
+
+    printf("TestUpdate done.\n");
+    return Py_None;
 }
 
 double End(struct Node* node)
@@ -463,7 +543,6 @@ double PlayOut(struct Node* node, int depth)
     }
     else
     {
-        double result;
         unsigned long long movable = GetMovable(node->m, node->y);
         if (movable)
         {
@@ -487,6 +566,24 @@ double PlayOut(struct Node* node, int depth)
         }
         return result;
     }
+}
+
+PyObject *TestPlayOut(PyObject *self, PyObject *args)
+{
+    struct Node* node = CreateNode(34628173824, 68853694464);
+    learning_rate = 0.9;
+
+    PlayOut(node, 1);
+    while (node != NULL)
+    {
+        printf("%llu %llu\n", node->m, node->y);
+        printf("%lf %lf\n", node->a, node->b);
+        printf("%c\n", node->result);
+        node = node->child;
+    }
+
+    printf("TestPlayOut done.\n");
+    return Py_None;
 }
 
 // can be static?
@@ -520,6 +617,9 @@ PyObject *Search(PyObject *self, PyObject *args)
 static PyMethodDef engine_methods[] = {
     {"SetSeed", SetSeed, METH_VARARGS},
     {"TestGetChild", TestGetChild, METH_VARARGS},
+    {"TestChoiceChild", TestChoiceChild, METH_VARARGS},
+    {"TestUpdate", TestUpdate, METH_VARARGS},
+    {"TestPlayOut", TestPlayOut, METH_VARARGS},
     {"Search", Search, METH_VARARGS},
     {"WrapSampleBeta", WrapSampleBeta, METH_VARARGS},
     {NULL}
