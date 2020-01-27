@@ -474,7 +474,10 @@ double PlayOut(struct Node* node, int depth)
         }
         else if (GetMovable(node->y, node->m))
         {
-            node->child = CreateNode(node->y, node->m);
+            if (node->child == NULL)
+            {
+                node->child = CreateNode(node->y, node->m);
+            }
             result = PlayOut(node->child, depth + 1);
             result = Update(node, result);
         }
