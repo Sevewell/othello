@@ -2,7 +2,6 @@
 #include <Python.h>
 #include <intrin.h>
 #include <math.h>
-#include <time.h>
 #include <stdint.h>
 
 double learning_rate;
@@ -185,16 +184,9 @@ double SampleGamma(double alpha)
 
 double SampleBeta(double a, double b)
 {
-    if ((a == 1.0) && (b == 1.0))
-    {
-        return SampleUniform();
-    }
-    else
-    {
-        double gamma1 = SampleGamma(a);
-        double gamma2 = SampleGamma(b);
-        return gamma1 / (gamma1 + gamma2);
-    }
+    double gamma1 = SampleGamma(a);
+    double gamma2 = SampleGamma(b);
+    return gamma1 / (gamma1 + gamma2);
 }
 
 PyObject *WrapSampleBeta(PyObject *self, PyObject *args)
@@ -244,63 +236,120 @@ void Free(struct Node* node)
     node = NULL;
 }
 
-void AddChild(struct Node *node, struct Node *child)
+struct Node* GetChild(struct Node* node, unsigned long long movable, int index)
 {
-    if (node->child == NULL)
+    struct Node* child = node->child;
+
+    for (int i = 0; i < index; i++)
     {
-        node->child = child;
-    }
-    else
-    {
-        struct Node *last = node->child;
-        while (last->next != NULL)
+        if (child != NULL)
         {
-            last = last->next;
+            movable ^= (movable & (child->m | child->y));
+            child = child->next;
         }
-        last->next = child;
+        else
+        {
+            movable &= (movable - 1);
+        }
+    }
+    if (child == NULL)
+    {
+        unsigned long long move = movable ^ (movable & (movable - 1));
+        unsigned long long reversable = GetReversable(node->m, node->y, move);
+        unsigned long long m = node->y ^ reversable;
+        unsigned long long y = node->m | move | reversable;
+        child = CreateNode(m, y);
+    }
+
+    return child;
+}
+
+void Test1GetChild()
+{
+    struct Node* node = CreateNode(34628173824, 68853694464);
+    unsigned long long movable = GetMovable(node->m, node->y);
+    int index = 0;
+
+    struct Node* child = GetChild(node, movable, index);
+    if (child->m != 68719476736)
+    {
+        printf("Error: child->m is wrong.\n");
+    }
+    if (child->y != 34762915840)
+    {
+        printf("Error: child->y is wrong.\n");
     }
 }
 
-void FindChildrenAndEnd(struct Node *node)
+void Test2GetChild()
 {
-    if (node->result != 'n') return;
-    if (node->child != NULL) return;
-    
-    // signed for bit computation
+    struct Node* node = CreateNode(34628173824, 68853694464);
     long long movable = GetMovable(node->m, node->y);
-    if (movable)
-    {
-        unsigned long long move;
-        unsigned long long reversable;
-        unsigned long long m;
-        unsigned long long y;
-        //struct Node* last = node->child; Why cannot work?
+    int index = 3;
 
-        while (movable)
-        {
-            move = (unsigned long long)(movable & -movable);
-            reversable = GetReversable(node->m, node->y, move);
-            m = node->m | move | reversable;
-            y = node->y ^ reversable;
-            AddChild(node, CreateNode(y, m));
-            movable ^= move;
-        }
-    }
-    else if (GetMovable(node->y, node->m))
+    struct Node* child = GetChild(node, movable, index);
+    if (child->m != 134217728)
     {
-        node->child = CreateNode(node->y, node->m);
+        printf("Error: child->m is wrong. ");
+        printf("%llu\n", child->m);
     }
-    else
+    if (child->y != 17695533694976)
     {
-        int count_m = (int)__popcnt64(node->m);
-        int count_y = (int)__popcnt64(node->y);
-        if (count_m > count_y) node->result = 'w';
-        else if (count_m < count_y) node->result = 'l';
-        else node->result = 'd';
+        printf("Error: child->y is wrong. ");
+        printf("%llu\n", child->y);
     }
 }
 
-int PickOrDeleteChild(struct Node* node)
+void Test3GetChild()
+{
+    struct Node* node = CreateNode(34628173824, 68853694464);
+    node->child = CreateNode(68719476736, 34762915840);
+    long long movable = GetMovable(node->m, node->y);
+    int index = 0;
+
+    struct Node* child = GetChild(node, movable, index);
+    if (child->m != 68719476736)
+    {
+        printf("Error: child->m is wrong. ");
+        printf("%llu\n", child->m);
+    }
+    if (child->y != 34762915840)
+    {
+        printf("Error: child->y is wrong. ");
+        printf("%llu\n", child->y);
+    }
+}
+
+void Test4GetChild()
+{
+    struct Node* node = CreateNode(34628173824, 68853694464);
+    node->child = CreateNode(68719476736, 34762915840);
+    long long movable = GetMovable(node->m, node->y);
+    int index = 3;
+
+    struct Node* child = GetChild(node, movable, index);
+    if (child->m != 134217728)
+    {
+        printf("Error: child->m is wrong. ");
+        printf("%llu\n", child->m);
+    }
+    if (child->y != 17695533694976)
+    {
+        printf("Error: child->y is wrong. ");
+        printf("%llu\n", child->y);
+    }
+}
+
+PyObject *TestGetChild(PyObject *self, PyObject *args)
+{
+    Test1GetChild();
+    Test2GetChild();
+    Test3GetChild();
+    Test4GetChild();
+    return Py_None;
+}
+
+int ChoiceChild(struct Node* node, unsigned long long movable)
 {
     int index = 0;
     int count = 0;
@@ -318,9 +367,8 @@ int PickOrDeleteChild(struct Node* node)
         }
         else if (child->result == 'l')
         {
-            //printf("%s\n", "Cut Node.");
             node->result = 'w';
-            return count;
+            return index;
         }
         else if (child->result == 'd')
         {
@@ -331,9 +379,6 @@ int PickOrDeleteChild(struct Node* node)
         {
             win = 0;
             sample = SampleBeta(child->a, child->b);
-            //sample = SampleBetaSimple(child->a, child->b);
-            // Warning for simple sample,
-            // can be more than 1.0 and less than 0.0
         }
 
         if (sample < winrate)
@@ -341,13 +386,27 @@ int PickOrDeleteChild(struct Node* node)
             index = count;
             winrate = sample;
         }
-        child = child->next;
         count++;
+        movable ^= (movable & (child->m | child->y));
+        child = child->next;
+    }
+
+    while (movable)
+    {
+        win = 0;
+        sample = SampleUniform();
+
+        if (sample < winrate)
+        {
+            index = count;
+            winrate = sample;
+        }
+        count++;
+        movable &= (movable - 1);
     }
 
     if (win)
     {
-        //printf("%s\n", "Cut Node.");
         if (draw) node->result = 'd';
         else node->result = 'l';
     }
@@ -357,51 +416,72 @@ int PickOrDeleteChild(struct Node* node)
 
 double Update(struct Node* node, double result)
 {
-    double value = fabs(result) * learning_rate;
+    double value = fabs(result);
     if (result > 0)
     {
         node->a += value;
-        return -value;
+        return -(value * learning_rate);
     }
     else
     {
         node->b += value;
-        return value;
+        return value * learning_rate;
     }
+}
+
+double End(struct Node* node)
+{
+    double result;
+    int count_m = (int)__popcnt64(node->m);
+    int count_y = (int)__popcnt64(node->y);
+    if (count_m > count_y)
+    {
+        node->result = 'w';
+        result = Update(node, 1.0);
+    }
+    else if (count_m < count_y)
+    {
+        node->result = 'l';
+        result = Update(node, -1.0);
+    }
+    else
+    {
+        node->result = 'd';
+        result = Update(node, -1.0);
+    }
+    return result;
 }
 
 double PlayOut(struct Node* node, int depth)
 {
-    FindChildrenAndEnd(node);
-
+    double result;
     if (node->result != 'n')
     {
-        double value = 1.0;
-        if (node->result == 'w') 
-        {
-            node->a += value;
-            return -value;
-        }
-        else if (node->result == 'l')
-        {
-            node->b += value;
-            return value;
-        }
-        else
-        {
-            return 0.0;
-        }
+        if (node->result = 'w') result = Update(node, 1.0);
+        else result = Update(node, -1.0);
+        return result;
     }
     else
     {
-        int index = PickOrDeleteChild(node);
-        struct Node* child = node->child;
-        for (int i = 0; i < index; i++)
+        double result;
+        unsigned long long movable = GetMovable(node->m, node->y);
+        if (movable)
         {
-            child = child->next;
+            int index = ChoiceChild(node, movable);
+            struct Node* child = GetChild(node, movable, index);
+            result = PlayOut(child, depth + 1);
+            result = Update(node, result);
         }
-        double result = PlayOut(child, depth + 1);
-        result = Update(node, result);
+        else if (GetMovable(node->y, node->m))
+        {
+            node->child = CreateNode(node->y, node->m);
+            result = PlayOut(node->child, depth + 1);
+            result = Update(node, result);
+        }
+        else
+        {
+            result = End(node);
+        }
         return result;
     }
 }
@@ -436,6 +516,7 @@ PyObject *Search(PyObject *self, PyObject *args)
 
 static PyMethodDef engine_methods[] = {
     {"SetSeed", SetSeed, METH_VARARGS},
+    {"TestGetChild", TestGetChild, METH_VARARGS},
     {"Search", Search, METH_VARARGS},
     {"WrapSampleBeta", WrapSampleBeta, METH_VARARGS},
     {NULL}
