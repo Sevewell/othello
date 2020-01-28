@@ -1,6 +1,9 @@
 import engine
+import random
 
-engine.TestGetChild()
+engine.SetSeed(random.randint(0, 100))
+
+engine.TestDrawLotsExisting()
+engine.TestDrawLotsNew()
 engine.TestUpdate()
-engine.TestChoiceChild()
 engine.TestPlayOut()

@@ -44,8 +44,10 @@ class Root(tkinter.Tk):
         super().__init__()
         self.title('Othello')
 
-        self.black = 34628173824
-        self.white = 68853694464
+        #self.black = 34628173824
+        #self.white = 68853694464
+        self.black = 268435456
+        self.white = 61813844092928
         
         self.CreateBoard()
         self.CreateControl()

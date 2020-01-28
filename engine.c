@@ -236,142 +236,26 @@ void Free(struct Node* node)
     node = NULL;
 }
 
-struct Node* GetChild(struct Node* node, unsigned long long movable, int index)
+void AddChild(struct Node *node, struct Node* child)
 {
-    struct Node* child = node->child;
-
-    for (int i = 0; i < index; i++)
-    {
-        if (child != NULL)
-        {
-            movable ^= (movable & (child->m | child->y));
-            child = child->next;
-        }
-        else
-        {
-            movable &= (movable - 1);
-        }
-    }
-    if (child == NULL)
-    {
-        unsigned long long move = movable ^ (movable & (movable - 1));
-        unsigned long long reversable = GetReversable(node->m, node->y, move);
-        unsigned long long m = node->y ^ reversable;
-        unsigned long long y = node->m | move | reversable;
-        child = CreateNode(m, y);
-    }
-
-    return child;
-}
-
-void Test0GetChild()
-{
-    struct Node* node = CreateNode(34628173824, 68853694464);
-    unsigned long long movable = GetMovable(node->m, node->y);
-    int index = 0;
-
-    struct Node* child = GetChild(node, movable, index);
     if (node->child == NULL)
     {
-        printf("Error: Failed AppEnd.\n");
+        node->child = child;
+    }
+    else
+    {
+        struct Node* last = node->child;
+        while (last->next != NULL)
+        {
+            last = last->next;
+        }
+        last->next = child;
     }
 }
 
-void Test1GetChild()
+struct Node* DrawLotsExisting(struct Node* node, unsigned long long *movable, double *winrate)
 {
-    struct Node* node = CreateNode(34628173824, 68853694464);
-    unsigned long long movable = GetMovable(node->m, node->y);
-    int index = 0;
-
-    struct Node* child = GetChild(node, movable, index);
-    if (child->m != 68719476736)
-    {
-        printf("Error: child->m is wrong.\n");
-    }
-    if (child->y != 34762915840)
-    {
-        printf("Error: child->y is wrong.\n");
-    }
-}
-
-void Test2GetChild()
-{
-    struct Node* node = CreateNode(34628173824, 68853694464);
-    long long movable = GetMovable(node->m, node->y);
-    int index = 3;
-
-    struct Node* child = GetChild(node, movable, index);
-    if (child->m != 134217728)
-    {
-        printf("Error: child->m is wrong. ");
-        printf("%llu\n", child->m);
-    }
-    if (child->y != 17695533694976)
-    {
-        printf("Error: child->y is wrong. ");
-        printf("%llu\n", child->y);
-    }
-}
-
-void Test3GetChild()
-{
-    struct Node* node = CreateNode(34628173824, 68853694464);
-    node->child = CreateNode(68719476736, 34762915840);
-    long long movable = GetMovable(node->m, node->y);
-    int index = 0;
-
-    struct Node* child = GetChild(node, movable, index);
-    if (child->m != 68719476736)
-    {
-        printf("Error: child->m is wrong. ");
-        printf("%llu\n", child->m);
-    }
-    if (child->y != 34762915840)
-    {
-        printf("Error: child->y is wrong. ");
-        printf("%llu\n", child->y);
-    }
-}
-
-void Test4GetChild()
-{
-    struct Node* node = CreateNode(34628173824, 68853694464);
-    node->child = CreateNode(68719476736, 34762915840);
-    long long movable = GetMovable(node->m, node->y);
-    int index = 3;
-
-    struct Node* child = GetChild(node, movable, index);
-    if (child->m != 134217728)
-    {
-        printf("Error: child->m is wrong. ");
-        printf("%llu\n", child->m);
-    }
-    if (child->y != 17695533694976)
-    {
-        printf("Error: child->y is wrong. ");
-        printf("%llu\n", child->y);
-    }
-}
-
-PyObject *TestGetChild(PyObject *self, PyObject *args)
-{
-    Test0GetChild();
-    Test1GetChild();
-    Test2GetChild();
-    Test3GetChild();
-    Test4GetChild();
-
-    // append child?
-
-    printf("TestGetChild done.\n");
-    return Py_None;
-}
-
-int ChoiceChild(struct Node* node, unsigned long long movable)
-{
-    int index = 0;
-    int count = 0;
-    double winrate = 1.0;
+    struct Node* choice = NULL;
     struct Node* child = node->child;
     double sample;
     int win = 1;
@@ -385,8 +269,9 @@ int ChoiceChild(struct Node* node, unsigned long long movable)
         }
         else if (child->result == 'l')
         {
+            win = 0;
+            sample = 0.0;
             node->result = 'w';
-            return index;
         }
         else if (child->result == 'd')
         {
@@ -399,71 +284,253 @@ int ChoiceChild(struct Node* node, unsigned long long movable)
             sample = SampleBeta(child->a, child->b);
         }
 
-        if (sample < winrate)
+        if (sample < *winrate)
         {
-            index = count;
-            winrate = sample;
+            choice = child;
+            *winrate = sample;
         }
-        count++;
-        movable ^= (movable & (child->m | child->y));
+
+        *movable ^= (*movable & (child->m | child->y));
         child = child->next;
     }
 
-    while (movable)
+    if (!movable)
     {
-        win = 0;
-        sample = SampleUniform();
-
-        if (sample < winrate)
+        if (win)
         {
-            index = count;
-            winrate = sample;
+            if (draw) node->result = 'd';
+            else node->result = 'l';
         }
-        count++;
-        movable &= (movable - 1);
     }
 
-    if (win)
-    {
-        if (draw) node->result = 'd';
-        else node->result = 'l';
-    }
-
-    return index;
+    return choice;
 }
 
-PyObject *TestChoiceChild(PyObject *self, PyObject *args)
+void Test1DrawLotsExisting()
 {
     struct Node* node = CreateNode(34628173824, 68853694464);
     unsigned long long movable = GetMovable(node->m, node->y);
+    double winrate = 1.0;
 
-    int seed = rand() % 100;
-    for (int i = 0; i < seed; i++)
+    struct Node* raffle = DrawLotsExisting(node, &movable, &winrate);
+    if (raffle != NULL)
     {
-        SampleUniform();
+        printf("Error: Test1\n");
     }
-    node->child = CreateNode(68719476736, 34762915840);
-    node->child->b = 9.0;
-    for (int i = 0; i < 20; i++)
+    if (node->result != 'n')
     {
-        printf("%d\n", ChoiceChild(node, movable));
+        printf("Error: Test1\n");
     }
+    printf("%lf\n", winrate);
+    printf("%llu %llu\n", movable, GetMovable(node->m, node->y));
+}
 
-    printf("\n");
-    node->child->result = 'l';
-    for (int i = 0; i < 20; i++)
-    {
-        printf("%d\n", ChoiceChild(node, movable));
-    }
-    if (node->result != 'w')
-    {
-        printf("Error\n");
-    }
+void Test2DrawLotsExisting()
+{
+    struct Node* node = CreateNode(34628173824, 68853694464);
+    unsigned long long movable = GetMovable(node->m, node->y);
+    double winrate = 1.0;
+    node->child = CreateNode(68719476736, 34762915840); // index is 0
 
-    // if children are all win.
+    struct Node* raffle = DrawLotsExisting(node, &movable, &winrate);
+    if (raffle == NULL)
+    {
+        printf("Error Test2: choice is NULL\n");
+    }
+    else
+    {
+        if (!((raffle->m == 68719476736) && (raffle->y == 34762915840)))
+        {
+            printf("Error Test2: choice is wrong\n");
+        }
+    }
+    if (winrate == 1.0)
+    {
+        printf("Error Test2: winrate is not writed\n");
+    }
+    if (node->result != 'n')
+    {
+        printf("Error Test2: node->result is changed\n");
+    }
+    printf("%lf\n", winrate);
+    printf("%llu %llu\n", movable, GetMovable(node->m, node->y));
+}
 
-    printf("TestChoiceChild done.\n");
+void Test3DrawLotsExisting()
+{
+    struct Node* node = CreateNode(34628173824, 68853694464);
+    unsigned long long movable = GetMovable(node->m, node->y);
+    double winrate = 1.0;
+    node->child = CreateNode(68719476736, 34762915840); // index is 0
+    node->child->next = CreateNode(134217728, 17695533694976); // index is 3
+    node->child->b = 99.0;
+
+    struct Node* raffle = DrawLotsExisting(node, &movable, &winrate);
+    if (raffle == NULL)
+    {
+        printf("Error Test3: choice is NULL\n");
+    }
+    else
+    {
+        if (!((raffle->m == 68719476736) && (raffle->y == 34762915840)))
+        {
+            printf("Error Test3: choice is wrong\n");
+            printf("Error Test3: maybe miracle\n");
+        }
+    }
+    if (winrate == 1.0)
+    {
+        printf("Error Test3: winrate is not writed\n");
+    }
+    if (node->result != 'n')
+    {
+        printf("Error Test3: node->result is changed\n");
+    }
+    printf("%lf\n", winrate);
+    printf("%llu %llu\n", movable, GetMovable(node->m, node->y));
+}
+
+PyObject *TestDrawLotsExisting(PyObject *self, PyObject *args)
+{
+    printf("TestDrawLotsExisting start.\n");
+
+    Test1DrawLotsExisting();
+    Test2DrawLotsExisting();
+    Test3DrawLotsExisting();    
+
+    printf("TestDrawLotsExisting done.\n");
     return Py_None;
+}
+
+struct Node* DrawLotsNew(struct Node* node, unsigned long long *movable, double *winrate)
+{
+    struct Node* raffle = NULL;
+    double sample;
+    unsigned long long move;
+    unsigned long long reversable;
+    unsigned long long m;
+    unsigned long long y;
+    int flag = 0;
+
+    while (*movable)
+    {
+        sample = SampleUniform();
+
+        if (sample < *winrate)
+        {
+            flag = 1;
+            move = *movable ^ (*movable & (*movable - 1));
+            reversable = GetReversable(node->m, node->y, move);
+            m = node->y ^ reversable;
+            y = node->m | move | reversable;
+            raffle = CreateNode(m, y);
+            *winrate = sample;
+        }
+
+        *movable &= (*movable - 1);
+    }
+
+    if (flag)
+    {
+        AddChild(node, raffle);
+    }
+
+    return raffle;
+}
+
+void Test1DrawLotsNew()
+{
+    struct Node* node = CreateNode(34628173824, 68853694464);
+    unsigned long long movable = 0;
+    double winrate = 1.0;
+
+    struct Node* raffle = DrawLotsNew(node, &movable, &winrate);
+    if (raffle != NULL)
+    {
+        printf("Error Test1: raffle should be NULL.\n");
+    }
+    if (node->child != NULL)
+    {
+        printf("Error Test1: wrong adding child.\n");
+    }
+    if (movable != 0)
+    {
+        printf("Error Test1: movable remained.\n");
+    }
+    if (winrate != 1.0)
+    {
+        printf("Error Test1: winrate is changed wrong.\n");
+    }
+}
+
+void Test2DrawLotsNew()
+{
+    struct Node* node = CreateNode(34628173824, 68853694464);
+    node->child = CreateNode(68719476736, 34762915840); // Index is 0
+    unsigned long long movable = 17729692106752; // Index 0 is removed.
+    double winrate = 0.5;
+
+    struct Node* raffle = DrawLotsNew(node, &movable, &winrate);
+    if (raffle == NULL)
+    {
+        printf("Index 0 is choiced.\n");
+        if (node->child->next != NULL)
+        {
+            printf("Error Test2: wrong adding child.\n");
+        }
+    }
+    else
+    {
+        if (node->child->next == NULL)
+        {
+            printf("Error Test2: Child is not added.\n");
+        }
+        if (!((raffle->m == node->child->next->m) && (raffle->y == node->child->next->y)))
+        {
+            printf("Error Test2: Raffle is not added child.\n");
+        }
+        if ((raffle->m == 68719476736) || (raffle->y == 34762915840))
+        {
+            printf("Error Test2: Raffle is added existing child.\n");
+        }
+    }
+    if (movable != 0)
+    {
+        printf("Error Test2: movable remained.\n");
+    }
+    if (winrate == 1.0)
+    {
+        printf("Error Test2: winrate is not writen.\n");
+    }
+}
+
+PyObject *TestDrawLotsNew(PyObject *self, PyObject *args)
+{
+    printf("TestDrawLotsNew start.\n");
+
+    Test1DrawLotsNew();
+    Test2DrawLotsNew();
+
+    printf("TestDrawLotsNew done.\n");
+    return Py_None;
+}
+
+struct Node* Move(struct Node* node, unsigned long long movable)
+{
+
+    double winrate = 1.0;
+
+    struct Node* raffle_existing = DrawLotsExisting(node, &movable, &winrate);
+    struct Node* raffle_new = DrawLotsNew(node, &movable, &winrate);
+
+    if (raffle_new == NULL)
+    {
+        return raffle_existing;
+    }
+    else
+    {
+        return raffle_new;
+    }
 }
 
 double Update(struct Node* node, double result)
@@ -534,6 +601,8 @@ double End(struct Node* node)
 
 double PlayOut(struct Node* node, int depth)
 {
+    printf("%llu %llu\n", node->m, node->y);
+
     double result;
     if (node->result != 'n')
     {
@@ -546,8 +615,11 @@ double PlayOut(struct Node* node, int depth)
         unsigned long long movable = GetMovable(node->m, node->y);
         if (movable)
         {
-            int index = ChoiceChild(node, movable);
-            struct Node* child = GetChild(node, movable, index);
+            struct Node* child = Move(node, movable);
+            if (child == NULL)
+            {
+                printf("Error: Child is NULL\n");
+            }
             result = PlayOut(child, depth + 1);
             result = Update(node, result);
         }
@@ -568,7 +640,7 @@ double PlayOut(struct Node* node, int depth)
     }
 }
 
-PyObject *TestPlayOut(PyObject *self, PyObject *args)
+void Test1PlayOut()
 {
     struct Node* node = CreateNode(34628173824, 68853694464);
     learning_rate = 0.9;
@@ -581,6 +653,26 @@ PyObject *TestPlayOut(PyObject *self, PyObject *args)
         printf("%c\n", node->result);
         node = node->child;
     }
+}
+
+void Test2PlayOut()
+{
+    //struct Node* node = CreateNode(137707388928, 61676403034112);
+    struct Node* node = CreateNode(268435456, 61813844092928);
+    learning_rate = 0.9;
+
+    for (int i = 0; i < 10000; i++)
+    {
+        PlayOut(node, 1);
+    }
+}
+
+PyObject *TestPlayOut(PyObject *self, PyObject *args)
+{
+    printf("TestPlayOut start.\n");
+
+    //Test1PlayOut();
+    Test2PlayOut();
 
     printf("TestPlayOut done.\n");
     return Py_None;
@@ -601,6 +693,8 @@ PyObject *Search(PyObject *self, PyObject *args)
 
     struct Node* node = CreateNode(m, y);
 
+    printf("%llu %llu\n", node->m, node->y);
+
     for (int j = 0; j < trial; j++)
     {  
         //printf("\r%d/%d", j, trial);
@@ -616,8 +710,8 @@ PyObject *Search(PyObject *self, PyObject *args)
 
 static PyMethodDef engine_methods[] = {
     {"SetSeed", SetSeed, METH_VARARGS},
-    {"TestGetChild", TestGetChild, METH_VARARGS},
-    {"TestChoiceChild", TestChoiceChild, METH_VARARGS},
+    {"TestDrawLotsExisting", TestDrawLotsExisting, METH_VARARGS},
+    {"TestDrawLotsNew", TestDrawLotsNew, METH_VARARGS},
     {"TestUpdate", TestUpdate, METH_VARARGS},
     {"TestPlayOut", TestPlayOut, METH_VARARGS},
     {"Search", Search, METH_VARARGS},
