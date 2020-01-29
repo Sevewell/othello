@@ -284,7 +284,7 @@ struct Node* DrawLotsExisting(struct Node* node, unsigned long long *movable, do
             sample = SampleBeta(child->a, child->b);
         }
 
-        if (sample < *winrate)
+        if (sample <= *winrate)
         {
             choice = child;
             *winrate = sample;
@@ -294,7 +294,7 @@ struct Node* DrawLotsExisting(struct Node* node, unsigned long long *movable, do
         child = child->next;
     }
 
-    if (!movable)
+    if (*movable == 0)
     {
         if (win)
         {
@@ -407,23 +407,16 @@ struct Node* DrawLotsNew(struct Node* node, unsigned long long *movable, double 
     struct Node* raffle = NULL;
     double sample;
     unsigned long long move;
-    unsigned long long reversable;
-    unsigned long long m;
-    unsigned long long y;
     int flag = 0;
 
     while (*movable)
     {
         sample = SampleUniform();
 
-        if (sample < *winrate)
+        if (sample <= *winrate)
         {
             flag = 1;
             move = *movable ^ (*movable & (*movable - 1));
-            reversable = GetReversable(node->m, node->y, move);
-            m = node->y ^ reversable;
-            y = node->m | move | reversable;
-            raffle = CreateNode(m, y);
             *winrate = sample;
         }
 
@@ -432,6 +425,8 @@ struct Node* DrawLotsNew(struct Node* node, unsigned long long *movable, double 
 
     if (flag)
     {
+        unsigned long long reversable = GetReversable(node->m, node->y, move);
+        raffle = CreateNode(node->y ^ reversable, node->m | move | reversable);
         AddChild(node, raffle);
     }
 
@@ -473,7 +468,6 @@ void Test2DrawLotsNew()
     struct Node* raffle = DrawLotsNew(node, &movable, &winrate);
     if (raffle == NULL)
     {
-        printf("Index 0 is choiced.\n");
         if (node->child->next != NULL)
         {
             printf("Error Test2: wrong adding child.\n");
@@ -489,9 +483,10 @@ void Test2DrawLotsNew()
         {
             printf("Error Test2: Raffle is not added child.\n");
         }
-        if ((raffle->m == 68719476736) || (raffle->y == 34762915840))
+        if ((raffle->m == 68719476736) && (raffle->y == 34762915840))
         {
             printf("Error Test2: Raffle is added existing child.\n");
+            printf("%llu %llu\n", raffle->m, raffle->y);
         }
     }
     if (movable != 0)
@@ -601,12 +596,10 @@ double End(struct Node* node)
 
 double PlayOut(struct Node* node, int depth)
 {
-    printf("%llu %llu\n", node->m, node->y);
-
     double result;
     if (node->result != 'n')
     {
-        if (node->result = 'w') result = Update(node, 1.0);
+        if (node->result == 'w') result = Update(node, 1.0);
         else result = Update(node, -1.0);
         return result;
     }
@@ -616,10 +609,6 @@ double PlayOut(struct Node* node, int depth)
         if (movable)
         {
             struct Node* child = Move(node, movable);
-            if (child == NULL)
-            {
-                printf("Error: Child is NULL\n");
-            }
             result = PlayOut(child, depth + 1);
             result = Update(node, result);
         }
@@ -657,13 +646,24 @@ void Test1PlayOut()
 
 void Test2PlayOut()
 {
-    //struct Node* node = CreateNode(137707388928, 61676403034112);
     struct Node* node = CreateNode(268435456, 61813844092928);
     learning_rate = 0.9;
 
-    for (int i = 0; i < 10000; i++)
+    for (int i = 0; i < 100; i++)
     {
         PlayOut(node, 1);
+    }
+
+    if (node->result != 'l')
+    {
+        printf("Error Test2: wrong result.\n");
+        printf("parent: %c\n", node->result);
+        struct Node* child = node->child;
+        while (child != NULL)
+        {
+            printf("child: %c\n", child->result);
+            child = child->next;
+        }
     }
 }
 
@@ -671,7 +671,7 @@ PyObject *TestPlayOut(PyObject *self, PyObject *args)
 {
     printf("TestPlayOut start.\n");
 
-    //Test1PlayOut();
+    Test1PlayOut();
     Test2PlayOut();
 
     printf("TestPlayOut done.\n");
@@ -692,8 +692,6 @@ PyObject *Search(PyObject *self, PyObject *args)
     }
 
     struct Node* node = CreateNode(m, y);
-
-    printf("%llu %llu\n", node->m, node->y);
 
     for (int j = 0; j < trial; j++)
     {  

@@ -44,10 +44,8 @@ class Root(tkinter.Tk):
         super().__init__()
         self.title('Othello')
 
-        #self.black = 34628173824
-        #self.white = 68853694464
-        self.black = 268435456
-        self.white = 61813844092928
+        self.black = 34628173824
+        self.white = 68853694464
         
         self.CreateBoard()
         self.CreateControl()
@@ -208,7 +206,7 @@ class Root(tkinter.Tk):
         button_turn_b.pack()
         button_turn_w.pack()
 
-        trial = 500000
+        trial = 1000000
         self.trial = tkinter.IntVar()
         self.trial.set(trial // 2)
         trial_scale = tkinter.Scale(
