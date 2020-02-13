@@ -142,28 +142,32 @@ class Root(tkinter.Tk):
         else:
             record = []
 
-        for i in range(10):
+        n = 10
+
+        for i in range(n):
+
+            print('{}/{}'.format(i + 1, n))
 
             self.black = 34628173824
             self.white = 68853694464
             self.turn.set('黒番')
             self.Draw()
 
-            hp_b = search.random.random() / 5 + 0.8
-            hp_w = search.random.random() / 5 + 0.8
-            self.trial.set(500000)
+            learning_rate_b = search.random.random() / 10 * 2 + 0.9
+            learning_rate_w = search.random.random() / 10 * 2 + 0.9
+            self.trial.set(2000000)
 
             while True:
 
                 if search.CheckEnd(self.black, self.white):
-                    self.param.set(hp_b)
+                    self.param.set(learning_rate_b)
                     self.Search()
                     self.Draw()
                 else:
                     break
 
                 if search.CheckEnd(self.black, self.white):
-                    self.param.set(hp_w)
+                    self.param.set(learning_rate_w)
                     self.Search()
                     self.Draw()
                 else:
@@ -178,8 +182,9 @@ class Root(tkinter.Tk):
             else:
                 winner = 'draw'
             print('winner: {}'.format(winner))
+            print()
 
-            record.append({'hp_b': hp_b, 'hp_w': hp_w, 'winner': winner})
+            record.append({'lr_b': learning_rate_b, 'lr_w': learning_rate_w, 'winner': winner})
 
         with open('record.pkl', 'wb') as f:
             pickle.dump(record, f)
@@ -206,7 +211,7 @@ class Root(tkinter.Tk):
         button_turn_b.pack()
         button_turn_w.pack()
 
-        trial = 1000000
+        trial = 2000000
         self.trial = tkinter.IntVar()
         self.trial.set(trial // 2)
         trial_scale = tkinter.Scale(
@@ -219,14 +224,14 @@ class Root(tkinter.Tk):
         trial_scale.pack()
 
         self.param = tkinter.DoubleVar()
-        self.param.set(0.9)
+        self.param.set(1.0)
         scale_param = tkinter.Scale(
             control,
             orient='horizontal',
             variable=self.param,
             resolution=0.001,
-            from_=0.8,
-            to=1.0
+            from_=0.9,
+            to=1.1
             )
         scale_param.pack()
 
@@ -250,28 +255,39 @@ class Root(tkinter.Tk):
         thread = threading.Thread(target=self.Search)
         thread.start()
 
+    def Info(self, info):
+
+        info['turn'] = self.turn.get()
+        info['param'] = '{:.3f}'.format(self.param.get())
+        #info['trial'] = '{:,}'.format(self.trial.get())
+        info['time'] = '{:.3f}'.format(info['time'])
+        info['winrate'] = '{:.3f}'.format(info['winrate'])
+        print(info)
+
     #着手可能箇所がなかったら？
     def Search(self):
 
         turn = self.turn.get()
 
         if turn == '黒番':
-            self.black, self.white = search.Search(
+            self.black, self.white, info = search.Search(
                 self.black,
                 self.white,
                 self.param.get(),
                 self.trial.get(),
                 self.core.get()
             )
+            self.Info(info)
             self.turn.set('白番')
         elif turn == '白番':
-            self.white, self.black = search.Search(
+            self.white, self.black, info = search.Search(
                 self.white,
                 self.black,
                 self.param.get(),
                 self.trial.get(),
                 self.core.get()
             )
+            self.Info(info)
             self.turn.set('黒番')
 
         self.Draw()

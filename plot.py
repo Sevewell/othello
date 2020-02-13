@@ -8,14 +8,14 @@ print(len(record))
 
 for winner in ['black', 'white', 'draw']:
 
-    hp_b = [row['hp_b'] for row in record if row['winner'] == winner]
-    hp_w = [row['hp_w'] for row in record if row['winner'] == winner]
+    param_b = [row['lr_b'] for row in record if row['winner'] == winner]
+    param_w = [row['lr_w'] for row in record if row['winner'] == winner]
 
-    pyplot.scatter(hp_b, hp_w, alpha=0.5, label=winner)
+    pyplot.scatter(param_b, param_w, alpha=0.5, label=winner)
 
 pyplot.title('win-lose about learning rate')
-pyplot.xlabel('hp_b')
-pyplot.ylabel('hp_w')
+pyplot.xlabel('lr_b')
+pyplot.ylabel('lr_w')
 pyplot.legend()
 
 pyplot.show()

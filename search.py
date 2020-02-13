@@ -108,23 +108,23 @@ def Search(m, y, param, trial, cores):
     node = Node(m, y)
     node.FindChildren()
 
-    trial = trial // len(node.children)
+    trial_p = trial // len(node.children)
     time_before = time.time()
 
     # プレイアウト進捗とノード数を共有メモリしたい
     with multiprocessing.Pool(cores) as p:
 
-        winrates = p.map(WrapSearch, [(child, param, trial) for child in node.children])
+        winrates = p.map(WrapSearch, [(child, param, trial_p) for child in node.children])
 
     choiced_winrate = min(winrates)
     choiced_child = node.children[winrates.index(choiced_winrate)]
 
-    print({
+    info = {
         'time': time.time() - time_before,
         'winrate': 1 - choiced_winrate
-    })
+        }
 
-    return choiced_child.y, choiced_child.m
+    return choiced_child.y, choiced_child.m, info
 
 def Move(m, y, move):
 
