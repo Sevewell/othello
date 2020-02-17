@@ -706,6 +706,29 @@ PyObject *Search(PyObject *self, PyObject *args)
     return Py_BuildValue("d", winrate);
 }
 
+PyObject *GetMovablePy(PyObject *self, PyObject *args)
+{
+    unsigned long long m;
+    unsigned long long y;
+    if (!PyArg_ParseTuple(args, "KK", &m, &y))
+    {
+        return NULL;
+    }
+    return Py_BuildValue("K", GetMovable(m, y));
+}
+
+PyObject *GetReversablePy(PyObject *self, PyObject *args)
+{
+    unsigned long long m;
+    unsigned long long y;
+    unsigned long long move;
+    if (!PyArg_ParseTuple(args, "KKK", &m, &y, &move))
+    {
+        return NULL;
+    }
+    return Py_BuildValue("K", GetReversable(m, y, move));
+}
+
 static PyMethodDef engine_methods[] = {
     {"SetSeed", SetSeed, METH_VARARGS},
     {"TestDrawLotsExisting", TestDrawLotsExisting, METH_VARARGS},
@@ -714,6 +737,8 @@ static PyMethodDef engine_methods[] = {
     {"TestPlayOut", TestPlayOut, METH_VARARGS},
     {"Search", Search, METH_VARARGS},
     {"WrapSampleBeta", WrapSampleBeta, METH_VARARGS},
+    {"GetMovablePy", GetMovablePy, METH_VARARGS},
+    {"GetReversablePy", GetReversablePy, METH_VARARGS},
     {NULL}
 };
 
