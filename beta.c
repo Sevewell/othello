@@ -29,8 +29,10 @@ struct Uniform* CreateUniform(float uniform, struct Uniform *prev, struct Unifor
 
 // Uniformを追加する処理
 // RANGE外の処理は別
-void AddUniform(struct Uniform *target, float uniform, char direction)
+void AddUniform(struct Uniform *node, float uniform, char direction)
 {
+    struct Uniform *target = node;
+
     switch (direction)
     {
         case 'l':
@@ -71,124 +73,71 @@ void AddUniform(struct Uniform *target, float uniform, char direction)
     }
 }
 
-struct Uniform* MoveUniform(struct Uniform current, char result, char direction)
+void MoveUniform(struct Uniform *current, char result, char direction)
 {
     switch (result)
     {
         case 'w':
-            if (direction == 'l')
+            if (direction == 'r')
             {
-                node = node->prev;
+                current = current->next;
             }
             break;
 
         case 'l':
-            if (direction == 'r')
+            if (direction == 'l')
             {
-                node = node->next;
+                current = current->next;
             }
             break;
     }
+}
 
-    return node;
+void ClearRangeUniform(struct Uniform *node, int range, char direction)
+{
+    // 終了条件
+    if (node == NULL) return;
+    
+    switch (direction)
+    {
+        case 'l':
+            ClearRangeUniform(node->prev, range++, direction);
+            break;
+        case 'r':
+            ClearRangeUniform(node->next, range++, direction);
+            break;
+    }
+
+    if (range > UNIFORM_RANGE)
+    {
+        free(node);
+    }
 }
 
 // プレイアウト後に実行
 // 構造体が持つサンプルメンバを更新する
 struct Uniform* UpdateSample(struct Uniform *node, int result)
 {
-    struct Uniform *new = CreateUniform(NULL, NULL);
+    float uniform = (float)rand() / RAND_MAX;
 
     if (node == NULL)
     {
-        return new;
+        return CreateUniform(uniform, NULL, NULL);
     }
 
-    struct Uniform *target = node;
-    int range = UNIFORM_RANGE;
-
-    // uniformを追加する処理と勝敗によってノードを移動する処理を分けたい
-    // RANGE外のノードを削除する処理も分けたい
-    // まず向きを定める
-    if (new->value > target->value)
+    char direction;
+    if (uniform > node->value)
     {
-        switch (result)
-        {
-            case 'w':
-                // RANGEより先を奥から消していきたい
-                // 再帰関数が良さそう
-                if (range < 0)
-                {
-
-                }
-                else if (target == NULL)
-                {
-                    target = new;
-                    node = target;
-                }
-                else if (target->value > new->value)
-                {
-                    target->prev->next = new;
-                    new->prev = target->prev;
-                    new->next = target;
-                    target->prev = new;
-                    node = new;
-                }
-                else
-                {
-                    target = target->next;
-                    range--;
-                }
-                break;
-
-            case 'l':
-        
-        }
-        /*
-        while (1)
-        {
-            if (target->value > new->value)
-            {
-                target->next->prev = new;
-                new->next = target->next;
-                new->prev = target;
-                target->next = new;
-                break;
-            }
-            if (target->prev == NULL)
-            {
-                target->prev = new;
-                new->next = target;
-                break;
-            }
-            target = target->prev;
-            // ループ数を制限したい
-        }
-        return MoveUniform(node, result, 'l');
-        */
+        direction = 'r';
     }
     else
     {
-        while (1)
-        {
-            if (target->value < new->value)
-            {
-                target->prev->next = new;
-                new->prev = target->prev;
-                new->next = target;
-                target->prev = new;
-                break;
-            }
-            if (target->next == NULL)
-            {
-                target->next = new;
-                new->prev = target;
-                break;
-            }
-            target = target->next;
-        }
-        return MoveUniform(node, result, 'r');
+        direction = 'l';
     }
+
+    AddUniform(node, uniform, direction); //ここどうなんだろ？nodeじゃないものを操作しているような…
+    MoveUniform(node, result, direction);
+    ClearRangeUniform(node, 0, direction);
 }
 
 void AccessUniform(struct Uniform *node)
