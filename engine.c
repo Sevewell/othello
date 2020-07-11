@@ -1,6 +1,6 @@
 #define PY_SSIZE_T_CLEAN
 #include <Python.h>
-#include <intrin.h>
+#include <x86intrin.h>
 #include <math.h>
 #include <stdint.h>
 
@@ -116,9 +116,9 @@ unsigned long long GetReversableR
 unsigned long long GetReversable
 (unsigned long long m, unsigned long long y, unsigned long long move)
 {
-    unsigned long long blank_h = ~(m | y & 0x7e7e7e7e7e7e7e7e);
-    unsigned long long blank_v = ~(m | y & 0x00ffffffffffff00);
-    unsigned long long blank_a = ~(m | y & 0x007e7e7e7e7e7e00);
+    unsigned long long blank_h = ~(m | (y & 0x7e7e7e7e7e7e7e7e));
+    unsigned long long blank_v = ~(m | (y & 0x00ffffffffffff00));
+    unsigned long long blank_a = ~(m | (y & 0x007e7e7e7e7e7e00));
     unsigned long long rev;
     rev = GetReversableL(m, blank_h, move, 1);
     rev |= GetReversableL(m, blank_v, move, 8);
@@ -574,8 +574,8 @@ PyObject *TestUpdate(PyObject *self, PyObject *args)
 double End(struct Node* node)
 {
     double result;
-    int count_m = (int)__popcnt64(node->m);
-    int count_y = (int)__popcnt64(node->y);
+    int count_m = (int)_popcnt64(node->m);
+    int count_y = (int)_popcnt64(node->y);
     if (count_m > count_y)
     {
         node->result = 'w';
