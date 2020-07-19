@@ -1,204 +1,11 @@
-#define PY_SSIZE_T_CLEAN
-#include <Python.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdint.h>
 #include <x86intrin.h>
 #include <math.h>
-#include <stdint.h>
-
-double learning_rate;
-
-unsigned long long GetMovableL
-(unsigned long long player, unsigned long long masked, unsigned long long blank, int dir)
-{
-    unsigned long long tmp;
-    tmp = masked & (player << dir);
-    tmp |= masked & (tmp << dir);
-    tmp |= masked & (tmp << dir);
-    tmp |= masked & (tmp << dir);
-    tmp |= masked & (tmp << dir);
-    tmp |= masked & (tmp << dir);
-
-    return blank & (tmp << dir);
-}
-
-unsigned long long GetMovableR
-(unsigned long long player, unsigned long long masked, unsigned long long blank, int dir)
-{
-    unsigned long long tmp;
-    tmp = masked & (player >> dir);
-    tmp |= masked & (tmp >> dir);
-    tmp |= masked & (tmp >> dir);
-    tmp |= masked & (tmp >> dir);
-    tmp |= masked & (tmp >> dir);
-    tmp |= masked & (tmp >> dir);
-
-    return blank & (tmp >> dir);
-}
-
-unsigned long long GetMovable(unsigned long long m, unsigned long long y)
-{
-    unsigned long long blank = ~(m | y);
-    unsigned long long h = y & 0x7e7e7e7e7e7e7e7e;
-    unsigned long long v = y & 0x00ffffffffffff00;
-    unsigned long long a = y & 0x007e7e7e7e7e7e00;
-    unsigned long long legal;
-    legal = GetMovableL(m, h, blank, 1);
-    legal |= GetMovableL(m, v, blank, 8);
-    legal |= GetMovableL(m, a, blank, 7);
-    legal |= GetMovableL(m, a, blank, 9);
-    legal |= GetMovableR(m, h, blank, 1);
-    legal |= GetMovableR(m, v, blank, 8);
-    legal |= GetMovableR(m, a, blank, 7);
-    legal |= GetMovableR(m, a, blank, 9);
-
-    return legal;
-}
-
-unsigned long long GetReversableL
-(unsigned long long player, unsigned long long blank_masked, unsigned long long site, int dir)
-{
-    unsigned long long rev = 0;
-    unsigned long long tmp = ~(player | blank_masked) & (site << dir);
-
-    if (tmp)
-    {
-        for (int i = 0; i < 6; i++)
-        {
-            tmp <<= dir;
-            if (tmp & blank_masked)
-            {
-                break;
-            }
-            else if (tmp & player)
-            {
-                rev |= tmp >> dir;
-                break;
-            }
-            else
-            {
-                tmp |= tmp >> dir;
-            }
-        }
-    }
-
-    return rev;
-}
-
-unsigned long long GetReversableR
-(unsigned long long player, unsigned long long blank_masked, unsigned long long site, int dir)
-{
-    unsigned long long rev = 0;
-    unsigned long long tmp = ~(player | blank_masked) & (site >> dir);
-
-    if (tmp)
-    {
-        for (int i = 0; i < 6; i++)
-        {
-            tmp >>= dir;
-            if (tmp & blank_masked)
-            {
-                break;
-            }
-            else if (tmp & player)
-            {
-                rev |= tmp << dir;
-                break;
-            }
-            else
-            {
-                tmp |= tmp << dir;
-            }
-        }
-    }
-
-    return rev;
-}
-
-unsigned long long GetReversable
-(unsigned long long m, unsigned long long y, unsigned long long move)
-{
-    unsigned long long blank_h = ~(m | (y & 0x7e7e7e7e7e7e7e7e));
-    unsigned long long blank_v = ~(m | (y & 0x00ffffffffffff00));
-    unsigned long long blank_a = ~(m | (y & 0x007e7e7e7e7e7e00));
-    unsigned long long rev;
-    rev = GetReversableL(m, blank_h, move, 1);
-    rev |= GetReversableL(m, blank_v, move, 8);
-    rev |= GetReversableL(m, blank_a, move, 7);
-    rev |= GetReversableL(m, blank_a, move, 9);
-    rev |= GetReversableR(m, blank_h, move, 1);
-    rev |= GetReversableR(m, blank_v, move, 8);
-    rev |= GetReversableR(m, blank_a, move, 7);
-    rev |= GetReversableR(m, blank_a, move, 9);
-    
-    return rev;
-}
-
-double SampleUniform()
-{
-    static uint64_t x = 88172645463325252ULL;
-    x = x ^ (x << 7);
-    x = x ^ (x >> 9);
-    return (double)x / (double)UINT64_MAX;
-}
-
-PyObject *SetSeed(PyObject *self, PyObject *args)
-{
-    int seed;
-    if (!PyArg_ParseTuple(args, "i", &seed))
-    {
-        return NULL;
-    }
-    for (int i = 0; i < seed; i++)
-    {
-        SampleUniform();
-    }
-    return Py_None;
-}
-
-double SampleNormal()
-{
-    double sum = 0;
-    for (int i = 0; i < 12; i++)
-    {
-        sum += SampleUniform();
-    }
-    return sum - 6.0;
-}
-
-double SampleGamma(double alpha)
-{
-    double c1 = alpha - 1.0 / 3.0;
-    double c2 = 1.0 / sqrt(9.0 * c1);
-    double norm;
-    double v;
-    double u;
-    while (1)
-    {
-        norm = SampleNormal();
-        if (c2 * norm <= -1.0) continue;
-        v = pow(1.0 + c2 * norm, 3.0);
-        u = SampleUniform();
-        if (u < 1.0 - 0.331 * pow(norm, 4.0)) return c1 * v;
-        if (log(u) < 0.5 * pow(norm, 2.0) + c1 * (1.0 - v + log(v))) return c1 * v;
-    }
-}
-
-double SampleBeta(double a, double b)
-{
-    double gamma1 = SampleGamma(a);
-    double gamma2 = SampleGamma(b);
-    return gamma1 / (gamma1 + gamma2);
-}
-
-PyObject *WrapSampleBeta(PyObject *self, PyObject *args)
-{
-    double a;
-    double b;
-    if (!PyArg_ParseTuple(args, "dd", &a, &b))
-    {
-        return NULL;
-    }
-    return Py_BuildValue("d", SampleBeta(a, b));
-}
+#include <assert.h>
+#include "rule.c"
+#include "sampling.c"
 
 struct Node
 {
@@ -220,7 +27,6 @@ struct Node* CreateNode(unsigned long long m, unsigned long long y)
     node->y = y;
     node->a = 1;
     node->b = 1;
-    node->result = 'n';
     node->child = NULL;
     node->next = NULL;
 
@@ -258,31 +64,10 @@ struct Node* DrawLotsExisting(struct Node* node, unsigned long long *movable, do
     struct Node* choice = NULL;
     struct Node* child = node->child;
     double sample;
-    int win = 1;
-    int draw = 0;
 
     while (child != NULL)
     {
-        if (child->result == 'w')
-        {
-            sample = 1.0;
-        }
-        else if (child->result == 'l')
-        {
-            win = 0;
-            sample = 0.0;
-            node->result = 'w';
-        }
-        else if (child->result == 'd')
-        {
-            sample = 0.5;
-            draw = 1;
-        }
-        else
-        {
-            win = 0;
-            sample = SampleBeta(child->a, child->b);
-        }
+        sample = SampleBeta(child->a, child->b);
 
         if (sample <= *winrate)
         {
@@ -294,112 +79,7 @@ struct Node* DrawLotsExisting(struct Node* node, unsigned long long *movable, do
         child = child->next;
     }
 
-    if (*movable == 0)
-    {
-        if (win)
-        {
-            if (draw) node->result = 'd';
-            else node->result = 'l';
-        }
-    }
-
     return choice;
-}
-
-void Test1DrawLotsExisting()
-{
-    struct Node* node = CreateNode(34628173824, 68853694464);
-    unsigned long long movable = GetMovable(node->m, node->y);
-    double winrate = 1.0;
-
-    struct Node* raffle = DrawLotsExisting(node, &movable, &winrate);
-    if (raffle != NULL)
-    {
-        printf("Error: Test1\n");
-    }
-    if (node->result != 'n')
-    {
-        printf("Error: Test1\n");
-    }
-    printf("%lf\n", winrate);
-    printf("%llu %llu\n", movable, GetMovable(node->m, node->y));
-}
-
-void Test2DrawLotsExisting()
-{
-    struct Node* node = CreateNode(34628173824, 68853694464);
-    unsigned long long movable = GetMovable(node->m, node->y);
-    double winrate = 1.0;
-    node->child = CreateNode(68719476736, 34762915840); // index is 0
-
-    struct Node* raffle = DrawLotsExisting(node, &movable, &winrate);
-    if (raffle == NULL)
-    {
-        printf("Error Test2: choice is NULL\n");
-    }
-    else
-    {
-        if (!((raffle->m == 68719476736) && (raffle->y == 34762915840)))
-        {
-            printf("Error Test2: choice is wrong\n");
-        }
-    }
-    if (winrate == 1.0)
-    {
-        printf("Error Test2: winrate is not writed\n");
-    }
-    if (node->result != 'n')
-    {
-        printf("Error Test2: node->result is changed\n");
-    }
-    printf("%lf\n", winrate);
-    printf("%llu %llu\n", movable, GetMovable(node->m, node->y));
-}
-
-void Test3DrawLotsExisting()
-{
-    struct Node* node = CreateNode(34628173824, 68853694464);
-    unsigned long long movable = GetMovable(node->m, node->y);
-    double winrate = 1.0;
-    node->child = CreateNode(68719476736, 34762915840); // index is 0
-    node->child->next = CreateNode(134217728, 17695533694976); // index is 3
-    node->child->b = 99.0;
-
-    struct Node* raffle = DrawLotsExisting(node, &movable, &winrate);
-    if (raffle == NULL)
-    {
-        printf("Error Test3: choice is NULL\n");
-    }
-    else
-    {
-        if (!((raffle->m == 68719476736) && (raffle->y == 34762915840)))
-        {
-            printf("Error Test3: choice is wrong\n");
-            printf("Error Test3: maybe miracle\n");
-        }
-    }
-    if (winrate == 1.0)
-    {
-        printf("Error Test3: winrate is not writed\n");
-    }
-    if (node->result != 'n')
-    {
-        printf("Error Test3: node->result is changed\n");
-    }
-    printf("%lf\n", winrate);
-    printf("%llu %llu\n", movable, GetMovable(node->m, node->y));
-}
-
-PyObject *TestDrawLotsExisting(PyObject *self, PyObject *args)
-{
-    printf("TestDrawLotsExisting start.\n");
-
-    Test1DrawLotsExisting();
-    Test2DrawLotsExisting();
-    Test3DrawLotsExisting();    
-
-    printf("TestDrawLotsExisting done.\n");
-    return Py_None;
 }
 
 struct Node* DrawLotsNew(struct Node* node, unsigned long long *movable, double *winrate)
@@ -499,17 +179,6 @@ void Test2DrawLotsNew()
     }
 }
 
-PyObject *TestDrawLotsNew(PyObject *self, PyObject *args)
-{
-    printf("TestDrawLotsNew start.\n");
-
-    Test1DrawLotsNew();
-    Test2DrawLotsNew();
-
-    printf("TestDrawLotsNew done.\n");
-    return Py_None;
-}
-
 struct Node* Move(struct Node* node, unsigned long long movable)
 {
 
@@ -528,108 +197,90 @@ struct Node* Move(struct Node* node, unsigned long long movable)
     }
 }
 
-double Update(struct Node* node, double result)
+char Update(struct Node* node, char result, double value)
 {
-    double value = fabs(result);
-    if (result > 0)
+    char next;
+
+    switch (result)
     {
-        node->a += value;
-        return -(value * learning_rate);
+        case 'w':
+            node->a += value;
+            next = 'l';
+            break;
+        
+        case 'l':
+            node->b += value;
+            next = 'w';
+            break;
+
+        case 'd':
+            node->a += value / 2;
+            node->b += value / 2;
+            next = 'd';
+            break;
+
+        default:
+            next = '?';
     }
-    else
-    {
-        node->b += value;
-        return value * learning_rate;
-    }
+
+    assert(next != '?');
+    return next;
 }
 
-PyObject *TestUpdate(PyObject *self, PyObject *args)
+char End(struct Node* node, double value)
 {
-    struct Node* node = CreateNode(34628173824, 68853694464);
-    learning_rate = 0.9;
+    char result;
 
-    Update(node, 1.0);
-    if (node->a != 2.0)
-    {
-        printf("Error\n");
-    }
-    Update(node, -1.0);
-    if (node->b != 2.0)
-    {
-        printf("Error\n");
-    }
-    if (Update(node, 1.0) != -0.9)
-    {
-        printf("Error\n");
-    }
-    if (Update(node, -1.0) != 0.9)
-    {
-        printf("Error\n");
-    }
-
-    printf("TestUpdate done.\n");
-    return Py_None;
-}
-
-double End(struct Node* node)
-{
-    double result;
     int count_m = (int)_popcnt64(node->m);
     int count_y = (int)_popcnt64(node->y);
+
     if (count_m > count_y)
     {
-        node->result = 'w';
-        result = Update(node, 1.0);
+        result = Update(node, 'w', value);
     }
     else if (count_m < count_y)
     {
-        node->result = 'l';
-        result = Update(node, -1.0);
+        result = Update(node, 'l', value);
     }
     else
     {
-        node->result = 'd';
-        result = Update(node, -1.0);
+        result = Update(node, 'd', value);
     }
+
     return result;
 }
 
-double PlayOut(struct Node* node, int depth)
+char PlayOut(struct Node* node, double *value, double learning_rate)
 {
-    double result;
-    if (node->result != 'n')
+    char result;
+    unsigned long long movable = GetMovable(node->m, node->y);
+
+    if (movable)
     {
-        if (node->result == 'w') result = Update(node, 1.0);
-        else result = Update(node, -1.0);
-        return result;
+        struct Node* child = Move(node, movable);
+        result = PlayOut(child, value, learning_rate);
+        result = Update(node, result, *value);
+    }
+    else if (GetMovable(node->y, node->m))
+    {
+        if (node->child == NULL)
+        {
+            node->child = CreateNode(node->y, node->m);
+        }
+        result = PlayOut(node->child, value, learning_rate);
+        result = Update(node, result, *value);
     }
     else
     {
-        unsigned long long movable = GetMovable(node->m, node->y);
-        if (movable)
-        {
-            struct Node* child = Move(node, movable);
-            result = PlayOut(child, depth + 1);
-            result = Update(node, result);
-        }
-        else if (GetMovable(node->y, node->m))
-        {
-            if (node->child == NULL)
-            {
-                node->child = CreateNode(node->y, node->m);
-            }
-            result = PlayOut(node->child, depth + 1);
-            result = Update(node, result);
-        }
-        else
-        {
-            result = End(node);
-        }
-        return result;
+        *value = 1.0;
+        result = End(node, *value);
     }
+
+    *value *= learning_rate;
+    return result;
 }
 
-void Test1PlayOut()
+/*void Test1PlayOut()
 {
     struct Node* node = CreateNode(34628173824, 68853694464);
     learning_rate = 0.9;
@@ -665,92 +316,4 @@ void Test2PlayOut()
             child = child->next;
         }
     }
-}
-
-PyObject *TestPlayOut(PyObject *self, PyObject *args)
-{
-    printf("TestPlayOut start.\n");
-
-    Test1PlayOut();
-    Test2PlayOut();
-
-    printf("TestPlayOut done.\n");
-    return Py_None;
-}
-
-// can be static?
-// All processes are same seeds?
-PyObject *Search(PyObject *self, PyObject *args)
-{
-    unsigned long long m;
-    unsigned long long y;
-    int trial;
-
-    if (!PyArg_ParseTuple(args, "KKdi", &m, &y, &learning_rate, &trial))
-    {
-        return NULL;
-    }
-
-    struct Node* node = CreateNode(m, y);
-
-    for (int j = 0; j < trial; j++)
-    {  
-        //printf("\r%d/%d", j, trial);
-        PlayOut(node, 1);
-    }
-    //printf("\r\n");
-
-    double winrate = node->a / (node->a + node->b);
-    Free(node);
-
-    return Py_BuildValue("d", winrate);
-}
-
-PyObject *GetMovablePy(PyObject *self, PyObject *args)
-{
-    unsigned long long m;
-    unsigned long long y;
-    if (!PyArg_ParseTuple(args, "KK", &m, &y))
-    {
-        return NULL;
-    }
-    return Py_BuildValue("K", GetMovable(m, y));
-}
-
-PyObject *GetReversablePy(PyObject *self, PyObject *args)
-{
-    unsigned long long m;
-    unsigned long long y;
-    unsigned long long move;
-    if (!PyArg_ParseTuple(args, "KKK", &m, &y, &move))
-    {
-        return NULL;
-    }
-    return Py_BuildValue("K", GetReversable(m, y, move));
-}
-
-static PyMethodDef engine_methods[] = {
-    {"SetSeed", SetSeed, METH_VARARGS},
-    {"TestDrawLotsExisting", TestDrawLotsExisting, METH_VARARGS},
-    {"TestDrawLotsNew", TestDrawLotsNew, METH_VARARGS},
-    {"TestUpdate", TestUpdate, METH_VARARGS},
-    {"TestPlayOut", TestPlayOut, METH_VARARGS},
-    {"Search", Search, METH_VARARGS},
-    {"WrapSampleBeta", WrapSampleBeta, METH_VARARGS},
-    {"GetMovablePy", GetMovablePy, METH_VARARGS},
-    {"GetReversablePy", GetReversablePy, METH_VARARGS},
-    {NULL}
-};
-
-static struct PyModuleDef engine_module = {
-    PyModuleDef_HEAD_INIT,
-    "engine",
-    "Engine of Othello",
-    -1,
-    engine_methods
-};
-
-PyMODINIT_FUNC PyInit_engine(void)
-{
-    return PyModule_Create(&engine_module);
-}
+}*/

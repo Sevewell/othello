@@ -4,6 +4,10 @@ import search
 import threading
 import pickle
 import os
+import sys
+
+seed = sys.argv[1]
+print(seed)
 
 class Start(tkinter.Tk):
 
@@ -19,7 +23,7 @@ class Start(tkinter.Tk):
         self.mode = tkinter.StringVar()
         self.mode.set('対戦')
 
-        for mode in ['対戦', '詰め', '観戦']:
+        for mode in ['対戦', '観戦']:
             radiobutton = tkinter.Radiobutton(self, text=mode, variable=self.mode, value=mode)
             radiobutton.pack()
 
@@ -54,11 +58,6 @@ class Root(tkinter.Tk):
 
             for i,panel in enumerate(self.board):
                 panel.config(command=self.Play(i))
-
-        elif mode == '詰め':
-
-            for i,panel in enumerate(self.board):
-                panel.config(command=self.Question(i))
 
         elif mode == '観戦':
 
@@ -100,33 +99,15 @@ class Root(tkinter.Tk):
         def Put():
 
             move = 2**(63 - i)
-            self.black, self.white = search.Move(self.black, self.white, move)
-            turn = self.turn.get()
-            if turn == '黒番':
-                self.turn.set('白番')
-            elif turn == '白番':
-                self.turn.set('黒番')
-            self.Draw()
 
-        return Put
-
-    def Question(self, i):
-
-        def Put():
-
-            move = 2**(63 - i)
-
-            # 既に石があったら空にする
-            if move & (self.black | self.white):
-                
+            if move & (self.black | self.white):                
                 self.black = self.black & (~move)
                 self.white = self.white & (~move)
             
             else:
-
-                if self.turn.get() == 'b':
+                if self.turn.get() == '黒番':
                     self.black = self.black | move
-                elif self.turn.get() == 'w':
+                elif self.turn.get() == '白番':
                     self.white = self.white | move
 
             self.Draw()
@@ -151,26 +132,39 @@ class Root(tkinter.Tk):
             self.black = 34628173824
             self.white = 68853694464
             self.turn.set('黒番')
-            self.Draw()
 
             learning_rate_b = search.random.random() / 10 * 2 + 0.9
             learning_rate_w = search.random.random() / 10 * 2 + 0.9
-            self.trial.set(2000000)
+            self.param.set(learning_rate_b)
+
+            self.trial.set(100000)
+
+            self.Draw()
 
             while True:
 
-                if search.CheckEnd(self.black, self.white):
-                    self.param.set(learning_rate_b)
-                    self.Search()
-                    self.Draw()
-                else:
-                    break
+                children = self.Search()
 
-                if search.CheckEnd(self.black, self.white):
-                    self.param.set(learning_rate_w)
-                    self.Search()
+                if children:
+
+                    children.sort(key=lambda x: x['winrate'])
+                    choice = children[0]
+
+                    if self.turn.get() == '黒番':
+                        self.black = choice['y']
+                        self.white = choice['m']
+                        self.param.set(learning_rate_w)
+                        self.turn.set('白番')
+                    else:
+                        self.black = choice['m']
+                        self.white = choice['y']
+                        self.param.set(learning_rate_b)
+                        self.turn.set('黒番')
+
                     self.Draw()
+
                 else:
+
                     break
 
             count_b = bin(self.black).count('1')
@@ -211,7 +205,7 @@ class Root(tkinter.Tk):
         button_turn_b.pack()
         button_turn_w.pack()
 
-        trial = 2000000
+        trial = 200000
         self.trial = tkinter.IntVar()
         self.trial.set(trial // 2)
         trial_scale = tkinter.Scale(
@@ -224,14 +218,14 @@ class Root(tkinter.Tk):
         trial_scale.pack()
 
         self.param = tkinter.DoubleVar()
-        self.param.set(1.0)
+        self.param.set(0.95)
         scale_param = tkinter.Scale(
             control,
             orient='horizontal',
             variable=self.param,
             resolution=0.001,
             from_=0.9,
-            to=1.1
+            to=1.0
             )
         scale_param.pack()
 
@@ -270,24 +264,27 @@ class Root(tkinter.Tk):
         turn = self.turn.get()
 
         if turn == '黒番':
-            self.black, self.white, info = search.Search(
+            children = search.Search(
                 self.black,
                 self.white,
                 self.param.get(),
                 self.trial.get(),
-                self.core.get()
+                self.core.get(),
+                seed
             )
-            self.Info(info)
-            self.turn.set('白番')
+            #self.Info(info)
+            #self.turn.set('白番')
         elif turn == '白番':
-            self.white, self.black, info = search.Search(
+            children = search.Search(
                 self.white,
                 self.black,
                 self.param.get(),
                 self.trial.get(),
-                self.core.get()
+                self.core.get(),
+                seed
             )
-            self.Info(info)
-            self.turn.set('黒番')
+            #self.Info(info)
+            #self.turn.set('黒番')
 
-        self.Draw()
+        return children
+        #self.Draw()

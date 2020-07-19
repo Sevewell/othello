@@ -4,16 +4,10 @@ https://sevenwell.hatenablog.com/entry/2020/02/11/112707
 インターフェースはPythonで、エンジンはCで実装しています。
 
 # Requirement
-Python3とCコンパイラが必要です。CMakeでの動作のみ確認していますが、GCCなどでも動作するはずです。  
-Windows環境を想定していますが、Linuxでも動作すると思います。Windows固有のライブラリなどは使用していないので、互換は容易かと思います。  
-外部ライブラリは使用しておりません。
+x86 Linux GCC  
 
 # Installation
-venvの使用をお勧めします。  
-`python -m venv env`  
-`env/Script/activate`  
-Cプログラムをコンパイルします。ビルド物は配布していませんすみません。  
-`python setup.py install`
+`gcc search.c -lm -o search`
 
 # Usage
-`python main.py`
+`python main.py $RANDOM`
