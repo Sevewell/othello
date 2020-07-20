@@ -133,11 +133,11 @@ class Root(tkinter.Tk):
             self.white = 68853694464
             self.turn.set('黒番')
 
-            learning_rate_b = search.random.random() / 10 * 2 + 0.9
-            learning_rate_w = search.random.random() / 10 * 2 + 0.9
+            learning_rate_b = search.random.random() / 10 + 0.9
+            learning_rate_w = search.random.random() / 10 + 0.9
             self.param.set(learning_rate_b)
 
-            self.trial.set(100000)
+            self.trial.set(1000000)
 
             self.Draw()
 
@@ -205,7 +205,7 @@ class Root(tkinter.Tk):
         button_turn_b.pack()
         button_turn_w.pack()
 
-        trial = 200000
+        trial = 2000000
         self.trial = tkinter.IntVar()
         self.trial.set(trial // 2)
         trial_scale = tkinter.Scale(
@@ -286,5 +286,7 @@ class Root(tkinter.Tk):
             #self.Info(info)
             #self.turn.set('黒番')
 
+        for child in children:
+            print(child)
         return children
         #self.Draw()

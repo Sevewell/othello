@@ -25,6 +25,7 @@ def Search(m, y, param, trial, cores, seed):
         str(y),
         str(trial),
         str(param),
+        str(cores),
         str(seed)
     ]
     cp = subprocess.run(stdin, capture_output=True)
