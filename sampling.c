@@ -5,11 +5,7 @@
 
 double SampleUniform()
 {
-    double value;
-    value = (double)rand() / RAND_MAX;
-    assert(value >= 0);
-    assert(value <= 1);
-    return value;
+    return (double)random() / __INT32_MAX__;
 }
 
 double SampleNormal()

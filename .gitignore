@@ -3,3 +3,4 @@ build
 env
 record.pkl
 search
+test_sampling
