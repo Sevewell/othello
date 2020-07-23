@@ -6,19 +6,27 @@
 int MakeChildren(struct Node *node)
 {
     unsigned long long movable = GetMovable(node->m, node->y);
-    unsigned long long move;
-    unsigned long long reversable;
-    struct Node *child;
     int count = 0;
 
-    while (movable)
+    if (movable)
     {
-        count++;
-        move = movable ^ (movable & (movable - 1));
-        reversable = GetReversable(node->m, node->y, move);
-        child = CreateNode(node->y ^ reversable, node->m | move | reversable);
-        AddChild(node, child);
-        movable &= (movable - 1);
+        unsigned long long move;
+        unsigned long long reversable;
+        struct Node *child;
+        while (movable)
+        {
+            count++;
+            move = movable ^ (movable & (movable - 1));
+            reversable = GetReversable(node->m, node->y, move);
+            child = CreateNode(node->y ^ reversable, node->m | move | reversable);
+            AddChild(node, child);
+            movable &= (movable - 1);
+        }
+    }
+    else if (GetMovable(node->y, node->m))
+    {
+        node->child = CreateNode(node->y, node->m);
+        count = 1;
     }
 
     return count;
@@ -85,7 +93,15 @@ int main(int argc, char *argv[])
 
     struct Node *node = CreateNode(m, y);
     int count_children = MakeChildren(node);
-    int trial_child = trial / count_children;
+    int trial_child;
+    if (count_children == 1) // カウント１だと探索時間がかかってしまうので
+    {
+        trial_child = trial / 2;
+    }
+    else
+    {
+        trial_child = trial / count_children;    
+    }
 
     struct Node *child = node->child;
     int count_process = 0;

@@ -7,7 +7,6 @@ import os
 import sys
 
 seed = sys.argv[1]
-print(seed)
 
 class Start(tkinter.Tk):
 
@@ -123,11 +122,9 @@ class Root(tkinter.Tk):
         else:
             record = []
 
-        n = 10
+        n = 100
 
         for i in range(n):
-
-            print('{}/{}'.format(i + 1, n))
 
             self.black = 34628173824
             self.white = 68853694464
@@ -140,6 +137,8 @@ class Root(tkinter.Tk):
             self.trial.set(1000000)
 
             self.Draw()
+
+            print('{}/{}'.format(i + 1, n), end=' ')
 
             while True:
 
@@ -176,7 +175,6 @@ class Root(tkinter.Tk):
             else:
                 winner = 'draw'
             print('winner: {}'.format(winner))
-            print()
 
             record.append({'lr_b': learning_rate_b, 'lr_w': learning_rate_w, 'winner': winner})
 
@@ -286,7 +284,5 @@ class Root(tkinter.Tk):
             #self.Info(info)
             #self.turn.set('黒番')
 
-        for child in children:
-            print(child)
         return children
         #self.Draw()
