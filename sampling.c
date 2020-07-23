@@ -3,9 +3,26 @@
 #include <math.h>
 #include <assert.h>
 
+static uint64_t SEED;
+static double r = 3.6541528853610088;
+static double v = 0.00492867323399;
+
+void SetSampling(int seed)
+{
+    SEED = (uint64_t)seed;
+    return;
+}
+
+uint64_t SampleInt64()
+{
+    SEED = SEED ^ (SEED << 7);
+    SEED = SEED ^ (SEED >> 9);
+    return SEED;
+}
+
 double SampleUniform()
 {
-    return (double)random() / __INT32_MAX__;
+    return (double)SampleInt64() / UINT64_MAX;
 }
 
 double SampleNormal()
@@ -41,7 +58,5 @@ double SampleBeta(double a, double b)
     double gamma1 = SampleGamma(a);
     double gamma2 = SampleGamma(b);
     double value = gamma1 / (gamma1 + gamma2);
-    assert(value >= 0);
-    assert(value <= 1);
     return value;
 }
