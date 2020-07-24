@@ -13,7 +13,6 @@ struct Node
     unsigned long long y;
     double a;
     double b;
-    char result;
     struct Node *child;
     struct Node *next;
 };
@@ -25,8 +24,8 @@ struct Node* CreateNode(unsigned long long m, unsigned long long y)
 
     node->m = m;
     node->y = y;
-    node->a = 1;
-    node->b = 1;
+    node->a = 0;
+    node->b = 0;
     node->child = NULL;
     node->next = NULL;
 
@@ -181,7 +180,6 @@ void Test2DrawLotsNew()
 
 struct Node* Move(struct Node* node, unsigned long long movable)
 {
-
     double winrate = 1.0;
 
     struct Node* raffle_existing = DrawLotsExisting(node, &movable, &winrate);
@@ -197,9 +195,10 @@ struct Node* Move(struct Node* node, unsigned long long movable)
     }
 }
 
-char Update(struct Node* node, char result, double value)
+char Update(struct Node* node, char result)
 {
     char next;
+    double value = SampleExponential();
 
     switch (result)
     {
@@ -227,7 +226,7 @@ char Update(struct Node* node, char result, double value)
     return next;
 }
 
-char End(struct Node* node, double value)
+char End(struct Node* node)
 {
     char result;
 
@@ -236,21 +235,21 @@ char End(struct Node* node, double value)
 
     if (count_m > count_y)
     {
-        result = Update(node, 'w', value);
+        result = Update(node, 'w');
     }
     else if (count_m < count_y)
     {
-        result = Update(node, 'l', value);
+        result = Update(node, 'l');
     }
     else
     {
-        result = Update(node, 'd', value);
+        result = Update(node, 'd');
     }
 
     return result;
 }
 
-char PlayOut(struct Node* node, double *value, double learning_rate)
+char PlayOut(struct Node* node)
 {
     char result;
     unsigned long long movable = GetMovable(node->m, node->y);
@@ -258,8 +257,8 @@ char PlayOut(struct Node* node, double *value, double learning_rate)
     if (movable)
     {
         struct Node* child = Move(node, movable);
-        result = PlayOut(child, value, learning_rate);
-        result = Update(node, result, *value);
+        result = PlayOut(child);
+        result = Update(node, result);
     }
     else if (GetMovable(node->y, node->m))
     {
@@ -267,16 +266,14 @@ char PlayOut(struct Node* node, double *value, double learning_rate)
         {
             node->child = CreateNode(node->y, node->m);
         }
-        result = PlayOut(node->child, value, learning_rate);
-        result = Update(node, result, *value);
+        result = PlayOut(node->child);
+        result = Update(node, result);
     }
     else
     {
-        *value = 1.0;
-        result = End(node, *value);
+        result = End(node);
     }
 
-    *value *= learning_rate;
     return result;
 }
 

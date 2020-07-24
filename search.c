@@ -55,8 +55,7 @@ void SearchChild(struct Node *child, int *count_process, int max_process, int tr
     {
         for (int j = 0; j < trial; j++)
         {
-            double value;
-            PlayOut(child, &value, learning_rate);
+            PlayOut(child);
         }
 
         printf("%llu, ", child->m);
@@ -89,7 +88,7 @@ int main(int argc, char *argv[])
     int process = atoi(argv[5]);
     int seed = atoi(argv[6]);
 
-    srand(seed);
+    SetSampling(seed);
 
     struct Node *node = CreateNode(m, y);
     int count_children = MakeChildren(node);

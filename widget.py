@@ -203,7 +203,7 @@ class Root(tkinter.Tk):
         button_turn_b.pack()
         button_turn_w.pack()
 
-        trial = 2000000
+        trial = 5000000
         self.trial = tkinter.IntVar()
         self.trial.set(trial // 2)
         trial_scale = tkinter.Scale(
@@ -283,6 +283,15 @@ class Root(tkinter.Tk):
             )
             #self.Info(info)
             #self.turn.set('黒番')
+
+        for child in children:
+            now = self.black | self.white
+            new = child['m'] | child['y']
+            move = format(now ^ new, '064b').find('1')
+            column = 'ABCDEFGH'[move % 8]
+            row = move // 8 + 1
+            print('{}{}'.format(column, row), 1 - child['winrate'])
+        print()
 
         return children
         #self.Draw()

@@ -13,6 +13,7 @@ void SetSampling(int seed)
     return;
 }
 
+// 性質上0にはならない？
 uint64_t SampleInt64()
 {
     SEED = SEED ^ (SEED << 7);
@@ -20,9 +21,15 @@ uint64_t SampleInt64()
     return SEED;
 }
 
+// (0, 1]かな？
 double SampleUniform()
 {
     return (double)SampleInt64() / UINT64_MAX;
+}
+
+double SampleExponential()
+{
+    return -1 * log(SampleUniform());
 }
 
 double SampleNormal()
@@ -53,10 +60,9 @@ double SampleGamma(double alpha)
     }
 }
 
-double SampleBeta(double a, double b)
+double SampleBeta(double a_sum, double b_sum)
 {
-    double gamma1 = SampleGamma(a);
-    double gamma2 = SampleGamma(b);
-    double value = gamma1 / (gamma1 + gamma2);
-    return value;
+    double a = SampleExponential() + a_sum;
+    double b = SampleExponential() + b_sum;
+    return a / (a + b);
 }
