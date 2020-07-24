@@ -7,7 +7,7 @@ https://sevenwell.hatenablog.com/entry/2020/02/11/112707
 x86 Linux GCC  
 
 # Installation
-`gcc search.c -lm -o search`
+`gcc search.c -lm -march=native -o search`
 
 # Usage
 `python main.py $RANDOM`

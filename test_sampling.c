@@ -2,18 +2,6 @@
 #include <inttypes.h>
 #include "sampling.c"
 
-void TestSampleInt64(int n)
-{
-    uint64_t sample;
-    for (int i = 0; i < n; i++)
-    {
-        sample = SampleInt64();
-        //printf("Int64: %" PRIu64 "\n", sample);
-        assert(sample >= 0);
-        assert(sample <= UINT64_MAX);
-    }
-}
-
 void TestSampleUniform(int n)
 {
     double sum = 0;

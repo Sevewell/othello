@@ -130,8 +130,8 @@ class Root(tkinter.Tk):
             self.white = 68853694464
             self.turn.set('黒番')
 
-            learning_rate_b = search.random.random() / 10 + 0.9
-            learning_rate_w = search.random.random() / 10 + 0.9
+            learning_rate_b = search.random.random() + 1.5
+            learning_rate_w = search.random.random() + 1.5
             self.param.set(learning_rate_b)
 
             self.trial.set(1000000)
@@ -203,7 +203,7 @@ class Root(tkinter.Tk):
         button_turn_b.pack()
         button_turn_w.pack()
 
-        trial = 5000000
+        trial = 2000000
         self.trial = tkinter.IntVar()
         self.trial.set(trial // 2)
         trial_scale = tkinter.Scale(
@@ -216,14 +216,14 @@ class Root(tkinter.Tk):
         trial_scale.pack()
 
         self.param = tkinter.DoubleVar()
-        self.param.set(0.95)
+        self.param.set(2.0)
         scale_param = tkinter.Scale(
             control,
             orient='horizontal',
             variable=self.param,
             resolution=0.001,
-            from_=0.9,
-            to=1.0
+            from_=1.5,
+            to=2.5
             )
         scale_param.pack()
 
@@ -290,7 +290,7 @@ class Root(tkinter.Tk):
             move = format(now ^ new, '064b').find('1')
             column = 'ABCDEFGH'[move % 8]
             row = move // 8 + 1
-            print('{}{}'.format(column, row), 1 - child['winrate'])
+            print('{}{} {:.5f} {} {}'.format(column, row, 1 - child['winrate'], child['a'], child['b']))
         print()
 
         return children

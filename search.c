@@ -3,6 +3,8 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
+extern double LEARNING_RATE;
+
 int MakeChildren(struct Node *node)
 {
     unsigned long long movable = GetMovable(node->m, node->y);
@@ -32,7 +34,7 @@ int MakeChildren(struct Node *node)
     return count;
 }
 
-void SearchChild(struct Node *child, int *count_process, int max_process, int trial, double learning_rate)
+void SearchChild(struct Node *child, int *count_process, int max_process, int trial)
 {
     if (child == NULL)
     {
@@ -74,7 +76,7 @@ void SearchChild(struct Node *child, int *count_process, int max_process, int tr
             wait(NULL);
             *count_process -= 1;
         }
-        SearchChild(child->next, count_process, max_process, trial, learning_rate);
+        SearchChild(child->next, count_process, max_process, trial);
         return;
     }
 }
@@ -84,7 +86,7 @@ int main(int argc, char *argv[])
     unsigned long long m = strtoull(argv[1], NULL, 0);
     unsigned long long y = strtoull(argv[2], NULL, 0);
     int trial = atoi(argv[3]);
-    double learning_rate = strtod(argv[4], NULL);
+    LEARNING_RATE = strtod(argv[4], NULL);
     int process = atoi(argv[5]);
     int seed = atoi(argv[6]);
 
@@ -104,7 +106,7 @@ int main(int argc, char *argv[])
 
     struct Node *child = node->child;
     int count_process = 0;
-    SearchChild(child, &count_process, process, trial_child, learning_rate);
+    SearchChild(child, &count_process, process, trial_child);
 
     return 0;
 }

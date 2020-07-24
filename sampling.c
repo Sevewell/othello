@@ -4,27 +4,34 @@
 #include <assert.h>
 
 static uint64_t SEED;
-static double r = 3.6541528853610088;
-static double v = 0.00492867323399;
+
+struct Sample
+{
+    char result;
+    double value;
+    struct Sample *next;
+};
+
+struct Sample* CreateSample(char result, double value)
+{
+    struct Sample *sample = (struct Sample*)malloc(sizeof(struct Sample));
+    sample->result = result;
+    sample->value = value;
+    sample->next = NULL;
+    return sample;
+}
 
 void SetSampling(int seed)
 {
     SEED = (uint64_t)seed;
-    return;
-}
-
-// 性質上0にはならない？
-uint64_t SampleInt64()
-{
-    SEED = SEED ^ (SEED << 7);
-    SEED = SEED ^ (SEED >> 9);
-    return SEED;
 }
 
 // (0, 1]かな？
 double SampleUniform()
 {
-    return (double)SampleInt64() / UINT64_MAX;
+    SEED = SEED ^ (SEED << 7);
+    SEED = SEED ^ (SEED >> 9);
+    return (double)SEED / UINT64_MAX;
 }
 
 double SampleExponential()

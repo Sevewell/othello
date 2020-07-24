@@ -7,12 +7,22 @@
 #include "rule.c"
 #include "sampling.c"
 
+double LEARNING_RATE;
+
 struct Node
 {
     unsigned long long m;
     unsigned long long y;
+
     double a;
     double b;
+
+    int pass;
+    int stone;
+
+    struct Sample *head;
+    struct Sample *tail;
+
     struct Node *child;
     struct Node *next;
 };
@@ -24,21 +34,20 @@ struct Node* CreateNode(unsigned long long m, unsigned long long y)
 
     node->m = m;
     node->y = y;
+
     node->a = 0;
     node->b = 0;
+
+    node->pass = 0;
+    node->stone = (int)pow((double)_popcnt64(m | y), LEARNING_RATE);
+
+    node->head = NULL;
+    node->tail = NULL;
+
     node->child = NULL;
     node->next = NULL;
 
     return node;
-}
-
-void Free(struct Node* node)
-{
-    if (node == NULL) return;
-    Free(node->child);
-    Free(node->next);
-    free(node);
-    node = NULL;
 }
 
 void AddChild(struct Node *node, struct Node* child)
@@ -112,72 +121,6 @@ struct Node* DrawLotsNew(struct Node* node, unsigned long long *movable, double 
     return raffle;
 }
 
-void Test1DrawLotsNew()
-{
-    struct Node* node = CreateNode(34628173824, 68853694464);
-    unsigned long long movable = 0;
-    double winrate = 1.0;
-
-    struct Node* raffle = DrawLotsNew(node, &movable, &winrate);
-    if (raffle != NULL)
-    {
-        printf("Error Test1: raffle should be NULL.\n");
-    }
-    if (node->child != NULL)
-    {
-        printf("Error Test1: wrong adding child.\n");
-    }
-    if (movable != 0)
-    {
-        printf("Error Test1: movable remained.\n");
-    }
-    if (winrate != 1.0)
-    {
-        printf("Error Test1: winrate is changed wrong.\n");
-    }
-}
-
-void Test2DrawLotsNew()
-{
-    struct Node* node = CreateNode(34628173824, 68853694464);
-    node->child = CreateNode(68719476736, 34762915840); // Index is 0
-    unsigned long long movable = 17729692106752; // Index 0 is removed.
-    double winrate = 0.5;
-
-    struct Node* raffle = DrawLotsNew(node, &movable, &winrate);
-    if (raffle == NULL)
-    {
-        if (node->child->next != NULL)
-        {
-            printf("Error Test2: wrong adding child.\n");
-        }
-    }
-    else
-    {
-        if (node->child->next == NULL)
-        {
-            printf("Error Test2: Child is not added.\n");
-        }
-        if (!((raffle->m == node->child->next->m) && (raffle->y == node->child->next->y)))
-        {
-            printf("Error Test2: Raffle is not added child.\n");
-        }
-        if ((raffle->m == 68719476736) && (raffle->y == 34762915840))
-        {
-            printf("Error Test2: Raffle is added existing child.\n");
-            printf("%llu %llu\n", raffle->m, raffle->y);
-        }
-    }
-    if (movable != 0)
-    {
-        printf("Error Test2: movable remained.\n");
-    }
-    if (winrate == 1.0)
-    {
-        printf("Error Test2: winrate is not writen.\n");
-    }
-}
-
 struct Node* Move(struct Node* node, unsigned long long movable)
 {
     double winrate = 1.0;
@@ -197,8 +140,52 @@ struct Node* Move(struct Node* node, unsigned long long movable)
 
 char Update(struct Node* node, char result)
 {
-    char next;
     double value = SampleExponential();
+
+    struct Sample *sample = CreateSample(result, value);
+    int check = 1;
+    if (node->head == NULL)
+    {
+        node->head = sample;
+        check = 0;
+    }
+    else if (node->tail == NULL) // また入ったりしないよな？
+    {
+        assert(check);
+        node->head->next = sample;
+        node->tail = sample;
+    }
+    else
+    {
+        node->tail->next = sample;
+        node->tail = sample;
+    }
+
+    node->pass += 1;
+
+    if (node->pass > node->stone)
+    {
+        struct Sample *pop = node->head;
+        switch (pop->result)
+        {
+            case 'w':
+                node->a -= pop->value;
+                break;
+            case 'l':
+                node->b -= pop->value;
+                break;
+            case 'd':
+                node->a -= pop->value / 2;
+                node->b -= pop->value / 2;
+                break;
+            default:
+                assert(0);
+        }
+        node->head = node->head->next;
+        free(pop);
+    }
+
+    char next;
 
     switch (result)
     {
@@ -276,41 +263,3 @@ char PlayOut(struct Node* node)
 
     return result;
 }
-
-/*void Test1PlayOut()
-{
-    struct Node* node = CreateNode(34628173824, 68853694464);
-    learning_rate = 0.9;
-
-    PlayOut(node, 1);
-    while (node != NULL)
-    {
-        printf("%llu %llu\n", node->m, node->y);
-        printf("%lf %lf\n", node->a, node->b);
-        printf("%c\n", node->result);
-        node = node->child;
-    }
-}
-
-void Test2PlayOut()
-{
-    struct Node* node = CreateNode(268435456, 61813844092928);
-    learning_rate = 0.9;
-
-    for (int i = 0; i < 100; i++)
-    {
-        PlayOut(node, 1);
-    }
-
-    if (node->result != 'l')
-    {
-        printf("Error Test2: wrong result.\n");
-        printf("parent: %c\n", node->result);
-        struct Node* child = node->child;
-        while (child != NULL)
-        {
-            printf("child: %c\n", child->result);
-            child = child->next;
-        }
-    }
-}*/
