@@ -14,8 +14,8 @@ struct Node
     unsigned long long m;
     unsigned long long y;
 
-    double a;
-    double b;
+    int a;
+    int b;
 
     int pass;
     int stone;
@@ -35,8 +35,8 @@ struct Node* CreateNode(unsigned long long m, unsigned long long y)
     node->m = m;
     node->y = y;
 
-    node->a = 0;
-    node->b = 0;
+    node->a = 1;
+    node->b = 1;
 
     node->pass = 0;
     node->stone = (int)pow((double)_popcnt64(m | y), LEARNING_RATE);
@@ -140,18 +140,13 @@ struct Node* Move(struct Node* node, unsigned long long movable)
 
 char Update(struct Node* node, char result)
 {
-    double value = SampleExponential();
-
-    struct Sample *sample = CreateSample(result, value);
-    int check = 1;
+    struct Sample *sample = CreateSample(result);
     if (node->head == NULL)
     {
         node->head = sample;
-        check = 0;
     }
-    else if (node->tail == NULL) // また入ったりしないよな？
+    else if (node->tail == NULL)
     {
-        assert(check);
         node->head->next = sample;
         node->tail = sample;
     }
@@ -162,21 +157,18 @@ char Update(struct Node* node, char result)
     }
 
     node->pass += 1;
-
     if (node->pass > node->stone)
     {
         struct Sample *pop = node->head;
         switch (pop->result)
         {
             case 'w':
-                node->a -= pop->value;
+                node->a -= 1;
                 break;
             case 'l':
-                node->b -= pop->value;
+                node->b -= 1;
                 break;
             case 'd':
-                node->a -= pop->value / 2;
-                node->b -= pop->value / 2;
                 break;
             default:
                 assert(0);
@@ -186,30 +178,25 @@ char Update(struct Node* node, char result)
     }
 
     char next;
-
     switch (result)
     {
         case 'w':
-            node->a += value;
+            node->a += 1;
             next = 'l';
             break;
         
         case 'l':
-            node->b += value;
+            node->b += 1;
             next = 'w';
             break;
 
         case 'd':
-            node->a += value / 2;
-            node->b += value / 2;
             next = 'd';
             break;
 
         default:
-            next = '?';
+            assert(0);
     }
-
-    assert(next != '?');
     return next;
 }
 

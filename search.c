@@ -62,9 +62,9 @@ void SearchChild(struct Node *child, int *count_process, int max_process, int tr
 
         printf("%llu, ", child->m);
         printf("%llu, ", child->y);
-        printf("%lf, ", child->a);
-        printf("%lf, ", child->b);
-        printf("%lf\n", child->a / (child->a + child->b));
+        printf("%d, ", child->a);
+        printf("%d, ", child->b);
+        printf("%lf\n", (double)child->a / (child->a + child->b));
 
         exit(EXIT_SUCCESS);
     }

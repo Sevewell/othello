@@ -8,15 +8,13 @@ static uint64_t SEED;
 struct Sample
 {
     char result;
-    double value;
     struct Sample *next;
 };
 
-struct Sample* CreateSample(char result, double value)
+struct Sample* CreateSample(char result)
 {
     struct Sample *sample = (struct Sample*)malloc(sizeof(struct Sample));
     sample->result = result;
-    sample->value = value;
     sample->next = NULL;
     return sample;
 }
@@ -59,9 +57,9 @@ double SampleGamma(int alpha)
     return sample;
 }
 
-double SampleBeta(double a, double b)
+double SampleBeta(int a, int b)
 {
-    a += SampleExponential();
-    b += SampleExponential();
-    return a / (a + b);
+    double gamma_a = SampleGamma(a);
+    double gamma_b = SampleGamma(b);
+    return gamma_a / (gamma_a + gamma_b);
 }
