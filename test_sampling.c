@@ -38,21 +38,13 @@ void TestSampleBeta(int a, int b, int n)
     double sum = 0;
 
     double sample;
-    double a_sum;
-    double b_sum;
+    double a_gamma;
+    double b_gamma;
     for (int i = 0; i < n; i++)
     {
-        a_sum = 0;
-        b_sum = 0;
-        for(int i = 1; i < a; i++)
-        {
-            a_sum += SampleExponential();
-        }
-        for(int i = 1; i < b; i++)
-        {
-            b_sum += SampleExponential();
-        }
-        sample = SampleBeta(a_sum, b_sum);
+        a_gamma = SampleGamma(a - 1);
+        b_gamma = SampleGamma(b - 1);
+        sample = SampleBeta(a_gamma, b_gamma);
         assert(sample >= 0);
         assert(sample <= 1);
         sum += sample;
@@ -69,7 +61,6 @@ int main(int argc, char *argv[])
 
     SetSampling(seed);
 
-    TestSampleInt64(seed);
     TestSampleUniform(seed);
     TestSampleExponential(seed);
     TestSampleBeta(a, b, seed);

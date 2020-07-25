@@ -130,8 +130,8 @@ class Root(tkinter.Tk):
             self.white = 68853694464
             self.turn.set('黒番')
 
-            learning_rate_b = search.random.random() + 1.5
-            learning_rate_w = search.random.random() + 1.5
+            learning_rate_b = search.random.random() * 2 + 1.0
+            learning_rate_w = search.random.random() * 2 + 1.0
             self.param.set(learning_rate_b)
 
             self.trial.set(1000000)
@@ -222,8 +222,8 @@ class Root(tkinter.Tk):
             orient='horizontal',
             variable=self.param,
             resolution=0.001,
-            from_=1.5,
-            to=2.5
+            from_=1.0,
+            to=3.0
             )
         scale_param.pack()
 
