@@ -55,16 +55,18 @@ void SearchChild(struct Node *child, int *count_process, int max_process, int tr
     }
     else if (pid == 0)
     {
+        char result;
         for (int j = 0; j < trial; j++)
         {
-            PlayOut(child);
+            result = 'n';
+            PlayOut(child, &result);
         }
 
         printf("%llu, ", child->m);
         printf("%llu, ", child->y);
-        printf("%d, ", child->a);
-        printf("%d, ", child->b);
-        printf("%lf\n", (double)child->a / (child->a + child->b));
+        printf("%lf, ", child->a);
+        printf("%lf, ", child->b);
+        printf("%lf\n", child->a / (child->a + child->b));
 
         exit(EXIT_SUCCESS);
     }
@@ -81,6 +83,25 @@ void SearchChild(struct Node *child, int *count_process, int max_process, int tr
     }
 }
 
+void Search(struct Node *node, int trial)
+{
+    char result;
+    for (int i = 0; i < trial; i++)
+    {
+        result = 'n';
+        PlayOut(node, &result);
+    }
+    struct Node *child = node->child;
+    while (child != NULL)
+    {
+        printf("%llu, ", child->m);
+        printf("%llu, ", child->y);
+        printf("%lf, ", child->a);
+        printf("%lf, ", child->b);
+        child = child->next;
+    }
+}
+
 int main(int argc, char *argv[])
 {
     unsigned long long m = strtoull(argv[1], NULL, 0);
@@ -93,20 +114,30 @@ int main(int argc, char *argv[])
     SetSampling(seed);
 
     struct Node *node = CreateNode(m, y);
-    int count_children = MakeChildren(node);
-    int trial_child;
-    if (count_children == 1) // カウント１だと探索時間がかかってしまうので
+    pid_t pid[process];
+
+    for (int i = 0; i < process; i++)
     {
-        trial_child = trial / 2;
-    }
-    else
-    {
-        trial_child = trial / count_children;    
+        pid[i] = fork();
+        if (pid[i] == -1)
+        {
+            exit(EXIT_FAILURE);
+        }
+        else if (pid[i] == 0)
+        {
+            Search(node, trial);
+            exit(EXIT_SUCCESS);
+        }
+        else
+        {
+            SampleUniform(); // SEED更新
+        }
     }
 
-    struct Node *child = node->child;
-    int count_process = 0;
-    SearchChild(child, &count_process, process, trial_child);
+    for (int i = 0; i < process; i++)
+    {
+        wait(NULL);
+    }
 
     return 0;
 }

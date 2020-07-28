@@ -14,14 +14,8 @@ struct Node
     unsigned long long m;
     unsigned long long y;
 
-    int a;
-    int b;
-
-    int pass;
-    int stone;
-
-    struct Sample *head;
-    struct Sample *tail;
+    double a;
+    double b;
 
     struct Node *child;
     struct Node *next;
@@ -37,12 +31,6 @@ struct Node* CreateNode(unsigned long long m, unsigned long long y)
 
     node->a = 1;
     node->b = 1;
-
-    node->pass = 0;
-    node->stone = (int)pow((double)_popcnt64(m | y), LEARNING_RATE);
-
-    node->head = NULL;
-    node->tail = NULL;
 
     node->child = NULL;
     node->next = NULL;
@@ -138,101 +126,63 @@ struct Node* Move(struct Node* node, unsigned long long movable)
     }
 }
 
-char Update(struct Node* node, char result)
+double Update(struct Node* node, char *result, double value)
 {
-    struct Sample *sample = CreateSample(result);
-    if (node->head == NULL)
-    {
-        node->head = sample;
-    }
-    else if (node->tail == NULL)
-    {
-        node->head->next = sample;
-        node->tail = sample;
-    }
-    else
-    {
-        node->tail->next = sample;
-        node->tail = sample;
-    }
-
-    node->pass += 1;
-    if (node->pass > node->stone)
-    {
-        struct Sample *pop = node->head;
-        switch (pop->result)
-        {
-            case 'w':
-                node->a -= 1;
-                break;
-            case 'l':
-                node->b -= 1;
-                break;
-            case 'd':
-                break;
-            default:
-                assert(0);
-        }
-        node->head = node->head->next;
-        free(pop);
-    }
-
-    char next;
-    switch (result)
+    switch (*result)
     {
         case 'w':
-            node->a += 1;
-            next = 'l';
+            node->a += value;
+            *result = 'l';
             break;
         
         case 'l':
-            node->b += 1;
-            next = 'w';
+            node->b += value;
+            *result = 'w';
             break;
 
         case 'd':
-            next = 'd';
+            node->a += value / 2;
+            node->b += value / 2;
+            *result = 'd';
             break;
 
         default:
             assert(0);
     }
-    return next;
+    return value * LEARNING_RATE;
 }
 
-char End(struct Node* node)
+double End(struct Node* node, char *result)
 {
-    char result;
-
     int count_m = (int)_popcnt64(node->m);
     int count_y = (int)_popcnt64(node->y);
 
     if (count_m > count_y)
     {
-        result = Update(node, 'w');
+        *result = 'w';
     }
     else if (count_m < count_y)
     {
-        result = Update(node, 'l');
+        *result = 'l';
     }
     else
     {
-        result = Update(node, 'd');
+        *result = 'd';
     }
 
-    return result;
+    return Update(node, result, 1.0);
 }
 
-char PlayOut(struct Node* node)
+double PlayOut(struct Node* node, char *result)
 {
-    char result;
+    double value;
     unsigned long long movable = GetMovable(node->m, node->y);
 
     if (movable)
     {
         struct Node* child = Move(node, movable);
-        result = PlayOut(child);
-        result = Update(node, result);
+        value = PlayOut(child, result);
+        value = Update(node, result, value);
     }
     else if (GetMovable(node->y, node->m))
     {
@@ -240,13 +190,13 @@ char PlayOut(struct Node* node)
         {
             node->child = CreateNode(node->y, node->m);
         }
-        result = PlayOut(node->child);
-        result = Update(node, result);
+        value = PlayOut(node->child, result);
+        value = Update(node, result, value);
     }
     else
     {
-        result = End(node);
+        value = End(node, result);
     }
 
-    return result;
+    return value;
 }
