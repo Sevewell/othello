@@ -122,7 +122,7 @@ class Root(tkinter.Tk):
         else:
             record = []
 
-        n = 100
+        n = 10
 
         for i in range(n):
 
@@ -130,11 +130,12 @@ class Root(tkinter.Tk):
             self.white = 68853694464
             self.turn.set('黒番')
 
-            learning_rate_b = search.random.random() / 10 + 0.9
-            learning_rate_w = search.random.random() / 10 + 0.9
+            learning_rate_b = search.random.random() / 20 + 0.95
+            learning_rate_w = search.random.random() / 20 + 0.95
             self.param.set(learning_rate_b)
 
             self.trial.set(500000)
+            self.core.set(9)
 
             self.Draw()
 
@@ -146,7 +147,7 @@ class Root(tkinter.Tk):
 
                 if children:
 
-                    children.sort(key=lambda x: x['param'])
+                    children.sort(key=lambda x: x['pass'])
                     choice = children[-1]
 
                     if self.turn.get() == '黒番':
@@ -216,13 +217,13 @@ class Root(tkinter.Tk):
         trial_scale.pack()
 
         self.param = tkinter.DoubleVar()
-        self.param.set(0.95)
+        self.param.set(0.975)
         scale_param = tkinter.Scale(
             control,
             orient='horizontal',
             variable=self.param,
             resolution=0.001,
-            from_=0.9,
+            from_=0.95,
             to=1.0
             )
         scale_param.pack()
@@ -270,7 +271,6 @@ class Root(tkinter.Tk):
                 self.core.get(),
                 seed
             )
-            #self.Info(info)
             #self.turn.set('白番')
         elif turn == '白番':
             children = search.Search(
@@ -281,10 +281,12 @@ class Root(tkinter.Tk):
                 self.core.get(),
                 seed
             )
-            #self.Info(info)
             #self.turn.set('黒番')
 
-        print(children)            
+        children.sort(key=lambda x: x['pass'])
+        for child in children:
+            print('{} {:.3f}-{:.3f}'.format(child['move'], min(child['rate']), max(child['rate'])))
+        print()
 
         return children
         #self.Draw()

@@ -10,37 +10,41 @@ def ConvertStdoutToDict(stdout):
     return {
         'm': int(args[0]),
         'y': int(args[1]),
-        'a': float(args[2]),
-        'b': float(args[3])
+        'pass': float(args[2]),
+        'rate': float(args[3])
     }
 
-def ConvertMoveToPoint(child, m, y):
+def ConvertMove(child, m, y):
 
     now = m | y
     new = child['m'] | child['y']
     move = format(now ^ new, '064b').find('1')
     column = 'ABCDEFGH'[move % 8]
     row = move // 8 + 1
-    child['move'] = column + str(row)
-    return child
+    return column + str(row)
 
-def SumParameter(move, children):
+def PackChild(children, m, y):
 
-    sum = 0
-    m = 0
-    y = 0
+    children_packing = []
+
     for child in children:
-        if child['move'] == move:
-            sum += child['a'] + child['b']
-            m = child['m']
-            y = child['y']
-    return {'move': move, 'm': m, 'y': y, 'param': sum}
+        moves = [(child_['m'], child_['y']) for child_ in children_packing]
+        if not (child['m'], child['y']) in moves:
+            children_packing.append({
+                'move': ConvertMove(child, m, y),
+                'm': child['m'],
+                'y': child['y'],
+                'pass': 0,
+                'rate': []
+                })
 
-def AggregateLearning(children):
+    for child in children:
+        for child_ in children_packing:
+            if (child['m'] == child_['m']) and (child['y'] == child_['y']):
+                child_['pass'] += child['pass']
+                child_['rate'].append(child['rate'])
 
-    moves = set([child['move'] for child in children])
-    moves = [SumParameter(move, children) for move in moves]
-    return moves
+    return children_packing
 
 def Search(m, y, param, trial, cores, seed):
 
@@ -67,13 +71,6 @@ def Search(m, y, param, trial, cores, seed):
     else:
 
         children = [ConvertStdoutToDict(child) for child in stdout.split('\n')]
-        children = [ConvertMoveToPoint(child, m, y) for child in children]
-        #for child in children:
-        #    print(child)
-        moves = AggregateLearning(children)
+        children = PackChild(children, m, y)
 
-        return moves
-
-def CheckEnd(m, y):
-
-    return 1
+        return children

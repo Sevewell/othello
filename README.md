@@ -4,7 +4,9 @@ https://sevenwell.hatenablog.com/entry/2020/02/11/112707
 インターフェースはPythonで、エンジンはCで実装しています。
 
 # Requirement
-x86 Linux GCC  
+CPU x86_64  
+Linux kernel5.4.0  
+GCC 9.3.0  
 
 # Installation
 `gcc search.c -lm -o search`
