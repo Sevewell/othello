@@ -34,6 +34,7 @@ int main(int argc, char *argv[])
     int seed = atoi(argv[6]);
 
     SetSampling(seed);
+    SetZiggurat();
 
     struct Node *node = CreateNode(m, y);
     pid_t pid[process];

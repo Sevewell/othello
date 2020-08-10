@@ -122,7 +122,7 @@ class Root(tkinter.Tk):
         else:
             record = []
 
-        n = 10
+        n = 60
 
         for i in range(n):
 
