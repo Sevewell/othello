@@ -91,6 +91,18 @@ double SampleNormal_()
     return sum - 6;
 }
 
+double SampleGamma_(double alpha)
+{
+    double t;
+    double value = -1;
+    while (value < 0)
+    {
+        t = 1.0 / (9 * alpha);
+        value = alpha * pow(1 - t + sqrt(t) * SampleNormal(), 3);
+    }
+    return value;
+}
+
 int main(int argc, char *argv[])
 {
     double a = strtod(argv[1], NULL);
@@ -107,21 +119,21 @@ int main(int argc, char *argv[])
     TestSampleGamma(b, seed);
     TestSampleBeta(a, b, seed);
 
-    int n = 100000000;
+    /*int n = 1000000000;
 
     printf("%ld\n", time(NULL));
 
     for (int i = 0; i < n; i++)
     {
-        SampleNormal_();
+        SampleGamma(a);
     }
 
     printf("%ld\n", time(NULL));
 
     for (int i = 0; i < n; i++)
     {
-        SampleNormal();
+        SampleGamma_(a);
     }
 
-    printf("%ld\n", time(NULL));
+    printf("%ld\n", time(NULL));*/
 }

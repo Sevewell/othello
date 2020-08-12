@@ -61,7 +61,8 @@ def Search(m, y, param, trial, cores, seed):
     ]
     cp = subprocess.run(stdin, capture_output=True)
 
-    #print(time.time() - time_before , '秒')
+    print(time.time() - time_before , '秒')
+
     stdout = cp.stdout.decode('utf-8').strip()
 
     if stdout == '':

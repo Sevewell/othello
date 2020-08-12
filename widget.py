@@ -122,7 +122,7 @@ class Root(tkinter.Tk):
         else:
             record = []
 
-        n = 60
+        n = 10
 
         for i in range(n):
 
@@ -134,7 +134,7 @@ class Root(tkinter.Tk):
             learning_rate_w = search.random.random() / 20 + 0.95
             self.param.set(learning_rate_b)
 
-            self.trial.set(500000)
+            self.trial.set(1000000)
             self.core.set(9)
 
             self.Draw()
@@ -204,7 +204,7 @@ class Root(tkinter.Tk):
         button_turn_b.pack()
         button_turn_w.pack()
 
-        trial = 1000000
+        trial = 2000000
         self.trial = tkinter.IntVar()
         self.trial.set(trial // 2)
         trial_scale = tkinter.Scale(
