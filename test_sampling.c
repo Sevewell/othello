@@ -11,8 +11,9 @@ void TestSampleUniform(int n)
     for (int i = 0; i < n; i++)
     {
         sample = SampleUniform();
-        assert(sample >= 0);
-        assert(sample <= 1);
+        printf("%lf\n", sample);
+        assert(sample > 0);
+        assert(sample < 1);
         sum += sample;
     }
 
@@ -27,6 +28,7 @@ void TestSampleExponential(int n)
     for (int i = 0; i < n; i++)
     {
         sample = SampleExponential();
+        //printf("%lf\n", sample);
         assert(sample >= 0);
         sum += sample;
     }
@@ -111,6 +113,7 @@ int main(int argc, char *argv[])
 
     SetSampling(seed);
     SetZiggurat();
+    SetupZigguratExpo();
 
     TestSampleUniform(seed);
     TestSampleExponential(seed);
@@ -125,14 +128,14 @@ int main(int argc, char *argv[])
 
     for (int i = 0; i < n; i++)
     {
-        SampleGamma(a);
+        SampleExponential();
     }
 
     printf("%ld\n", time(NULL));
 
     for (int i = 0; i < n; i++)
     {
-        SampleGamma_(a);
+        SampleExponential_();
     }
 
     printf("%ld\n", time(NULL));*/

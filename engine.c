@@ -103,7 +103,7 @@ struct Node* DrawLotsNew(struct Node* node, unsigned long long *movable, double 
     {
         unsigned long long reversable = GetReversable(node->m, node->y, move);
         raffle = CreateNode(node->y ^ reversable, node->m | move | reversable);
-        AddChild(node, raffle);
+        AddChild(node, raffle); // ここのループを省きたい
     }
 
     return raffle;

@@ -35,6 +35,7 @@ int main(int argc, char *argv[])
 
     SetSampling(seed);
     SetZiggurat();
+    SetupZigguratExpo();
 
     struct Node *node = CreateNode(m, y);
     pid_t pid[process];
