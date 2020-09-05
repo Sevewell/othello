@@ -55,75 +55,46 @@ void AddChild(struct Node *node, struct Node* child)
     }
 }
 
-struct Node* DrawLotsExisting(struct Node* node, unsigned long long *movable, double *winrate)
+struct Node* Move(struct Node* node, unsigned long long movable)
 {
     struct Node* choice = NULL;
-    struct Node* child = node->child;
+    double winrate = 1.0;
     double sample;
+    struct Node* child = node->child;
 
     while (child != NULL)
     {
         sample = SampleBeta(child->a, child->b);
-
-        if (sample <= *winrate)
+        if (sample <= winrate)
         {
             choice = child;
-            *winrate = sample;
+            winrate = sample;
         }
-
-        *movable ^= (*movable & (child->m | child->y));
+        movable ^= (movable & (child->m | child->y));
         child = child->next;
     }
 
-    return choice;
-}
+    unsigned long long move = 0;
 
-struct Node* DrawLotsNew(struct Node* node, unsigned long long *movable, double *winrate)
-{
-    struct Node* raffle = NULL;
-    double sample;
-    unsigned long long move;
-    int flag = 0;
-
-    while (*movable)
+    while (movable)
     {
         sample = SampleUniform();
-
-        if (sample <= *winrate)
+        if (sample <= winrate)
         {
-            flag = 1;
-            move = *movable ^ (*movable & (*movable - 1));
-            *winrate = sample;
+            move = movable ^ (movable & (movable - 1));
+            winrate = sample;
         }
-
-        *movable &= (*movable - 1);
+        movable &= (movable - 1);
     }
 
-    if (flag)
+    if (move)
     {
         unsigned long long reversable = GetReversable(node->m, node->y, move);
-        raffle = CreateNode(node->y ^ reversable, node->m | move | reversable);
-        AddChild(node, raffle); // ここのループを省きたい
+        choice = CreateNode(node->y ^ reversable, node->m | move | reversable);
+        AddChild(node, choice); // ここのループを省きたい
     }
 
-    return raffle;
-}
-
-struct Node* Move(struct Node* node, unsigned long long movable)
-{
-    double winrate = 1.0;
-
-    struct Node* raffle_existing = DrawLotsExisting(node, &movable, &winrate);
-    struct Node* raffle_new = DrawLotsNew(node, &movable, &winrate);
-
-    if (raffle_new == NULL)
-    {
-        return raffle_existing;
-    }
-    else
-    {
-        return raffle_new;
-    }
+    return choice;
 }
 
 double Update(struct Node* node, char *result, double value)
