@@ -6,7 +6,8 @@ const server = new WebSocket.Server({ port: 8080 });
 const status = {
     seat: false,
     black: '0'.repeat(28) + '1' + '0'.repeat(6) + '1' + '0'.repeat(28),
-    white: '0'.repeat(27) + '1' + '0'.repeat(8) + '1' + '0'.repeat(27)
+    white: '0'.repeat(27) + '1' + '0'.repeat(8) + '1' + '0'.repeat(27),
+    computing: false
 }
 
 function takeSeat(ws) {
@@ -38,13 +39,21 @@ function putStone(ws, point) {
 
 function search() {
 
-    // 計算中フラグチェック
+    if (status.computing) {
+        return;
+    }
 
     exec(`./search ${status.white} ${status.black} 100`, (error, stdout, stderr) => {
+
+        status.computing = false;
 
         if (error) {
             console.log(`exec error: ${error}`);
             console.error(`stderr: ${stderr}`);
+            return;
+        }
+
+        if (stdout == '') {
             return;
         }
 
@@ -100,9 +109,9 @@ function search() {
             }));
         });
 
-        // 計算中フラグ解除
     });
-    // 計算中フラグ立てる
+
+    status.computing = true;
 
 }
 
