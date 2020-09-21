@@ -5,6 +5,24 @@
 
 extern double LEARNING_RATE;
 
+void PrintBinary(unsigned long long stone)
+{
+    unsigned long long mask = (unsigned long long)pow(2, 63);
+    for (int i = 0; i < 64; i++)
+    {
+        if (stone & mask)
+        {
+            printf("1");
+        }
+        else
+        {
+            printf("0");
+        }
+        stone = stone << 1;
+    }
+    printf(", ");
+}
+
 void Search(struct Node *node, int trial)
 {
     char result;
@@ -16,8 +34,10 @@ void Search(struct Node *node, int trial)
     struct Node *child = node->child;
     while (child != NULL)
     {
-        printf("%llu, ", child->m);
-        printf("%llu, ", child->y);
+        //printf("%llu, ", child->m);
+        //printf("%llu, ", child->y);
+        PrintBinary(child->m);
+        PrintBinary(child->y);
         printf("%lf, ", child->a + child->b);
         printf("%lf\n", child->b / (child->a + child->b));
         child = child->next;
@@ -26,12 +46,16 @@ void Search(struct Node *node, int trial)
 
 int main(int argc, char *argv[])
 {
-    unsigned long long m = strtoull(argv[1], NULL, 0);
-    unsigned long long y = strtoull(argv[2], NULL, 0);
-    int trial = atoi(argv[3]);
-    LEARNING_RATE = strtod(argv[4], NULL);
-    int process = atoi(argv[5]);
-    int seed = atoi(argv[6]);
+    unsigned long long m = strtoull(argv[1], NULL, 2);
+    unsigned long long y = strtoull(argv[2], NULL, 2);
+    int seed = atoi(argv[3]);
+
+    //int trial = atoi(getenv("TRIAL"));
+    int trial = 1000000;
+    //LEARNING_RATE = strtod(getenv("LEARNING_RATE"), NULL);
+    LEARNING_RATE = 0.99;
+    //int process = atoi(getenv("TREE"));
+    int process = 4;
 
     SetSampling(seed);
     SetZiggurat();

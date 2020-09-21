@@ -1,0 +1,23 @@
+body {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    max-height: 100vh;
+}
+
+#board {
+    max-width: 90vh;
+    flex: auto;
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    column-gap: 5px;
+}
+
+#info {
+    flex: auto;
+    background-color: azure;
+}
+
+img {
+    width: 100%;
+}

@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>てすと</title>
+        <meta charset="utf-8"/>
+        <script type="text/javascript" src="index.js"></script>
+        <link rel="stylesheet" href="index.css">
+    </head>
+    <body onload="draw();">
+
+        <div id="board"></div>
+        <template id="panel">
+            <div class="panel"><img onclick="move(this)"></div>
+        </template>
+
+        <div id="info">
+            <button id="seat" onclick="takeSeat()">席に座る</button>
+            <button id="search" onclick="search()">探索開始</button>
+            <div id="message"></div>
+        </div>
+
+    </body>
+</html>

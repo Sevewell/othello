@@ -1,0 +1,11 @@
+version: '3'
+services: 
+    engine:
+        build: ./engine
+        ports: 
+            - "8080:8080"
+    interface:
+        build: ./interface
+        ports: 
+            - "80:3000"
+        
