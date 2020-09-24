@@ -10,11 +10,28 @@ const vm = zone.vm('engine-dummy');
 const port = process.env.PORT || 3000;
 
 const server = http.createServer(function (request, response) {
+
     console.log('request ', request.url);
 
     var filePath = '.' + request.url;
     if (filePath == './') {
         filePath = './index.html';
+    }
+
+    if (filePath == './index.html') {
+
+        vm.get(function(err, vm, apiResponse) {
+        
+            console.log(vm.metadata.status);
+            
+            if (vm.metadata.status == 'TERMINATED') {
+                vm.start((err, operation, apiResponse) => {
+                    console.log(operation);
+                });
+            }
+    
+        });
+    
     }
 
     var extname = String(path.extname(filePath)).toLowerCase();
@@ -61,9 +78,5 @@ const server = http.createServer(function (request, response) {
 
 server.listen(port, () => {
     console.log(`Server running.`);
-    vm.get(function(err, vm, apiResponse) {
-        console.log(vm.metadata.status);
-        //console.log(apiResponse);
-    });
 });
   

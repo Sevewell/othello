@@ -1,6 +1,11 @@
 const WebSocket = require('ws');
 const { exec } = require('child_process');
 
+const gc_compute = require('@google-cloud/compute');
+const compute = new gc_compute();
+const zone = compute.zone('asia-northeast1-b');
+const vm = zone.vm('engine-dummy');
+
 const server = new WebSocket.Server({ port: 8080 });
 
 const status = {
@@ -9,6 +14,8 @@ const status = {
     white: '0'.repeat(27) + '1' + '0'.repeat(8) + '1' + '0'.repeat(27),
     computing: false
 }
+
+const ping = [];
 
 function takeSeat(ws) {
 
@@ -37,7 +44,11 @@ function putStone(ws, point) {
 
 }
 
-function search() {
+function search(ws) {
+
+    if (!ws.status.player) {
+        return;
+    }
 
     if (status.computing) {
         return;
@@ -115,6 +126,24 @@ function search() {
 
 }
 
+setInterval(() => {
+
+    if (ping.length > 10) {
+        ping.shift();
+    }
+    ping.push(server.clients.size);
+    console.log(ping);
+
+    if (ping.every((value) => {
+        return value == 0;
+    })) {
+        vm.stop((err, operation, apiResponse) => {
+            console.log(operation);
+        });
+    }
+
+}, 1000 * 60);
+
 server.on('connection', function connection(ws, req) {
 
     ws.status = {
@@ -141,7 +170,7 @@ server.on('connection', function connection(ws, req) {
                 putStone(ws, message.value);
                 break;
             case 'search':
-                search();
+                search(ws);
                 break;
 
         }
