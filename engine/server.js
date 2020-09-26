@@ -3,8 +3,8 @@ const { exec } = require('child_process');
 
 const gc_compute = require('@google-cloud/compute');
 const compute = new gc_compute();
-const zone = compute.zone('asia-northeast1-b');
-const vm = zone.vm('engine-dummy');
+const zone = compute.zone('asia-east1-b');
+const vm = zone.vm('othello-engine');
 
 const server = new WebSocket.Server({ port: 8080 });
 

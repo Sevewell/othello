@@ -1,5 +1,4 @@
-const hostname = '10.254.30.81'
-const ws = new WebSocket(`ws://${hostname}:8080/`);
+const ws = new WebSocket(`ws://${location.hostname}:8080/`);
 
 ws.onopen = function (event) {
     ;
