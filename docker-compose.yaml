@@ -4,6 +4,8 @@ services:
         build: ./engine
         ports: 
             - "8080:8080"
+        volumes:
+            - ./engine/info:/usr/src/app/info
     interface:
         build: ./interface
         ports: 

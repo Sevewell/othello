@@ -23,14 +23,38 @@ void PrintBinary(unsigned long long stone)
     printf(", ");
 }
 
+void StreamInfo(struct Node *node, FILE *fp)
+{
+    struct Node *child = node->child;
+    unsigned long long move;
+    double winrate;
+    while (child != NULL)
+    {
+        move = (child->m | child->y) ^ (node->m | node->y);
+        winrate = child->b / (child->a + child->b);
+        fprintf(fp, "%llu:%lf\n", move, winrate);
+        child = child->next;
+    }
+}
+
 void Search(struct Node *node, int trial)
 {
     char result;
+    FILE *fp;
+    char filename[24];
+    sprintf(filename, "./info/%d", getpid());
+    fp = fopen(filename, "a");
     for (int i = 0; i < trial; i++)
     {
         result = 'n';
         PlayOut(node, &result);
+        if (!(i % 1000))
+        {
+            StreamInfo(node, fp);
+        }
     }
+    fclose(fp);
+
     struct Node *child = node->child;
     while (child != NULL)
     {
