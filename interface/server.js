@@ -1,11 +1,6 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
-const gc_compute = require('@google-cloud/compute');
-
-const compute = new gc_compute();
-const zone = compute.zone('asia-east1-b');
-const vm = zone.vm('othello-engine');
 
 const port = process.env.PORT || 3000;
 
@@ -16,22 +11,6 @@ const server = http.createServer(function (request, response) {
     var filePath = '.' + request.url;
     if (filePath == './') {
         filePath = './index.html';
-    }
-
-    if (filePath == './index.html') {
-
-        vm.get(function(err, vm, apiResponse) {
-        
-            console.log(vm.metadata.status);
-            
-            if (vm.metadata.status == 'TERMINATED') {
-                vm.start((err, operation, apiResponse) => {
-                    console.log(operation);
-                });
-            }
-    
-        });
-    
     }
 
     var extname = String(path.extname(filePath)).toLowerCase();
