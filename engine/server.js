@@ -1,11 +1,6 @@
 const WebSocket = require('ws');
 const { exec } = require('child_process');
 
-const gc_compute = require('@google-cloud/compute');
-const compute = new gc_compute();
-const zone = compute.zone('asia-east1-b');
-const vm = zone.vm('othello-engine');
-
 const server = new WebSocket.Server({ port: 8080 });
 
 const status = {
@@ -125,24 +120,6 @@ function search(ws) {
     status.computing = true;
 
 }
-
-setInterval(() => {
-
-    if (ping.length > 10) {
-        ping.shift();
-    }
-    ping.push(server.clients.size);
-    console.log(ping);
-
-    if (ping.every((value) => {
-        return value == 0;
-    })) {
-        vm.stop((err, operation, apiResponse) => {
-            console.log(operation);
-        });
-    }
-
-}, 1000 * 60);
 
 server.on('connection', function connection(ws, req) {
 

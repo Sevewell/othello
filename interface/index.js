@@ -1,6 +1,8 @@
 function connectWebSocket() {
 
-    let ws = new WebSocket(`ws://${location.hostname.replace('interface', 'engine')}:8080/`);
+    let hostname = window.location.hostname; // サーバ情報が取れるはず
+    console.log(hostname);
+    let ws = new WebSocket(`ws://${hostname}:8080/`);
 
     ws.onopen = function (event) {
         console.log('WebSocketに接続しました');
