@@ -1,13 +1,17 @@
 const WebSocket = require('ws');
-const { exec } = require('child_process');
+const { spawn } = require('child_process');
+const readline = require('readline');
 
 const server = new WebSocket.Server({ port: 8080 });
+
+const process = 4;
 
 const status = {
     seat: false,
     black: '0'.repeat(28) + '1' + '0'.repeat(6) + '1' + '0'.repeat(28),
     white: '0'.repeat(27) + '1' + '0'.repeat(8) + '1' + '0'.repeat(27),
-    computing: false
+    search: [],
+    computing: 0
 }
 
 const ping = [];
@@ -39,85 +43,141 @@ function putStone(ws, point) {
 
 }
 
+function to2From16(str) {
+
+    const move16bit = ('0'.repeat(16) + str).slice(-16);
+    const move2bit = move16bit.split('').map((bits) => {
+        const move2bits = parseInt(bits, 16).toString(2);
+        return ('0000' + move2bits).slice(-4);
+    });
+    const bits = move2bit.join('');
+    return bits;
+
+}
+
+function streamSearch() {
+
+    setTimeout(() => {
+
+        if (status.computing == 0) {
+
+            // 探索結果
+            const moves = [];
+
+            status.search.forEach(process => {
+                process.forEach(m => {
+
+                    const move = moves.find((move) => {
+                        return move.move == m.move;
+                    });
+                    if (move) {
+                        move.rate.push(m.rate.pop());
+                    } else {
+                        m.rate = [ m.rate.pop() ];
+                        moves.push(m);
+                    }
+                
+                });
+            });
+
+            const choice = moves.reduce((max, move) => {
+                const sum_max = max.rate.reduce((sum, rate) => {
+                    return sum + rate;
+                }, 0);
+                const sum_move = move.rate.reduce((sum, rate) => {
+                    return sum + rate;
+                }, 0);
+                if (sum_move > sum_max) {
+                    return move;
+                } else {
+                    return max;
+                }
+            });
+
+            status.black = to2From16(choice.black);
+            status.white = to2From16(choice.white);
+            status.search = [];
+
+            server.clients.forEach(function each(client) {
+                client.send(JSON.stringify({
+                    field: status,
+                    user: client.status
+                }));
+            });
+
+        } else {
+
+            server.clients.forEach(function each(client) {
+                client.send(JSON.stringify({
+                    field: status,
+                    user: client.status
+                }));
+            });
+            streamSearch();
+
+        }
+
+    }, 500);
+
+}
+
+function spawnSearch() {
+
+    // プロセス毎の情報はまとめて送りたい
+    const process_move = [];
+    status.search.push(process_move);
+
+    const seed = Math.floor(Math.random() * Math.floor(1000)).toString();
+    const search = spawn('./search', [status.white, status.black, seed]);
+
+    search.on('close', (code) => {
+        console.log(`close: ${code}`);
+        const end_time = new Date();
+        //console.log((end_time - start_time) / 1000);
+        status.computing -= 1;
+    });
+
+    const rl = readline.createInterface(search.stdout);
+
+    rl.on('line', (input) => {
+
+        const data = JSON.parse(input);
+
+        const move = process_move.find((m) => {
+            return m.move == data.move;
+        });
+    
+        if (move) {
+            move.rate.push(data.rate);
+        } else {
+            process_move.push({
+                black: data.y,
+                white: data.m,
+                move: data.move,
+                rate: [ data.rate ]
+            });
+        }
+    
+    });
+
+}
+
 function search(ws) {
 
     if (!ws.status.player) {
         return;
     }
 
-    if (status.computing) {
+    if (status.computing != 0) {
         return;
     }
 
-    exec(`./search ${status.white} ${status.black} 100`, (error, stdout, stderr) => {
+    for (let i = 0; i < process; i++) {
+        spawnSearch();
+        status.computing += 1;
+    }
 
-        status.computing = false;
-
-        if (error) {
-            console.log(`exec error: ${error}`);
-            console.error(`stderr: ${stderr}`);
-            return;
-        }
-
-        if (stdout == '') {
-            return;
-        }
-
-        let results = stdout.trim().split('\n').map((result) => {
-            let values = result.split(', ');
-            return {
-                black: values[0],
-                white: values[1],
-                pass: parseFloat(values[2]),
-                rate: parseFloat(values[3])
-            }
-        });
-        let moves = results.reduce(function (moves, currentValue) {
-            let move = moves.find((m) => {
-                return (m.white == currentValue.white) && (m.black == currentValue.black);
-            });
-            if (move) {
-                move.pass.push(currentValue.pass);
-                move.rate.push(currentValue.rate);
-            } else {
-                moves.push({
-                    white: currentValue.white,
-                    black: currentValue.black,
-                    pass: [ currentValue.pass ],
-                    rate: [ currentValue.rate ]
-                });
-            }
-            return moves;
-        }, []);
-        console.log(moves);
-
-        let move = moves.reduce(function (a, b) {
-            let a_sum = a.pass.reduce(function (a_a, a_b) {
-                return a_a + a_b;
-            }, 0);
-            let b_sum = b.pass.reduce(function (b_a, b_b) {
-                return b_a + b_b;
-            }, 0);
-            if (b_sum > a_sum) {
-                return b;
-            } else {
-                return a;
-            }
-        });
-        console.log(move);
-
-        status.black = move.black;
-        status.white = move.white;
-        server.clients.forEach(function each(client) {
-            client.send(JSON.stringify({
-                field: status,
-                user: client.status
-            }));
-        });
-
-    });
-
-    status.computing = true;
+    streamSearch();
 
 }
 
@@ -148,7 +208,7 @@ server.on('connection', function connection(ws, req) {
                 break;
             case 'search':
                 search(ws);
-                break;
+                return;
 
         }
 

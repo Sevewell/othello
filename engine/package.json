@@ -10,7 +10,6 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "ws": "^7.3.0",
-    "@google-cloud/compute": "2.1.0"
+    "ws": "^7.3.0"
   }
 }
