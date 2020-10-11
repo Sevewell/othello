@@ -21,3 +21,7 @@ body {
 img {
     width: 100%;
 }
+
+canvas {
+    width: 100%;
+}

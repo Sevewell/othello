@@ -7,10 +7,6 @@ FROM node:12
 WORKDIR /usr/src/app
 COPY --from=0 /usr/src/app .
 RUN npm install
-ENV GOOGLE_APPLICATION_CREDENTIALS="./othello-290003-36ec740065b5.json"
-ENV TRIAL=1000000
-ENV LEARNING_RATE=0.99
-ENV TREE=4
 EXPOSE 8080
 
 CMD ["npm", "start"]

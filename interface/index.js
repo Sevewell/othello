@@ -37,44 +37,91 @@ function connectWebSocket() {
 
         }
 
-        let black = status.field.black
-        let white = status.field.white
-
-        for (let i = 0; i < 64; i++) {
-
-            let img = 'panel.png';
-            if (black[i] === '1' && white[i] === '1') {
-                console.log('Error: duplicate stone.');
-            }
-            if (black[i] === '1') {
-                img = 'black.png';
-            }
-            if (white[i] === '1') {
-                img = 'white.png'
-            }
-
-            let panel = document.getElementById(`panel_${i.toString().padStart(2, '0')}`);
-            panel.querySelector('img').setAttribute('src', img);
-
-        }
+        drawPanel(status);
 
     }
 
     return ws;
 };
 
-function draw() {
+function to2From16(str) {
 
-    var board = document.getElementById('board');
-    var template;
-    var clone;
-    var panel;
+    const move16bit = ('0'.repeat(16) + str).slice(-16);
+    const move2bit = move16bit.split('').map((bits) => {
+        const move2bits = parseInt(bits, 16).toString(2);
+        return ('0000' + move2bits).slice(-4);
+    });
+    const bits = move2bit.join('');
+    return bits;
+
+}
+
+function drawPanel(status) {
+
+    let board = document.getElementById('board');
+    let black = status.field.black;
+    let white = status.field.white;
+
+    let panels = board.querySelectorAll('div');
+    // nodeListには謎なNodeもいる
+
+    panels.forEach((panel, i) => {
+
+        panel.setAttribute('id', `panel_${i.toString().padStart(2, '0')}`);
+
+        while (panel.firstChild) {
+            panel.removeChild(panel.firstChild);
+        };
+
+        let src = 'panel.png';
+        if (black[i] === '1' && white[i] === '1') {
+            console.log('Error: duplicate stone.');
+        }
+        if (black[i] === '1') {
+            src = 'black.png';
+        }
+        if (white[i] === '1') {
+            src = 'white.png'
+        }
+        let img = document.createElement('img');
+        img.setAttribute('src', src);
+        img.setAttribute('onclick', 'move(this);')
+        panel.appendChild(img);
+
+    });
+
+    let search = status.field.search;
+
+    search.forEach(process => {
+
+        process.forEach(move => {
+
+            const m = to2From16(move.move);
+            let panel = panels[m.indexOf('1')];
+            while (panel.firstChild) {
+                panel.removeChild(panel.firstChild);
+            };
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            panel.appendChild(canvas);
+
+        });
+
+    });
+
+}
+
+function drawBoard() {
+
+    let board = document.getElementById('board');
+    let template;
+    let clone;
+
     for (let i = 0; i < 64; i++) {
         template = document.getElementById('panel');
         clone = document.importNode(template.content, true);
-        panel = clone.querySelector('div');
-        panel.setAttribute('id', `panel_${i.toString().padStart(2, '0')}`);
-        panel.querySelector('img').setAttribute('src', 'panel.png');
+        //clone.setAttribute('id', `panel_${i.toString().padStart(2, '0')}`);
+        //clone.setAttribute('onclick', "move(this);");
         board.appendChild(clone);
     }
 
@@ -86,10 +133,9 @@ function takeSeat() {
     }));
 }
 
-function move(img) {
-    let point = img.parentNode.getAttribute('id');
+function move(panel) {
+    let point = panel.parentNode.getAttribute('id');
     point = parseInt(point.slice(-2));
-    console.log(point);
     ws.send(JSON.stringify({
         key: 'move',
         value: point
