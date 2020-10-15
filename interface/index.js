@@ -56,6 +56,29 @@ function to2From16(str) {
 
 }
 
+function drawCanvas(panel, data) {
+
+    const width = panel.clientWidth;
+    const height = panel.clientHeight;
+
+    const canvas = document.createElement('canvas');
+    canvas.setAttribute('width', width.toString());
+    canvas.setAttribute('height', height.toString());
+
+    const ctx = canvas.getContext('2d');
+    ctx.beginPath();
+    data.rate.forEach(p => {
+        ctx.moveTo(0, height / 2);
+        p.forEach((r, i) => {
+            ctx.lineTo(i + 1, height - r*height);
+        });
+    });
+    ctx.stroke();
+
+    panel.appendChild(canvas);
+
+}
+
 function drawPanel(status) {
 
     let board = document.getElementById('board');
@@ -92,20 +115,32 @@ function drawPanel(status) {
 
     let search = status.field.search;
 
-    search.forEach(process => {
+    let moves = [];
 
-        process.forEach(move => {
+    search.forEach((p, i) => {
+        p.forEach(m => {
 
-            const m = to2From16(move.move);
-            let panel = panels[m.indexOf('1')];
-            while (panel.firstChild) {
-                panel.removeChild(panel.firstChild);
-            };
-            const canvas = document.createElement('canvas');
-            const ctx = canvas.getContext('2d');
-            panel.appendChild(canvas);
+            const move = moves.find((move) => {
+                return move.move == m.move;
+            })
+            if (move) {
+                move.rate.push(m.rate);
+            } else {
+                m.rate = [ m.rate ];
+                moves.push(m);
+            }
 
         });
+    });
+
+    moves.forEach(move => {
+
+        const m = to2From16(move.move);
+        let panel = panels[m.indexOf('1')];
+        while (panel.firstChild) {
+            panel.removeChild(panel.firstChild);
+        };
+        drawCanvas(panel, move);
 
     });
 
