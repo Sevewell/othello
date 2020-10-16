@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
     <head>
-        <title>てすと</title>
+        <title>オセロ</title>
         <meta charset="utf-8"/>
         <script type="text/javascript" src="index.js"></script>
         <link rel="stylesheet" href="index.css">
@@ -10,7 +10,9 @@
 
         <div id="board"></div>
         <template id="panel">
-            <div class="panel"></div>
+            <div class="panel">
+                <canvas width=100 height=100 onclick="move(this);"></canvas>
+            </div>
         </template>
 
         <div id="info">

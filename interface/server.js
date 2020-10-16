@@ -8,9 +8,9 @@ const server = http.createServer(function (request, response) {
 
     console.log('request ', request.url);
 
-    var filePath = '.' + request.url;
-    if (filePath == './') {
-        filePath = './index.html';
+    var filePath = './www' + request.url;
+    if (filePath == './www/') {
+        filePath = './www/index.html';
     }
 
     var extname = String(path.extname(filePath)).toLowerCase();

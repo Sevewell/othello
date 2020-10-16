@@ -4,7 +4,7 @@ const readline = require('readline');
 
 const server = new WebSocket.Server({ port: 8080 });
 
-const process = 4;
+const process = 6;
 
 const status = {
     seat: false,
@@ -117,7 +117,7 @@ function streamSearch() {
 
         }
 
-    }, 500);
+    }, 1000);
 
 }
 

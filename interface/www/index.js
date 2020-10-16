@@ -58,14 +58,14 @@ function to2From16(str) {
 
 function drawCanvas(panel, data) {
 
-    const width = panel.clientWidth;
-    const height = panel.clientHeight;
-
-    const canvas = document.createElement('canvas');
-    canvas.setAttribute('width', width.toString());
-    canvas.setAttribute('height', height.toString());
+    const canvas = panel.querySelector('canvas');
+    const width = canvas.width;
+    const height = canvas.height;
 
     const ctx = canvas.getContext('2d');
+
+    ctx.clearRect(0, 0, width, height);
+
     ctx.beginPath();
     data.rate.forEach(p => {
         ctx.moveTo(0, height / 2);
@@ -74,8 +74,6 @@ function drawCanvas(panel, data) {
         });
     });
     ctx.stroke();
-
-    panel.appendChild(canvas);
 
 }
 
@@ -92,24 +90,37 @@ function drawPanel(status) {
 
         panel.setAttribute('id', `panel_${i.toString().padStart(2, '0')}`);
 
-        while (panel.firstChild) {
-            panel.removeChild(panel.firstChild);
-        };
+        let canvas = panel.querySelector('canvas');
 
-        let src = 'panel.png';
+        let width = canvas.width;
+        let height = canvas.height;
+
+        let ctx = canvas.getContext('2d');
+
+        ctx.clearRect(0, 0, width, height);
+
+        ctx.fillStyle = 'green';
+        ctx.fillRect(0, 0, width, height);
+
+        let x = width / 2;
+        let y = height / 2;
+        let radius = width / 2;
+        let start_angle = 0;
+        let end_angle = Math.PI * 2;
+
+        ctx.arc(x, y, radius, start_angle, end_angle);
+
         if (black[i] === '1' && white[i] === '1') {
             console.log('Error: duplicate stone.');
         }
         if (black[i] === '1') {
-            src = 'black.png';
+            ctx.fillStyle = 'black';
         }
         if (white[i] === '1') {
-            src = 'white.png'
+            ctx.fillStyle = 'white';
         }
-        let img = document.createElement('img');
-        img.setAttribute('src', src);
-        img.setAttribute('onclick', 'move(this);')
-        panel.appendChild(img);
+
+        ctx.fill();
 
     });
 
@@ -137,9 +148,6 @@ function drawPanel(status) {
 
         const m = to2From16(move.move);
         let panel = panels[m.indexOf('1')];
-        while (panel.firstChild) {
-            panel.removeChild(panel.firstChild);
-        };
         drawCanvas(panel, move);
 
     });
@@ -156,7 +164,6 @@ function drawBoard() {
         template = document.getElementById('panel');
         clone = document.importNode(template.content, true);
         //clone.setAttribute('id', `panel_${i.toString().padStart(2, '0')}`);
-        //clone.setAttribute('onclick', "move(this);");
         board.appendChild(clone);
     }
 
