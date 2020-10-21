@@ -33,6 +33,7 @@ void Search(struct Node *node, unsigned int trial)
 
                 child = child->next;
             }
+            fflush(stdout);
         }
     }
 }
@@ -46,7 +47,7 @@ int main(int argc, char *argv[])
     //int trial = atoi(getenv("TRIAL"));
     unsigned int trial = 1000000;
     //LEARNING_RATE = strtod(getenv("LEARNING_RATE"), NULL);
-    LEARNING_RATE = 0.99;
+    LEARNING_RATE = 0.9;
 
     SetSampling(seed);
     SetZiggurat();
