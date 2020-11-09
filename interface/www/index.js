@@ -124,33 +124,8 @@ function drawPanel(status) {
 
     });
 
-    let search = status.field.search;
-
-    let moves = [];
-
-    search.forEach((p, i) => {
-        p.forEach(m => {
-
-            const move = moves.find((move) => {
-                return move.move == m.move;
-            })
-            if (move) {
-                move.rate.push(m.rate);
-            } else {
-                m.rate = [ m.rate ];
-                moves.push(m);
-            }
-
-        });
-    });
-
-    moves.forEach(move => {
-
-        const m = to2From16(move.move);
-        let panel = panels[m.indexOf('1')];
-        drawCanvas(panel, move);
-
-    });
+    const rate = document.getElementById('rate');
+    rate.textContent = status.field.rate.join(' ');
 
 }
 

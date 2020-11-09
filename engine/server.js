@@ -10,7 +10,7 @@ const status = {
     seat: false,
     black: '0'.repeat(28) + '1' + '0'.repeat(6) + '1' + '0'.repeat(28),
     white: '0'.repeat(27) + '1' + '0'.repeat(8) + '1' + '0'.repeat(27),
-    search: [],
+    rate: [],
     computing: 0
 }
 
@@ -55,48 +55,71 @@ function to2From16(str) {
 
 }
 
-function streamSearch() {
+function summaryMove(record) {
+
+    const process = record.map((process) => {
+        return process.pop();
+    });
+
+    let moves = [];
+    
+    process.forEach((ms) => {
+        ms.forEach((m) => {
+            moves.push(m);
+        });
+    });
+
+    let moves_sum = moves.reduce((sum, move) => {
+        const target = sum.find((s) => {
+            return s.move == move.move;
+        });
+        if (target) {
+            target.rate.push(move.rate);
+        } else {
+            move.rate = [ move.rate ];
+            sum.push(move);
+        };
+        return sum;
+    }, []);
+
+    return moves_sum;
+
+}
+
+function choiceMove(moves) {
+
+    function averageRate(rates) {
+        const sum = rates.reduce((sum, rate) => {
+            sum += rate;
+            return sum;
+        }, 0);
+        return sum / rates.length;        
+    };
+
+    const choice = moves.reduce((max, move) => {
+        if (averageRate(move.rate) > averageRate(max.rate)) {
+            return move;
+        } else {
+            return max;
+        }
+    });
+
+    return choice;
+}
+
+function streamSearch(record) {
 
     setTimeout(() => {
 
+        const moves = summaryMove(record);
+        const choice = choiceMove(moves);
+        console.log(choice);
+
         if (status.computing == 0) {
 
-            // 探索結果
-            const moves = [];
-
-            status.search.forEach(process => {
-                process.forEach(m => {
-
-                    const move = moves.find((move) => {
-                        return move.move == m.move;
-                    });
-                    if (move) {
-                        move.rate.push(m.rate.pop());
-                    } else {
-                        m.rate = [ m.rate.pop() ];
-                        moves.push(m);
-                    }
-                
-                });
-            });
-
-            const choice = moves.reduce((max, move) => {
-                const sum_max = max.rate.reduce((sum, rate) => {
-                    return sum + rate;
-                }, 0);
-                const sum_move = move.rate.reduce((sum, rate) => {
-                    return sum + rate;
-                }, 0);
-                if (sum_move > sum_max) {
-                    return move;
-                } else {
-                    return max;
-                }
-            });
-
-            status.black = to2From16(choice.black);
-            status.white = to2From16(choice.white);
-            status.search = [];
+            status.black = to2From16(choice.y);
+            status.white = to2From16(choice.m);
+            status.rate = [];
 
             server.clients.forEach(function each(client) {
                 client.send(JSON.stringify({
@@ -107,13 +130,18 @@ function streamSearch() {
 
         } else {
 
+            status.black = to2From16(choice.y);
+            status.white = to2From16(choice.m);
+            status.rate = choice.rate;
+
             server.clients.forEach(function each(client) {
                 client.send(JSON.stringify({
                     field: status,
                     user: client.status
                 }));
             });
-            streamSearch();
+
+            streamSearch(record);
 
         }
 
@@ -121,11 +149,11 @@ function streamSearch() {
 
 }
 
-function spawnSearch() {
+function spawnSearch(record) {
 
     // プロセス毎の情報はまとめて送りたい
     const process_move = [];
-    status.search.push(process_move);
+    record.push(process_move);
 
     const seed = Math.floor(Math.random() * Math.floor(1000)).toString();
     const search = spawn('./search', [status.white, status.black, seed]);
@@ -142,21 +170,7 @@ function spawnSearch() {
     rl.on('line', (input) => {
 
         const data = JSON.parse(input);
-
-        const move = process_move.find((m) => {
-            return m.move == data.move;
-        });
-    
-        if (move) {
-            move.rate.push(data.rate);
-        } else {
-            process_move.push({
-                black: data.y,
-                white: data.m,
-                move: data.move,
-                rate: [ data.rate ]
-            });
-        }
+        process_move.push(data);
     
     });
 
@@ -172,12 +186,14 @@ function search(ws) {
         return;
     }
 
+    const record = [];
+
     for (let i = 0; i < process; i++) {
-        spawnSearch();
+        spawnSearch(record);
         status.computing += 1;
     }
 
-    streamSearch();
+    streamSearch(record);
 
 }
 

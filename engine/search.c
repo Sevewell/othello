@@ -5,9 +5,38 @@
 
 extern double LEARNING_RATE;
 
+void PrintNode(struct Node *node)
+{
+    struct Node *child = node->child;
+
+    printf("[ ");
+
+    while (1)
+    {
+        printf("{ ");
+        printf("\"m\": \"%llx\", ", child->y);
+        printf("\"y\": \"%llx\", ", child->m);
+        printf("\"move\": \"%llx\", ", (node->m | node->y) ^ (child->m | child->y));
+        printf("\"rate\": %lf ", child->b / (child->a + child->b));
+        printf(" }");
+
+        child = child->next;
+
+        if (child)
+        {
+            printf(", ");
+        }
+        else
+        {
+            printf(" ]\n");
+            fflush(stdout);
+            break;
+        }
+    }
+}
+
 void Search(struct Node *node, unsigned int trial)
 {
-    struct Node *child;
     char status[1024];
 
     char result;
@@ -17,23 +46,7 @@ void Search(struct Node *node, unsigned int trial)
         PlayOut(node, &result);
         if (i % (trial / 100) == 0)
         {
-            child = node->child;
-            while (child != NULL)
-            {
-                printf("{ ");
-
-                printf("\"m\": \"%llx\", ", child->y);
-                printf("\"y\": \"%llx\", ", child->m);
-
-                printf("\"move\": \"%llx\", ", (node->m | node->y) ^ (child->m | child->y));
-
-                printf("\"rate\": %lf ", child->b / (child->a + child->b));
-
-                printf("}\n");
-
-                child = child->next;
-            }
-            fflush(stdout);
+            PrintNode(node);
         }
     }
 }
@@ -45,9 +58,9 @@ int main(int argc, char *argv[])
     int seed = atoi(argv[3]);
 
     //int trial = atoi(getenv("TRIAL"));
-    unsigned int trial = 1000000;
+    unsigned int trial = 700000;
     //LEARNING_RATE = strtod(getenv("LEARNING_RATE"), NULL);
-    LEARNING_RATE = 0.9;
+    LEARNING_RATE = 0.99;
 
     SetSampling(seed);
     SetZiggurat();
