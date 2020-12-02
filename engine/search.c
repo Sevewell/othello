@@ -8,31 +8,33 @@ extern double LEARNING_RATE;
 void PrintNode(struct Node *node)
 {
     struct Node *child = node->child;
+    unsigned long long move;
+    unsigned long long m;
+    unsigned long long y;
+    double max_rate = 0;
+    double rate;
 
-    printf("[ ");
-
-    while (1)
+    while (child)
     {
-        printf("{ ");
-        printf("\"m\": \"%llx\", ", child->y);
-        printf("\"y\": \"%llx\", ", child->m);
-        printf("\"move\": \"%llx\", ", (node->m | node->y) ^ (child->m | child->y));
-        printf("\"rate\": %lf ", child->b / (child->a + child->b));
-        printf(" }");
-
+        rate = child->b / (child->a + child->b);
+        if (rate > max_rate)
+        {
+            move = (node->m | node->y) ^ (child->m | child->y);
+            m = child->y;
+            y = child->m;
+            max_rate = rate;
+        }
         child = child->next;
-
-        if (child)
-        {
-            printf(", ");
-        }
-        else
-        {
-            printf(" ]\n");
-            fflush(stdout);
-            break;
-        }
     }
+
+    printf("{ ");
+    printf("\"m\": \"%llx\", ", m);
+    printf("\"y\": \"%llx\", ", y);
+    printf("\"move\": \"%llx\", ", move);
+    printf("\"rate\": %lf", max_rate);
+    printf(" }\n");
+    fflush(stdout);
+
 }
 
 void Search(struct Node *node, unsigned int trial)

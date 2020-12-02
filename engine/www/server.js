@@ -55,64 +55,41 @@ function to2From16(str) {
 
 }
 
-function summaryMove(record) {
+function countMove(move, process_last) {
 
-    const process = record.map((process) => {
-        return process.pop();
-    });
+    const count = process_last.filter((p) => {
+        return p.move == move.move;
+    }).length;
 
-    let moves = [];
-    
-    process.forEach((ms) => {
-        ms.forEach((m) => {
-            moves.push(m);
-        });
-    });
-
-    let moves_sum = moves.reduce((sum, move) => {
-        const target = sum.find((s) => {
-            return s.move == move.move;
-        });
-        if (target) {
-            target.rate.push(move.rate);
-        } else {
-            move.rate = [ move.rate ];
-            sum.push(move);
-        };
-        return sum;
-    }, []);
-
-    return moves_sum;
+    return count;
 
 }
 
-function choiceMove(moves) {
+function choiceMove(record) {
 
-    function averageRate(rates) {
-        const sum = rates.reduce((sum, rate) => {
-            sum += rate;
-            return sum;
-        }, 0);
-        return sum / rates.length;        
-    };
+    const process_last = record.map((process) => {
+        return process.pop();
+    });
 
-    const choice = moves.reduce((max, move) => {
-        if (averageRate(move.rate) > averageRate(max.rate)) {
-            return move;
+    const move = process_last.reduce((choice, option) => {
+        const count_option = countMove(option, process_last);
+        const count_choice = countMove(choice, process_last);
+        if (count_option > count_choice) {
+            return option;
         } else {
-            return max;
+            return choice;
         }
     });
 
-    return choice;
+    return move;
+
 }
 
 function streamSearch(record) {
 
     setTimeout(() => {
 
-        const moves = summaryMove(record);
-        const choice = choiceMove(moves);
+        const choice = choiceMove(record);
         console.log(choice);
 
         if (status.computing == 0) {
