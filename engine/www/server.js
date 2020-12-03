@@ -1,4 +1,5 @@
 const WebSocket = require('ws');
+const { exec } = require('child_process');
 const { spawn } = require('child_process');
 const readline = require('readline');
 
@@ -37,8 +38,20 @@ function takeSeat(ws) {
 function putStone(ws, point) {
 
     if (ws.status.player) {
-        status.black = status.black.slice(0, point) + '1' + status.black.slice(point + 1);
-        status.white = status.white.slice(0, point) + '0' + status.white.slice(point + 1);
+        const option = `${status.black} ${status.white} ${point}`;
+        exec(`./move ${option}`, (err, stdout, stderr) => {
+            const move = JSON.parse(stdout);
+            status.black = to2From16(move.m);
+            status.white = to2From16(move.y);
+            server.clients.forEach(function each(client) {
+                client.send(JSON.stringify({
+                    field: status,
+                    user: client.status
+                }));
+            });    
+        });
+        //status.black = status.black.slice(0, point) + '1' + status.black.slice(point + 1);
+        //status.white = status.white.slice(0, point) + '0' + status.white.slice(point + 1);
     }
 
 }
@@ -109,7 +122,9 @@ function streamSearch(record) {
 
             status.black = to2From16(choice.y);
             status.white = to2From16(choice.m);
-            status.rate = choice.rate;
+            status.rate = record.map((process) => {
+                return process.pop().rate;
+            });
 
             server.clients.forEach(function each(client) {
                 client.send(JSON.stringify({

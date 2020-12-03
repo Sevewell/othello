@@ -31,7 +31,7 @@ void PrintNode(struct Node *node)
     printf("\"m\": \"%llx\", ", m);
     printf("\"y\": \"%llx\", ", y);
     printf("\"move\": \"%llx\", ", move);
-    printf("\"rate\": %lf", max_rate);
+    printf("\"rate\": %lf", node->a / (node->a + node->b));
     printf(" }\n");
     fflush(stdout);
 
@@ -60,7 +60,7 @@ int main(int argc, char *argv[])
     int seed = atoi(argv[3]);
 
     //int trial = atoi(getenv("TRIAL"));
-    unsigned int trial = 700000;
+    unsigned int trial = 500000;
     //LEARNING_RATE = strtod(getenv("LEARNING_RATE"), NULL);
     LEARNING_RATE = 0.99;
 
