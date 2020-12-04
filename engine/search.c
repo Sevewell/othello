@@ -28,8 +28,6 @@ void PrintNode(struct Node *node)
     }
 
     printf("{ ");
-    printf("\"m\": \"%llx\", ", m);
-    printf("\"y\": \"%llx\", ", y);
     printf("\"move\": \"%llx\", ", move);
     printf("\"rate\": %lf", node->a / (node->a + node->b));
     printf(" }\n");

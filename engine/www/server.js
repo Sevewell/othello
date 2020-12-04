@@ -33,26 +33,33 @@ function takeSeat(ws) {
 
     }
 
+    server.clients.forEach(function each(client) {
+        client.send(JSON.stringify({
+            field: status,
+            user: client.status
+        }));
+    });
+
 }
 
-function putStone(ws, point) {
+function putStone(point) {
 
-    if (ws.status.player) {
-        const option = `${status.black} ${status.white} ${point}`;
-        exec(`./move ${option}`, (err, stdout, stderr) => {
-            const move = JSON.parse(stdout);
-            status.black = to2From16(move.m);
-            status.white = to2From16(move.y);
-            server.clients.forEach(function each(client) {
-                client.send(JSON.stringify({
-                    field: status,
-                    user: client.status
-                }));
-            });    
+    const option = `${status.black} ${status.white} ${point}`;
+
+    exec(`./move ${option}`, (err, stdout, stderr) => {
+
+        const move = JSON.parse(stdout);
+        status.black = to2From16(move.m);
+        status.white = to2From16(move.y);
+
+        server.clients.forEach(function each(client) {
+            client.send(JSON.stringify({
+                field: status,
+                user: client.status
+            }));
         });
-        //status.black = status.black.slice(0, point) + '1' + status.black.slice(point + 1);
-        //status.white = status.white.slice(0, point) + '0' + status.white.slice(point + 1);
-    }
+
+    });
 
 }
 
@@ -83,6 +90,7 @@ function choiceMove(record) {
     const process_last = record.map((process) => {
         return process.pop();
     });
+    console.log(process_last);
 
     const move = process_last.reduce((choice, option) => {
         const count_option = countMove(option, process_last);
@@ -107,21 +115,28 @@ function streamSearch(record) {
 
         if (status.computing == 0) {
 
-            status.black = to2From16(choice.y);
-            status.white = to2From16(choice.m);
+            const point = to2From16(choice.move).indexOf('1');
             status.rate = [];
 
-            server.clients.forEach(function each(client) {
-                client.send(JSON.stringify({
-                    field: status,
-                    user: client.status
-                }));
-            });
+            const option = `${status.white} ${status.black} ${point}`;
 
+            exec(`./move ${option}`, (err, stdout, stderr) => {
+
+                const move = JSON.parse(stdout);
+                status.white = to2From16(move.m);
+                status.black = to2From16(move.y);
+
+                server.clients.forEach(function each(client) {
+                    client.send(JSON.stringify({
+                        field: status,
+                        user: client.status
+                    }));
+                });    
+
+            });
+        
         } else {
 
-            status.black = to2From16(choice.y);
-            status.white = to2From16(choice.m);
             status.rate = record.map((process) => {
                 return process.pop().rate;
             });
@@ -168,11 +183,7 @@ function spawnSearch(record) {
 
 }
 
-function search(ws) {
-
-    if (!ws.status.player) {
-        return;
-    }
+function search() {
 
     if (status.computing != 0) {
         return;
@@ -212,20 +223,17 @@ server.on('connection', function connection(ws, req) {
                 takeSeat(ws);
                 break;
             case 'move':
-                putStone(ws, message.value);
+                if (ws.status.player) {
+                    putStone(message.value);
+                };
                 break;
             case 'search':
-                search(ws);
+                if (ws.status.player) {
+                    search();
+                };
                 return;
 
         }
-
-        server.clients.forEach(function each(client) {
-            client.send(JSON.stringify({
-                field: status,
-                user: client.status
-            }));
-        });
     
     });
 
