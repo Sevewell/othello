@@ -167,7 +167,7 @@ function streamSearch(record) {
 
         }
 
-    }, 2000);
+    }, 1000);
 
 }
 
@@ -211,7 +211,11 @@ function search() {
         status.computing += 1;
     }
 
-    streamSearch(record);
+    // プロセスを作るのに時間がかかるっぽい
+    // はじめのストリームまでの時間稼ぎ
+    setTimeout(() => {
+        streamSearch(record);
+    }, 2000);
 
 }
 
