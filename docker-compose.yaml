@@ -9,6 +9,7 @@ services:
             - ./cert:/usr/src/app/cert
         environment: 
             - CERT=${CERT}
+            - SEARCH_NODE=${SEARCH_NODE}
     interface:
         build: ./interface
         ports: 

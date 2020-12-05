@@ -18,7 +18,7 @@ if (process.env.CERT == 'true') {
 }
 const wss = new WebSocket.Server({ server });
 
-const num_process = 6;
+const num_process = parseInt(process.env.SEARCH_NODE);
 
 const status = {
     seat: false,
