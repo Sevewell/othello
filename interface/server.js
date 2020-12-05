@@ -1,10 +1,20 @@
-const http = require('http');
+const process = require('process');
 const fs = require('fs');
 const path = require('path');
 
-const port = process.env.PORT || 3000;
+if (process.env.CERT == 'true') {
+    const https = require('https');
+    const options = {
+        key: fs.readFileSync('cert/othello.sevewell.dev/privkey.pem'),
+        cert: fs.readFileSync('cert/othello.sevewell.dev/cert.pem')
+    };
+    https.createServer(options, request_).listen(443);
+} else {
+    const http = require('http');
+    http.createServer(request_).listen(80);
+}
 
-const server = http.createServer(function (request, response) {
+function request_(request, response) {
 
     console.log('request ', request.url);
 
@@ -53,9 +63,4 @@ const server = http.createServer(function (request, response) {
         }
     });
 
-});
-
-server.listen(port, () => {
-    console.log(`Server running.`);
-});
-  
+};

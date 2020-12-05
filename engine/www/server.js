@@ -2,10 +2,23 @@ const WebSocket = require('ws');
 const { exec } = require('child_process');
 const { spawn } = require('child_process');
 const readline = require('readline');
+const process = require('process');
 
-const server = new WebSocket.Server({ port: 8080 });
+if (process.env.CERT == 'true') {
+    const https = require('https');
+    const options = {
+        key: fs.readFileSync('cert/othello.sevewell.dev/privkey.pem'),
+        cert: fs.readFileSync('cert/othello.sevewell.dev/cert.pem')
+    };
+    var server = https.createServer(options);
 
-const process = 6;
+} else {
+    const http = require('http');
+    var server = http.createServer();
+}
+const wss = new WebSocket.Server({ server });
+
+const num_process = 6;
 
 const status = {
     seat: false,
@@ -33,7 +46,7 @@ function takeSeat(ws) {
 
     }
 
-    server.clients.forEach(function each(client) {
+    wss.clients.forEach(function each(client) {
         client.send(JSON.stringify({
             field: status,
             user: client.status
@@ -52,7 +65,7 @@ function putStone(point) {
         status.black = to2From16(move.m);
         status.white = to2From16(move.y);
 
-        server.clients.forEach(function each(client) {
+        wss.clients.forEach(function each(client) {
             client.send(JSON.stringify({
                 field: status,
                 user: client.status
@@ -126,7 +139,7 @@ function streamSearch(record) {
                 status.white = to2From16(move.m);
                 status.black = to2From16(move.y);
 
-                server.clients.forEach(function each(client) {
+                wss.clients.forEach(function each(client) {
                     client.send(JSON.stringify({
                         field: status,
                         user: client.status
@@ -141,7 +154,7 @@ function streamSearch(record) {
                 return process.pop().rate;
             });
 
-            server.clients.forEach(function each(client) {
+            wss.clients.forEach(function each(client) {
                 client.send(JSON.stringify({
                     field: status,
                     user: client.status
@@ -191,7 +204,7 @@ function search() {
 
     const record = [];
 
-    for (let i = 0; i < process; i++) {
+    for (let i = 0; i < num_process; i++) {
         spawnSearch(record);
         status.computing += 1;
     }
@@ -200,7 +213,7 @@ function search() {
 
 }
 
-server.on('connection', function connection(ws, req) {
+wss.on('connection', function connection(ws, req) {
 
     ws.status = {
         player: false
@@ -244,3 +257,5 @@ server.on('connection', function connection(ws, req) {
     })
     
 });
+
+server.listen(8080);
