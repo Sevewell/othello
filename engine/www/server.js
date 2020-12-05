@@ -165,7 +165,7 @@ function streamSearch(record) {
 
         }
 
-    }, 1000);
+    }, 2000);
 
 }
 

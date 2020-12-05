@@ -40,7 +40,7 @@ void Search(struct Node *node, unsigned int trial)
     char status[1024];
 
     char result;
-    for (int i = 0; i < trial; i++)
+    for (int i = 1; i <= trial; i++)
     {
         result = 'n';
         PlayOut(node, &result);
