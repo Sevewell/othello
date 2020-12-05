@@ -22,8 +22,8 @@ const num_process = parseInt(process.env.SEARCH_NODE);
 
 const status = {
     seat: false,
-    black: '0'.repeat(28) + '1' + '0'.repeat(6) + '1' + '0'.repeat(28),
-    white: '0'.repeat(27) + '1' + '0'.repeat(8) + '1' + '0'.repeat(27),
+    black: '0'.repeat(64),
+    white: '0'.repeat(64),
     rate: [],
     computing: 0
 }
@@ -43,7 +43,9 @@ function takeSeat(ws) {
 
         ws.status.player = true;
         status.seat = true;
-
+        status.black = '0'.repeat(28) + '1' + '0'.repeat(6) + '1' + '0'.repeat(28);
+        status.white = '0'.repeat(27) + '1' + '0'.repeat(8) + '1' + '0'.repeat(27);
+    
     }
 
     wss.clients.forEach(function each(client) {
