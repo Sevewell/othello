@@ -2,7 +2,11 @@ function connectWebSocket() {
 
     let hostname = window.location.hostname; // サーバ情報が取れるはず
     console.log(hostname);
-    let ws = new WebSocket(`ws://${hostname}:8080/`);
+    if (hostname == '127.0.0.1') {
+	var ws = new WebSocket(`ws://${hostname}:8080/`);
+    } else {
+        var ws = new WebSocket(`wss://${hostname}:8080/`);
+    }
 
     ws.onopen = function (event) {
         console.log('WebSocketに接続しました');

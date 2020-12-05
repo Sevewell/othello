@@ -8,3 +8,5 @@ testenv
 othello-290003-36ec740065b5.json
 engine/info/*
 .env
+cert
+

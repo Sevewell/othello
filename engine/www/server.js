@@ -1,4 +1,5 @@
 const WebSocket = require('ws');
+const fs = require('fs');
 const { exec } = require('child_process');
 const { spawn } = require('child_process');
 const readline = require('readline');
@@ -7,11 +8,10 @@ const process = require('process');
 if (process.env.CERT == 'true') {
     const https = require('https');
     const options = {
-        key: fs.readFileSync('cert/othello.sevewell.dev/privkey.pem'),
-        cert: fs.readFileSync('cert/othello.sevewell.dev/cert.pem')
+        key: fs.readFileSync('cert/key.pem'),
+        cert: fs.readFileSync('cert/cert.pem')
     };
     var server = https.createServer(options);
-
 } else {
     const http = require('http');
     var server = http.createServer();

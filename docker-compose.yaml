@@ -6,7 +6,7 @@ services:
             - "8080:8080"
         volumes:
             - ./engine/www:/usr/src/app/www
-            - /etc/letsencrypt/live:/usr/src/app/cert
+            - ./cert:/usr/src/app/cert
         environment: 
             - CERT=${CERT}
     interface:
@@ -16,6 +16,6 @@ services:
             - "443:443"
         volumes: 
             - ./interface/www:/usr/src/app/www
-            - /etc/letsencrypt/live:/usr/src/app/cert
+            - ./cert:/usr/src/app/cert
         environment: 
             - CERT=${CERT}

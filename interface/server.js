@@ -5,8 +5,8 @@ const path = require('path');
 if (process.env.CERT == 'true') {
     const https = require('https');
     const options = {
-        key: fs.readFileSync('cert/othello.sevewell.dev/privkey.pem'),
-        cert: fs.readFileSync('cert/othello.sevewell.dev/cert.pem')
+        key: fs.readFileSync('cert/key.pem'),
+        cert: fs.readFileSync('cert/cert.pem')
     };
     https.createServer(options, request_).listen(443);
 } else {
