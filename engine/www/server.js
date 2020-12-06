@@ -90,34 +90,42 @@ function to2From16(str) {
 
 }
 
-function countMove(move, process_last) {
+function summaryMove(process) {
 
-    const count = process_last.filter((p) => {
-        return p.move == move.move;
-    }).length;
+    const moves = process.reduce((moves, p) => {
 
-    return count;
+        const move = moves.find((move) => {
+            return move.move == p.move;
+        });
+
+        if (move) {
+            move.rate.push(p.rate);
+        } else {
+            moves.push({
+                move: p.move,
+                rate: [ p.rate ]
+            });
+        }
+
+        return moves;
+
+    }, []);
+
+    return moves;
 
 }
 
-function choiceMove(record) {
+function choiceMove(moves) {
 
-    const process_last = record.map((process) => {
-        return process.pop();
-    });
-    console.log(process_last);
-
-    const move = process_last.reduce((choice, option) => {
-        const count_option = countMove(option, process_last);
-        const count_choice = countMove(choice, process_last);
-        if (count_option > count_choice) {
-            return option;
+    const choice = moves.reduce((choice, move) => {
+        if (move.rate.length > choice.rate.length) {
+            return move;
         } else {
             return choice;
         }
     });
 
-    return move;
+    return choice;
 
 }
 
@@ -125,8 +133,16 @@ function streamSearch(record) {
 
     setTimeout(() => {
 
-        const choice = choiceMove(record);
-        console.log(choice);
+        const process = record.map((p) => {
+            return p.pop();
+        }).filter((p) => {
+            return p;
+            // undefinedになることがある
+            // その対策
+        });
+        console.log(process);
+        const moves = summaryMove(process);
+        const choice = choiceMove(moves);
 
         if (status.computing == 0) {
 
@@ -152,9 +168,10 @@ function streamSearch(record) {
         
         } else {
 
-            status.rate = record.map((process) => {
-                return process.pop().rate;
+            moves.forEach((move) => {
+                move.move = to2From16(move.move).indexOf('1')
             });
+            status.rate = moves;
 
             wss.clients.forEach(function each(client) {
                 client.send(JSON.stringify({
@@ -215,7 +232,7 @@ function search() {
     // はじめのストリームまでの時間稼ぎ
     setTimeout(() => {
         streamSearch(record);
-    }, 2000);
+    }, 1000);
 
 }
 

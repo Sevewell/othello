@@ -48,18 +48,6 @@ function connectWebSocket() {
     return ws;
 };
 
-function to2From16(str) {
-
-    const move16bit = ('0'.repeat(16) + str).slice(-16);
-    const move2bit = move16bit.split('').map((bits) => {
-        const move2bits = parseInt(bits, 16).toString(2);
-        return ('0000' + move2bits).slice(-4);
-    });
-    const bits = move2bit.join('');
-    return bits;
-
-}
-
 function drawCanvas(panel, data) {
 
     const canvas = panel.querySelector('canvas');
@@ -112,24 +100,32 @@ function drawPanel(status) {
         let start_angle = 0;
         let end_angle = Math.PI * 2;
 
-        ctx.arc(x, y, radius, start_angle, end_angle);
-
         if (black[i] === '1' && white[i] === '1') {
             console.log('Error: duplicate stone.');
         }
         if (black[i] === '1') {
+            ctx.arc(x, y, radius, start_angle, end_angle);
             ctx.fillStyle = 'black';
         }
         if (white[i] === '1') {
+            ctx.arc(x, y, radius, start_angle, end_angle);
             ctx.fillStyle = 'white';
         }
 
         ctx.fill();
 
-    });
+        const move = status.field.rate.find((move) => {
+            return move.move == i;
+        });
+        if (move) {
+            ctx.fillStyle = 'white';
+            ctx.font = '32px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(move.rate.length.toString(), width/2, height/2);
+        };
 
-    const rate = document.getElementById('rate');
-    rate.textContent = status.field.rate.join(' ');
+    });
 
 }
 

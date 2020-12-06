@@ -8,9 +8,7 @@ extern double LEARNING_RATE;
 void PrintNode(struct Node *node)
 {
     struct Node *child = node->child;
-    unsigned long long move;
-    unsigned long long m;
-    unsigned long long y;
+    unsigned long long move = 0;
     double max_rate = 0;
     double rate;
 
@@ -20,8 +18,6 @@ void PrintNode(struct Node *node)
         if (rate > max_rate)
         {
             move = (node->m | node->y) ^ (child->m | child->y);
-            m = child->y;
-            y = child->m;
             max_rate = rate;
         }
         child = child->next;
