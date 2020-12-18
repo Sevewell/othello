@@ -93,6 +93,8 @@ function drawPanel(status) {
 
         ctx.fillStyle = 'green';
         ctx.fillRect(0, 0, width, height);
+        ctx.strokeStyle = 'black';
+        ctx.strokeRect(0, 0, width, height);
 
         let x = width / 2;
         let y = height / 2;

@@ -74,6 +74,8 @@ function putStone(point) {
             }));
         });
 
+        search();
+
     });
 
 }
