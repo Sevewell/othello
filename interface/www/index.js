@@ -161,10 +161,4 @@ function move(panel) {
     }));
 }
 
-function search() {
-    ws.send(JSON.stringify({
-        key: 'search'
-    }));
-}
-
 const ws = connectWebSocket();

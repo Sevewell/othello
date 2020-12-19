@@ -25,7 +25,9 @@ const status = {
     black: '0'.repeat(64),
     white: '0'.repeat(64),
     rate: [],
-    computing: 0
+    computing: 0,
+    turn: null,
+    time: 0
 }
 
 const ping = [];
@@ -45,7 +47,8 @@ function takeSeat(ws) {
         status.seat = true;
         status.black = '0'.repeat(28) + '1' + '0'.repeat(6) + '1' + '0'.repeat(28);
         status.white = '0'.repeat(27) + '1' + '0'.repeat(8) + '1' + '0'.repeat(27);
-    
+        status.turn = 'black';
+        status.time = 0;
     }
 
     wss.clients.forEach(function each(client) {
@@ -58,6 +61,10 @@ function takeSeat(ws) {
 }
 
 function putStone(point) {
+
+    if (status.computing > 0) {
+        return;
+    }
 
     const option = `${status.black} ${status.white} ${point}`;
 
@@ -135,6 +142,8 @@ function streamSearch(record) {
 
     setTimeout(() => {
 
+        status.time += 1;
+
         const process = record.map((p) => {
             return p.pop();
         }).filter((p) => {
@@ -164,9 +173,11 @@ function streamSearch(record) {
                         field: status,
                         user: client.status
                     }));
-                });    
+                });
 
             });
+
+            status.turn = 'black';
         
         } else {
 
@@ -223,6 +234,8 @@ function search() {
         return;
     }
 
+    status.turn = 'white';
+
     const record = [];
 
     for (let i = 0; i < num_process; i++) {
@@ -265,11 +278,6 @@ wss.on('connection', function connection(ws, req) {
                     putStone(message.value);
                 };
                 break;
-            case 'search':
-                if (ws.status.player) {
-                    search();
-                };
-                return;
 
         }
     
@@ -282,5 +290,19 @@ wss.on('connection', function connection(ws, req) {
     })
     
 });
+
+setInterval(() => {
+    
+    if (status.turn > 0) {
+
+        if (status.turn == 'black') {
+            status.turn -= 1;
+        }
+        if (status.turn == 'white') {
+            status.turn += 1;
+        }
+    }
+
+}, 1000);
 
 server.listen(8080);

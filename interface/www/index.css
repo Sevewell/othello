@@ -1,7 +1,7 @@
 body {
     display: flex;
-    width: 88vw;
-    height: 88vh;
+    width: 96vw;
+    height: 96vh;
 }
 
 @media (orientation: landscape) {
@@ -10,8 +10,8 @@ body {
     }
     #board {
         display: grid;
-        grid-template-columns: repeat(8, 11vh);
-        grid-auto-rows: 11vh;
+        grid-template-columns: repeat(8, 12vh);
+        grid-auto-rows: 12vh;
     }
 }
 @media (orientation: portrait) {
@@ -20,8 +20,8 @@ body {
     }
     #board {
         display: grid;
-        grid-template-columns: repeat(8, 11vw);
-        grid-auto-rows: 11vw;
+        grid-template-columns: repeat(8, 12vw);
+        grid-auto-rows: 12vw;
     }
 }
 
