@@ -41,6 +41,8 @@ function connectWebSocket() {
 
         }
 
+        document.getElementById('time').textContent = status.field.time.toString();
+
         drawPanel(status);
 
     }

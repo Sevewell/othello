@@ -30,8 +30,6 @@ const status = {
     time: 0
 }
 
-const ping = [];
-
 function takeSeat(ws) {
 
     if (status.seat) {
@@ -39,6 +37,8 @@ function takeSeat(ws) {
         if (ws.status.player) { // 離席
             ws.status.player = false;
             status.seat = false;
+            status.turn = null;
+            status.time = 0;
         }
 
     } else { // 着席
@@ -50,13 +50,6 @@ function takeSeat(ws) {
         status.turn = 'black';
         status.time = 0;
     }
-
-    wss.clients.forEach(function each(client) {
-        client.send(JSON.stringify({
-            field: status,
-            user: client.status
-        }));
-    });
 
 }
 
@@ -73,13 +66,6 @@ function putStone(point) {
         const move = JSON.parse(stdout);
         status.black = to2From16(move.m);
         status.white = to2From16(move.y);
-
-        wss.clients.forEach(function each(client) {
-            client.send(JSON.stringify({
-                field: status,
-                user: client.status
-            }));
-        });
 
         search();
 
@@ -142,8 +128,6 @@ function streamSearch(record) {
 
     setTimeout(() => {
 
-        status.time += 1;
-
         const process = record.map((p) => {
             return p.pop();
         }).filter((p) => {
@@ -168,13 +152,6 @@ function streamSearch(record) {
                 status.white = to2From16(move.m);
                 status.black = to2From16(move.y);
 
-                wss.clients.forEach(function each(client) {
-                    client.send(JSON.stringify({
-                        field: status,
-                        user: client.status
-                    }));
-                });
-
             });
 
             status.turn = 'black';
@@ -185,13 +162,6 @@ function streamSearch(record) {
                 move.move = to2From16(move.move).indexOf('1')
             });
             status.rate = moves;
-
-            wss.clients.forEach(function each(client) {
-                client.send(JSON.stringify({
-                    field: status,
-                    user: client.status
-                }));
-            });
 
             streamSearch(record);
 
@@ -212,8 +182,6 @@ function spawnSearch(record) {
 
     search.on('close', (code) => {
         console.log(`close: ${code}`);
-        const end_time = new Date();
-        //console.log((end_time - start_time) / 1000);
         status.computing -= 1;
     });
 
@@ -293,15 +261,19 @@ wss.on('connection', function connection(ws, req) {
 
 setInterval(() => {
     
-    if (status.turn > 0) {
-
-        if (status.turn == 'black') {
-            status.turn -= 1;
-        }
-        if (status.turn == 'white') {
-            status.turn += 1;
-        }
+    if (status.turn == 'black') {
+        status.time -= 1;
     }
+    if (status.turn == 'white') {
+        status.time += 1;
+    }
+
+    wss.clients.forEach(function each(client) {
+        client.send(JSON.stringify({
+            field: status,
+            user: client.status
+        }));
+    });
 
 }, 1000);
 
