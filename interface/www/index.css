@@ -9,9 +9,8 @@ body {
         flex-direction: row;
     }
     #board {
-        display: grid;
-        grid-template-columns: repeat(8, 12vh);
-        grid-auto-rows: 12vh;
+        width: 96vh;
+        height: 96vh;
     }
 }
 @media (orientation: portrait) {
@@ -19,21 +18,16 @@ body {
         flex-direction: column;
     }
     #board {
-        display: grid;
-        grid-template-columns: repeat(8, 12vw);
-        grid-auto-rows: 12vw;
+        width: 96vw;
+        height: 96vw;
     }
 }
 
 #board {
-    flex: auto;
+    flex: initial;
 }
 
 #panel {
-    width: 100%;
-}
-
-canvas {
     width: 100%;
 }
 

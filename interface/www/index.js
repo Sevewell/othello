@@ -1,3 +1,7 @@
+import { renderBoard } from '/render.js';
+import { renderStone } from '/render.js';
+import { renderComputing } from './render.js';
+
 function connectWebSocket() {
 
     let hostname = window.location.hostname; // サーバ情報が取れるはず
@@ -25,7 +29,6 @@ function connectWebSocket() {
     ws.onmessage = function (event) {
 
         let status = JSON.parse(event.data);
-        console.log(status);
 
         if (status.field.seat) {
 
@@ -50,117 +53,46 @@ function connectWebSocket() {
     return ws;
 };
 
-function drawCanvas(panel, data) {
-
-    const canvas = panel.querySelector('canvas');
-    const width = canvas.width;
-    const height = canvas.height;
-
-    const ctx = canvas.getContext('2d');
-
-    ctx.clearRect(0, 0, width, height);
-
-    ctx.beginPath();
-    data.rate.forEach(p => {
-        ctx.moveTo(0, height / 2);
-        p.forEach((r, i) => {
-            ctx.lineTo(i + 1, height - r*height);
-        });
-    });
-    ctx.stroke();
-
-}
-
 function drawPanel(status) {
 
-    let board = document.getElementById('board');
     let black = status.field.black;
     let white = status.field.white;
 
-    let panels = board.querySelectorAll('div');
-    // nodeListには謎なNodeもいる
-
-    panels.forEach((panel, i) => {
-
-        panel.setAttribute('id', `panel_${i.toString().padStart(2, '0')}`);
-
-        let canvas = panel.querySelector('canvas');
-
-        let width = canvas.width;
-        let height = canvas.height;
-
-        let ctx = canvas.getContext('2d');
-
-        ctx.clearRect(0, 0, width, height);
-
-        ctx.fillStyle = 'green';
-        ctx.fillRect(0, 0, width, height);
-        ctx.strokeStyle = 'black';
-        ctx.strokeRect(0, 0, width, height);
-
-        let x = width / 2;
-        let y = height / 2;
-        let radius = width / 2;
-        let start_angle = 0;
-        let end_angle = Math.PI * 2;
-
-        if (black[i] === '1' && white[i] === '1') {
-            console.log('Error: duplicate stone.');
-        }
-        if (black[i] === '1') {
-            ctx.arc(x, y, radius, start_angle, end_angle);
-            ctx.fillStyle = 'black';
-        }
-        if (white[i] === '1') {
-            ctx.arc(x, y, radius, start_angle, end_angle);
-            ctx.fillStyle = 'white';
-        }
-
-        ctx.fill();
-
-        const move = status.field.rate.find((move) => {
-            return move.move == i;
-        });
-        if (move) {
-            ctx.fillStyle = 'white';
-            ctx.font = '32px Arial';
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.fillText(move.rate.length.toString(), width/2, height/2);
-        };
-
-    });
+    renderBoard(canvas, ctx);
+    renderStone(canvas, ctx, black, white);
+    renderComputing(canvas, ctx, status.field.rate);
 
 }
 
-function drawBoard() {
+document.getElementById('seat').addEventListener("click", () => {
 
-    let board = document.getElementById('board');
-    let template;
-    let clone;
-
-    for (let i = 0; i < 64; i++) {
-        template = document.getElementById('panel');
-        clone = document.importNode(template.content, true);
-        //clone.setAttribute('id', `panel_${i.toString().padStart(2, '0')}`);
-        board.appendChild(clone);
-    }
-
-}
-
-function takeSeat() {
     ws.send(JSON.stringify({
         key: 'seat'
     }));
-}
 
-function move(panel) {
-    let point = panel.parentNode.getAttribute('id');
-    point = parseInt(point.slice(-2));
+});
+
+function move(event) {
+
+    const cell_width = Math.floor(canvas.width / 8);
+    const cell_height = Math.floor(canvas.height / 8);
+
+    const rect = event.target.getBoundingClientRect();
+    const x = (event.clientX - rect.left) * (canvas.width / rect.width);
+    const y = (event.clientY  - rect.top) * (canvas.height / rect.height);
+
+    const c = Math.floor(x / cell_width);
+    const r = Math.floor(y / cell_height);
+
     ws.send(JSON.stringify({
         key: 'move',
-        value: point
+        value: r * 8 + c
     }));
+
 }
+
+const canvas = document.getElementById("board");
+canvas.addEventListener('click', move, false);
+const ctx = canvas.getContext('2d');
 
 const ws = connectWebSocket();
