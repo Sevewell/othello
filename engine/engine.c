@@ -38,23 +38,6 @@ struct Node* CreateNode(unsigned long long m, unsigned long long y)
     return node;
 }
 
-void AddChild(struct Node *node, struct Node* child)
-{
-    if (node->child == NULL)
-    {
-        node->child = child;
-    }
-    else
-    {
-        struct Node* last = node->child;
-        while (last->next != NULL)
-        {
-            last = last->next;
-        }
-        last->next = child;
-    }
-}
-
 struct Node* Move(struct Node* node, unsigned long long movable)
 {
     struct Node* choice = NULL;
@@ -91,7 +74,8 @@ struct Node* Move(struct Node* node, unsigned long long movable)
     {
         unsigned long long reversable = GetReversable(node->m, node->y, move);
         choice = CreateNode(node->y ^ reversable, node->m | move | reversable);
-        AddChild(node, choice); // ここのループを省きたい
+        choice->next = node->child;
+        node->child = choice;
     }
 
     return choice;
