@@ -135,9 +135,12 @@ function streamSearch(record) {
             // undefinedになることがある
             // その対策
         });
-        console.log(process);
         const moves = summaryMove(process);
         const choice = choiceMove(moves);
+
+        console.log(choice.rate.reduce((sum, rate) => {
+            return sum + rate
+        }, 0) / choice.rate.length);
 
         if (status.computing == 0) {
 
@@ -181,7 +184,6 @@ function spawnSearch(record) {
     const search = spawn('./search', [status.white, status.black, seed]);
 
     search.on('close', (code) => {
-        console.log(`close: ${code}`);
         status.computing -= 1;
     });
 
