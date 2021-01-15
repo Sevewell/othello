@@ -2,10 +2,21 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
+#include <time.h>
 
 extern double LEARNING_RATE;
 
-void PrintNode(struct Node *node)
+int CountNode(struct Node *node, int *count) {
+
+    if (node != NULL) {
+        CountNode(node->next, count);
+        CountNode(node->child, count);
+        *count += 1;
+    }
+
+}
+
+void PrintNode(struct Node *node, int playout, int node_count)
 {
     struct Node *child = node->child;
     unsigned long long move = 0;
@@ -25,7 +36,9 @@ void PrintNode(struct Node *node)
 
     printf("{ ");
     printf("\"move\": \"%llx\", ", move);
-    printf("\"rate\": %lf", node->a / (node->a + node->b));
+    printf("\"rate\": %lf, ", node->a / (node->a + node->b));
+    printf("\"node\": %d, ", node_count);
+    printf("\"playout\": %d", playout);
     printf(" }\n");
     fflush(stdout);
 
@@ -33,18 +46,28 @@ void PrintNode(struct Node *node)
 
 void Search(struct Node *node, unsigned int trial)
 {
-    char status[1024];
+    clock_t clock_start = clock();
+    clock_t clock_end;
+    int node_count;
 
     char result;
     for (int i = 1; i <= trial; i++)
     {
         result = 'n';
         PlayOut(node, &result);
-        if (i % (trial / 100) == 0)
-        {
-            PrintNode(node);
+
+        clock_end = clock();
+
+        if ((double)(clock_end - clock_start) / CLOCKS_PER_SEC > 2) {
+
+            node_count = 0;
+            CountNode(node, &node_count);            
+            PrintNode(node, i, node_count);
+
+            clock_start = clock_end;
         }
     }
+    
 }
 
 int main(int argc, char *argv[])

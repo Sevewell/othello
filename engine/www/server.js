@@ -27,7 +27,11 @@ const status = {
     rate: [],
     computing: 0,
     turn: null,
-    time: 0
+    time: 0,
+    computing_: {
+        node: null,
+        playout: null
+    }
 }
 
 function takeSeat(ws) {
@@ -112,6 +116,8 @@ function summaryMove(process) {
 
 function choiceMove(moves) {
 
+    console.log(moves);
+
     const choice = moves.reduce((choice, move) => {
         if (move.rate.length > choice.rate.length) {
             return move;
@@ -133,8 +139,16 @@ function streamSearch(record) {
         }).filter((p) => {
             return p;
             // undefinedになることがある
-            // その対策
+            // 出力がまだ一度も来ていない場合など
         });
+
+        status.computing_.node = process.map((p) => {
+            return p.node;
+        });
+        status.computing_.playout = process.map((p) => {
+            return p.playout;
+        });
+
         const moves = summaryMove(process);
         const choice = choiceMove(moves);
 
@@ -145,7 +159,10 @@ function streamSearch(record) {
         if (status.computing == 0) {
 
             const point = to2From16(choice.move).indexOf('1');
+
             status.rate = [];
+            status.computing_.node = null;
+            status.computing_.playout = null;
 
             const option = `${status.white} ${status.black} ${point}`;
 
@@ -170,7 +187,7 @@ function streamSearch(record) {
 
         }
 
-    }, 1000);
+    }, 3000);
 
 }
 
@@ -217,7 +234,7 @@ function search() {
     // はじめのストリームまでの時間稼ぎ
     setTimeout(() => {
         streamSearch(record);
-    }, 1000);
+    }, 3000);
 
 }
 
@@ -273,7 +290,11 @@ setInterval(() => {
     wss.clients.forEach(function each(client) {
         client.send(JSON.stringify({
             field: status,
-            user: client.status
+            user: client.status,
+            computing: {
+                node: status.computing_.node,
+                playout: status.computing_.playout
+            }
         }));
     });
 
