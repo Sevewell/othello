@@ -21,55 +21,58 @@ const wss = new WebSocket.Server({ server });
 const num_process = parseInt(process.env.SEARCH_NODE);
 
 const status = {
-    seat: false,
-    black: '0'.repeat(64),
-    white: '0'.repeat(64),
+    table: {
+        seat: false,
+        black: '0'.repeat(64),
+        white: '0'.repeat(64),
+        turn: null,
+        time: 0,        
+    },
     rate: [],
-    computing: 0,
-    turn: null,
-    time: 0,
-    computing_: {
-        node: null,
-        playout: null
+    computing: {
+        process: 0,
+        playout: null,
+        rate: null,
+        node: null
     }
 }
 
 function takeSeat(ws) {
 
-    if (status.seat) {
+    if (status.table.seat) {
 
         if (ws.status.player) { // 離席
             ws.status.player = false;
-            status.seat = false;
-            status.turn = null;
-            status.time = 0;
+            status.table.seat = false;
+            status.table.turn = null;
+            status.table.time = 0;
         }
 
     } else { // 着席
 
         ws.status.player = true;
-        status.seat = true;
-        status.black = '0'.repeat(28) + '1' + '0'.repeat(6) + '1' + '0'.repeat(28);
-        status.white = '0'.repeat(27) + '1' + '0'.repeat(8) + '1' + '0'.repeat(27);
-        status.turn = 'black';
-        status.time = 0;
+        status.table.seat = true;
+        status.table.black = '0'.repeat(28) + '1' + '0'.repeat(6) + '1' + '0'.repeat(28);
+        status.table.white = '0'.repeat(27) + '1' + '0'.repeat(8) + '1' + '0'.repeat(27);
+        status.table.turn = 'black';
+        status.table.time = 0;
     }
 
 }
 
 function putStone(point) {
 
-    if (status.computing > 0) {
+    if (status.computing.process > 0) {
         return;
     }
 
-    const option = `${status.black} ${status.white} ${point}`;
+    const option = `${status.table.black} ${status.table.white} ${point}`;
 
     exec(`./move ${option}`, (err, stdout, stderr) => {
 
         const move = JSON.parse(stdout);
-        status.black = to2From16(move.m);
-        status.white = to2From16(move.y);
+        status.table.black = to2From16(move.m);
+        status.table.white = to2From16(move.y);
 
         search();
 
@@ -142,11 +145,14 @@ function streamSearch(record) {
             // 出力がまだ一度も来ていない場合など
         });
 
-        status.computing_.node = process.map((p) => {
-            return p.node;
-        });
-        status.computing_.playout = process.map((p) => {
+        status.computing.playout = process.map((p) => {
             return p.playout;
+        });
+        status.computing.rate = process.map((p) => {
+            return p.rate;
+        });
+        status.computing.node = process.map((p) => {
+            return p.node;
         });
 
         const moves = summaryMove(process);
@@ -156,25 +162,25 @@ function streamSearch(record) {
             return sum + rate
         }, 0) / choice.rate.length);
 
-        if (status.computing == 0) {
+        if (status.computing.process == 0) {
 
             const point = to2From16(choice.move).indexOf('1');
 
             status.rate = [];
-            status.computing_.node = null;
-            status.computing_.playout = null;
+            status.computing.node = null;
+            status.computing.playout = null;
 
-            const option = `${status.white} ${status.black} ${point}`;
+            const option = `${status.table.white} ${status.table.black} ${point}`;
 
             exec(`./move ${option}`, (err, stdout, stderr) => {
 
                 const move = JSON.parse(stdout);
-                status.white = to2From16(move.m);
-                status.black = to2From16(move.y);
+                status.table.white = to2From16(move.m);
+                status.table.black = to2From16(move.y);
 
             });
 
-            status.turn = 'black';
+            status.table.turn = 'black';
         
         } else {
 
@@ -198,10 +204,10 @@ function spawnSearch(record) {
     record.push(process_move);
 
     const seed = Math.floor(Math.random() * Math.floor(1000)).toString();
-    const search = spawn('./search', [status.white, status.black, seed]);
+    const search = spawn('./search', [status.table.white, status.table.black, seed]);
 
     search.on('close', (code) => {
-        status.computing -= 1;
+        status.computing.process -= 1;
     });
 
     const rl = readline.createInterface(search.stdout);
@@ -217,17 +223,17 @@ function spawnSearch(record) {
 
 function search() {
 
-    if (status.computing != 0) {
+    if (status.computing.process != 0) {
         return;
     }
 
-    status.turn = 'white';
+    status.table.turn = 'white';
 
     const record = [];
 
     for (let i = 0; i < num_process; i++) {
         spawnSearch(record);
-        status.computing += 1;
+        status.computing.process += 1;
     }
 
     // プロセスを作るのに時間がかかるっぽい
@@ -243,10 +249,8 @@ wss.on('connection', function connection(ws, req) {
     ws.status = {
         player: false
     };
-    ws.send(JSON.stringify({
-        field: status,
-        user: ws.status
-    }));
+    status.user = ws.status;
+    ws.send(JSON.stringify(status));
 
     ws.on('message', function incoming(message) {
 
@@ -280,22 +284,16 @@ wss.on('connection', function connection(ws, req) {
 
 setInterval(() => {
     
-    if (status.turn == 'black') {
-        status.time -= 1;
+    if (status.table.turn == 'black') {
+        status.table.time -= 1;
     }
-    if (status.turn == 'white') {
-        status.time += 1;
+    if (status.table.turn == 'white') {
+        status.table.time += 1;
     }
 
     wss.clients.forEach(function each(client) {
-        client.send(JSON.stringify({
-            field: status,
-            user: client.status,
-            computing: {
-                node: status.computing_.node,
-                playout: status.computing_.playout
-            }
-        }));
+        status.user = client.status;
+        client.send(JSON.stringify(status));
     });
 
 }, 1000);

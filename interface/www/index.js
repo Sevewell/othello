@@ -29,8 +29,9 @@ function connectWebSocket() {
     ws.onmessage = function (event) {
 
         let status = JSON.parse(event.data);
+        console.log(status);
 
-        if (status.field.seat) {
+        if (status.table.seat) {
 
             if (status.user.player) {
                 document.getElementById('seat').textContent = '席を離れる';
@@ -44,10 +45,10 @@ function connectWebSocket() {
 
         }
 
-        document.getElementById('time').textContent = status.field.time.toString();
+        document.getElementById('time').textContent = status.table.time.toString();
 
         drawPanel(status);
-
+    
     }
 
     return ws;
@@ -55,14 +56,15 @@ function connectWebSocket() {
 
 function drawPanel(status) {
 
-    let black = status.field.black;
-    let white = status.field.white;
+    let black = status.table.black;
+    let white = status.table.white;
 
     renderBoard(canvas, ctx);
     renderStone(canvas, ctx, black, white);
-    renderComputing(canvas, ctx, status.field.rate);
-    console.log('node:', status.computing.node);
+    renderComputing(canvas, ctx, status.rate);
     console.log('playout:', status.computing.playout);
+    console.log('rate:', status.computing.rate);
+    console.log('node:', status.computing.node);
 
 }
 
