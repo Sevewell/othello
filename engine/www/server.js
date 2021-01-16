@@ -28,9 +28,9 @@ const status = {
         turn: null,
         time: 0,        
     },
-    rate: [],
     computing: {
         process: 0,
+        search: [],
         playout: null,
         rate: null,
         node: null
@@ -92,25 +92,25 @@ function to2From16(str) {
 
 }
 
-function summaryMove(process) {
+function summaryMoves(process) {
 
     const moves = process.reduce((moves, p) => {
 
         const move = moves.find((move) => {
             return move.move == p.move;
         });
-
+    
         if (move) {
-            move.rate.push(p.rate);
+            move.count += 1;
         } else {
             moves.push({
                 move: p.move,
-                rate: [ p.rate ]
+                count: 1
             });
         }
 
         return moves;
-
+        
     }, []);
 
     return moves;
@@ -119,17 +119,26 @@ function summaryMove(process) {
 
 function choiceMove(moves) {
 
-    console.log(moves);
+    if (move) {
 
-    const choice = moves.reduce((choice, move) => {
-        if (move.rate.length > choice.rate.length) {
-            return move;
-        } else {
-            return choice;
-        }
-    });
+        const choice = moves.reduce((choice, move) => {
 
-    return choice;
+            if (move.count > choice.count) {
+                return move;
+            } else {
+                return choice;
+            }
+    
+        });
+
+        return choice;
+
+    } else {
+
+        console.log('Warning: moves is empty');
+        return '0';
+
+    }
 
 }
 
@@ -155,20 +164,17 @@ function streamSearch(record) {
             return p.node;
         });
 
-        const moves = summaryMove(process);
+        const moves = summaryMoves(process)
         const choice = choiceMove(moves);
-
-        console.log(choice.rate.reduce((sum, rate) => {
-            return sum + rate
-        }, 0) / choice.rate.length);
 
         if (status.computing.process == 0) {
 
             const point = to2From16(choice.move).indexOf('1');
 
-            status.rate = [];
+            status.computing.search = [];
             status.computing.node = null;
             status.computing.playout = null;
+            status.computing.rate = null;
 
             const option = `${status.table.white} ${status.table.black} ${point}`;
 
@@ -187,7 +193,7 @@ function streamSearch(record) {
             moves.forEach((move) => {
                 move.move = to2From16(move.move).indexOf('1')
             });
-            status.rate = moves;
+            status.computing.search = moves;
 
             streamSearch(record);
 

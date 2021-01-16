@@ -64,14 +64,14 @@ export function renderStone(canvas, ctx, black, white) {
 
 }
 
-export function renderComputing(canvas, ctx, rate) {
+export function renderComputing(canvas, ctx, search) {
 
     const cell_width = Math.floor(canvas.width / 8);
     const cell_height = Math.floor(canvas.height / 8);
 
     for (let i = 0; i < 64; i++) {
 
-        const move = rate.find((move) => {
+        const move = search.find((move) => {
             return move.move == i;
         });
         if (move) {
@@ -85,7 +85,7 @@ export function renderComputing(canvas, ctx, rate) {
             ctx.font = '32px Arial';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
-            ctx.fillText(move.rate.length.toString(), width, height);
+            ctx.fillText(move.count.toString(), width, height);
 
         }
     }

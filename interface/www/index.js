@@ -61,7 +61,7 @@ function drawPanel(status) {
 
     renderBoard(canvas, ctx);
     renderStone(canvas, ctx, black, white);
-    renderComputing(canvas, ctx, status.rate);
+    renderComputing(canvas, ctx, status.computing.search);
     console.log('playout:', status.computing.playout);
     console.log('rate:', status.computing.rate);
     console.log('node:', status.computing.node);
