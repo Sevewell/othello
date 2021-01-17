@@ -58,7 +58,7 @@ void Search(struct Node *node, unsigned int trial)
 
         clock_end = clock();
 
-        if ((double)(clock_end - clock_start) / CLOCKS_PER_SEC > 2) {
+        if ((double)(clock_end - clock_start) / CLOCKS_PER_SEC > 5) {
 
             node_count = 0;
             CountNode(node, &node_count);            
