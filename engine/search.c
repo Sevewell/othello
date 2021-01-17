@@ -67,7 +67,11 @@ void Search(struct Node *node, unsigned int trial)
             clock_start = clock_end;
         }
     }
-    
+
+    node_count = 0;
+    CountNode(node, &node_count);            
+    PrintNode(node, trial, node_count);
+
 }
 
 int main(int argc, char *argv[])
