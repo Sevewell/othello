@@ -8,6 +8,10 @@ body {
     body {
         flex-direction: row;
     }
+    #info {
+        display: flex;
+        flex-direction: column;
+    }
     #board {
         width: 96vh;
         height: 96vh;
@@ -16,6 +20,10 @@ body {
 @media (orientation: portrait) {
     body {
         flex-direction: column;
+    }
+    #info {
+        display: flex;
+        flex-direction: row;
     }
     #board {
         width: 96vw;
@@ -33,8 +41,6 @@ body {
 
 #info {
     flex: auto;
-    display: flex;
-    flex-direction: column;
     align-items: center;
     justify-content: center;
 }

@@ -31,9 +31,9 @@ const status = {
     computing: {
         process: 0,
         search: [],
-        playout: null,
-        rate: null,
-        node: null
+        playout: [],
+        rate: [],
+        node: []
     }
 }
 
@@ -119,26 +119,17 @@ function summaryMoves(process) {
 
 function choiceMove(moves) {
 
-    if (move) {
+    const choice = moves.reduce((choice, move) => {
 
-        const choice = moves.reduce((choice, move) => {
+        if (move.count > choice.count) {
+            return move;
+        } else {
+            return choice;
+        }
 
-            if (move.count > choice.count) {
-                return move;
-            } else {
-                return choice;
-            }
-    
-        });
+    }, { move: '0', count: 0 });
 
-        return choice;
-
-    } else {
-
-        console.log('Warning: moves is empty');
-        return '0';
-
-    }
+    return choice;
 
 }
 
@@ -146,22 +137,12 @@ function streamSearch(record) {
 
     setTimeout(() => {
 
-        const process = record.map((p) => {
-            return p.pop();
+        const process = record.map((process) => {
+            return process[process.length - 1];
         }).filter((p) => {
             return p;
             // undefinedになることがある
             // 出力がまだ一度も来ていない場合など
-        });
-
-        status.computing.playout = process.map((p) => {
-            return p.playout;
-        });
-        status.computing.rate = process.map((p) => {
-            return p.rate;
-        });
-        status.computing.node = process.map((p) => {
-            return p.node;
         });
 
         const moves = summaryMoves(process)
@@ -172,9 +153,9 @@ function streamSearch(record) {
             const point = to2From16(choice.move).indexOf('1');
 
             status.computing.search = [];
-            status.computing.node = null;
-            status.computing.playout = null;
-            status.computing.rate = null;
+            status.computing.node = [];
+            status.computing.playout = [];
+            status.computing.rate = [];
 
             const option = `${status.table.white} ${status.table.black} ${point}`;
 
@@ -194,12 +175,22 @@ function streamSearch(record) {
                 move.move = to2From16(move.move).indexOf('1')
             });
             status.computing.search = moves;
-
+            
+            status.computing.playout = process.map((p) => {
+                return p.playout;
+            });
+            status.computing.rate = process.map((p) => {
+                return p.rate;
+            });
+            status.computing.node = process.map((p) => {
+                return p.node;
+            });
+    
             streamSearch(record);
 
         }
 
-    }, 3000);
+    }, 2000);
 
 }
 
@@ -246,7 +237,7 @@ function search() {
     // はじめのストリームまでの時間稼ぎ
     setTimeout(() => {
         streamSearch(record);
-    }, 3000);
+    }, 1000);
 
 }
 

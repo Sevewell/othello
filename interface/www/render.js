@@ -64,14 +64,14 @@ export function renderStone(canvas, ctx, black, white) {
 
 }
 
-export function renderComputing(canvas, ctx, search) {
+export function renderComputing(canvas, ctx, computing) {
 
     const cell_width = Math.floor(canvas.width / 8);
     const cell_height = Math.floor(canvas.height / 8);
 
     for (let i = 0; i < 64; i++) {
 
-        const move = search.find((move) => {
+        const move = computing.search.find((move) => {
             return move.move == i;
         });
         if (move) {
@@ -89,5 +89,19 @@ export function renderComputing(canvas, ctx, search) {
 
         }
     }
+
+    const mean_playout = Math.floor(computing.playout.reduce((sum, p) => {
+            return sum + p;
+        }, 0) / computing.playout.length);
+    const mean_rate = computing.rate.reduce((sum, r) => {
+        return sum + r;
+    }, 0) / computing.rate.length;
+    const mean_node = Math.floor(computing.node.reduce((sum, n) => {
+        return sum + n;
+    }, 0) / computing.node.length);
+
+    document.getElementById("playout").textContent = 'playout: ' + mean_playout.toLocaleString();
+    document.getElementById("rate").textContent = 'rate: ' + mean_rate.toFixed(3);
+    document.getElementById("node").textContent = 'node: ' + mean_node.toLocaleString();
 
 };

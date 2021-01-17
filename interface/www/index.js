@@ -45,7 +45,7 @@ function connectWebSocket() {
 
         }
 
-        document.getElementById('time').textContent = status.table.time.toString();
+        document.getElementById('time').textContent = '持ち時間： ' + status.table.time.toString();
 
         drawPanel(status);
     
@@ -61,10 +61,7 @@ function drawPanel(status) {
 
     renderBoard(canvas, ctx);
     renderStone(canvas, ctx, black, white);
-    renderComputing(canvas, ctx, status.computing.search);
-    console.log('playout:', status.computing.playout);
-    console.log('rate:', status.computing.rate);
-    console.log('node:', status.computing.node);
+    renderComputing(canvas, ctx, status.computing);
 
 }
 
