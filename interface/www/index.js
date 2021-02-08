@@ -1,5 +1,4 @@
 import { renderBoard } from '/render.js';
-import { renderStone } from '/render.js';
 import { renderComputing } from './render.js';
 
 function connectWebSocket() {
@@ -54,13 +53,51 @@ function connectWebSocket() {
     return ws;
 };
 
+function updateStone(board_) {
+
+    const update = [];
+    for (let i = 0; i < 64; i++) {
+        if (board[i] != board_[i]) {
+            update.push(board_[i]);   
+        } else {
+            update.push(null);
+        }
+    }
+
+    return update;
+
+}
+
 function drawPanel(status) {
 
-    let black = status.table.black;
-    let white = status.table.white;
+    const board_ = [];
+    for (let i = 0; i < 64; i++) {
 
-    renderBoard(canvas, ctx);
-    renderStone(canvas, ctx, black, white);
+        if (status.table.black[i] == '1') {
+            board_.push('black');
+            continue;
+        }
+        if (status.table.white[i] == '1') {
+            board_.push('white');
+            continue;
+        }
+
+        const move = status.computing.search.find((move) => {
+            return move.move == i;
+        });
+        if (move) {
+            board_.push(move.count);
+            continue;
+        }
+
+        board_.push('plane');
+
+    }
+
+    const update = updateStone(board_);
+    board = board_;
+
+    renderBoard(canvas, ctx, update);
     renderComputing(canvas, ctx, status.computing);
 
 }
@@ -91,6 +128,12 @@ function move(event) {
     }));
 
 }
+
+let board = [];
+for (let i = 0; i < 64; i++) {
+    board.push(undefined);
+}
+console.log(board);
 
 const canvas = document.getElementById("board");
 canvas.addEventListener('click', move, false);
