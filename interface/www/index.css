@@ -45,6 +45,16 @@ body {
     justify-content: center;
 }
 
+#black {
+    border: solid;
+    background-color: azure;
+}
+
+#white {
+    border: solid;
+    background-color: azure;
+}
+
 #seat {
     width: 50%;
     height: 50%;

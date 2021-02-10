@@ -30,21 +30,10 @@ function connectWebSocket() {
         let status = JSON.parse(event.data);
         console.log(status);
 
-        if (status.table.seat) {
+        updateTurn(status, 'black');
 
-            if (status.user.player) {
-                document.getElementById('seat').textContent = '席を離れる';
-            } else {
-                document.getElementById('seat').textContent = '他の人が着席中';
-            }
-
-        } else {
-
-            document.getElementById('seat').textContent = '席に座る';
-
-        }
-
-        document.getElementById('time').textContent = '持ち時間： ' + status.table.time.toString();
+        document.getElementById('black_time').textContent = '持ち時間：' + status.black.time;
+        document.getElementById('white_time').textContent = '持ち時間：' + status.white.time;
 
         drawPanel(status);
     
@@ -52,6 +41,24 @@ function connectWebSocket() {
 
     return ws;
 };
+
+function updateTurn(status, turn) {
+
+    if (status[turn].player) {
+
+        if (status.user.player == turn) {
+            document.getElementById('seat').textContent = '席を離れる';
+        } else {
+            document.getElementById('seat').textContent = '他の人が着席中';
+        }
+
+    } else {
+
+        document.getElementById('seat').textContent = '席に座る';
+
+    }
+
+}
 
 function updateStone(board_) {
 
@@ -73,11 +80,11 @@ function drawPanel(status) {
     const board_ = [];
     for (let i = 0; i < 64; i++) {
 
-        if (status.table.black[i] == '1') {
+        if (status.black.stone[i] == '1') {
             board_.push('black');
             continue;
         }
-        if (status.table.white[i] == '1') {
+        if (status.white.stone[i] == '1') {
             board_.push('white');
             continue;
         }
@@ -105,7 +112,8 @@ function drawPanel(status) {
 document.getElementById('seat').addEventListener("click", () => {
 
     ws.send(JSON.stringify({
-        key: 'seat'
+        key: 'seat',
+        value: 'black'
     }));
 
 });

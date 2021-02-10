@@ -9,11 +9,18 @@
 
         <canvas id="board" width="800px" height="800px"></canvas>
         <div id="info">
-            <button id="seat">席に座る</button>
-            <p id="time"></p>
-            <p id="playout"></p>
-            <p id="rate"></p>
-            <p id="node"></p>
+            <div id="black">
+                <p>黒番</p>
+                <p id="black_time"></p>
+                <button id="seat">席に座る</button>
+            </div>
+            <div id="white">
+                <p>白番</p>
+                <p id="white_time"></p>
+                <p id="playout"></p>
+                <p id="rate"></p>
+                <p id="node"></p>    
+            </div>
         </div>
 
         <script type="module" src="index.js"></script>

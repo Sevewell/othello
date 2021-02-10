@@ -21,12 +21,21 @@ const wss = new WebSocket.Server({ server });
 const num_process = parseInt(process.env.SEARCH_NODE);
 
 const status = {
+
     table: {
         seat: false,
         black: '0'.repeat(64),
         white: '0'.repeat(64),
         turn: null,
         time: 0,        
+    },
+    black: {
+        player: null,
+        time: 0
+    },
+    white: {
+        player: null,
+        time: 0
     },
     computing: {
         process: 0,
@@ -35,27 +44,26 @@ const status = {
         rate: [],
         node: []
     }
+
 }
 
-function takeSeat(ws) {
+function takeSeat(ws, turn) {
 
-    if (status.table.seat) {
+    if (status[turn].player) {
 
-        if (ws.status.player) { // 離席
-            ws.status.player = false;
-            status.table.seat = false;
-            status.table.turn = null;
-            status.table.time = 0;
+        if (ws === status[turn].player) {
+            status[turn].player = null;
+            ws.status.player = null;
         }
 
-    } else { // 着席
+    } else {
 
-        ws.status.player = true;
-        status.table.seat = true;
+        status[turn].player = ws;
+        status[turn].time = 0;
+        ws.status.player = turn;
         status.table.black = '0'.repeat(28) + '1' + '0'.repeat(6) + '1' + '0'.repeat(28);
         status.table.white = '0'.repeat(27) + '1' + '0'.repeat(8) + '1' + '0'.repeat(27);
-        status.table.turn = 'black';
-        status.table.time = 0;
+
     }
 
 }
@@ -259,7 +267,7 @@ wss.on('connection', function connection(ws, req) {
             case 'open':
                 break;
             case 'seat':
-                takeSeat(ws);
+                takeSeat(ws, message.value);
                 break;
             case 'move':
                 if (ws.status.player) {
@@ -282,15 +290,33 @@ wss.on('connection', function connection(ws, req) {
 setInterval(() => {
     
     if (status.table.turn == 'black') {
-        status.table.time -= 1;
+        status.black.time += 1;
     }
     if (status.table.turn == 'white') {
-        status.table.time += 1;
+        status.white.time += 1;
+    }
+
+    send_status = {
+
+        turn: status.table.turn,
+        time: status.table.time,
+        black: {
+            stone: status.table.black,
+            player: Boolean(status.black.player),
+            time: status.black.time
+        },
+        white: {
+            stone: status.table.white,
+            player: Boolean(status.white.player),
+            time: status.white.time
+        },
+        computing: status.computing
+
     }
 
     wss.clients.forEach(function each(client) {
-        status.user = client.status;
-        client.send(JSON.stringify(status));
+        send_status.user = client.status;
+        client.send(JSON.stringify(send_status));
     });
 
 }, 1000);
