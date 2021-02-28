@@ -142,7 +142,7 @@ module.exports = class Computer {
                 this.node = process.map((p) => {
                     return p.node;
                 });
-        
+
                 this.streamSearch(table, record);
     
             }
@@ -169,7 +169,7 @@ module.exports = class Computer {
         }
 
         const seed = Math.floor(Math.random() * Math.floor(1000)).toString();
-        const search = spawn('./search', [m, y, seed]);
+        const search = spawn('./search', [m, y, seed, this.learning_rate]);
     
         search.on('close', (code) => {
             this.process -= 1;

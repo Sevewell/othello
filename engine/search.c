@@ -79,11 +79,10 @@ int main(int argc, char *argv[])
     unsigned long long m = strtoull(argv[1], NULL, 2);
     unsigned long long y = strtoull(argv[2], NULL, 2);
     int seed = atoi(argv[3]);
+    LEARNING_RATE = strtod(argv[4], NULL);
 
     //int trial = atoi(getenv("TRIAL"));
     unsigned int trial = 500000;
-    //LEARNING_RATE = strtod(getenv("LEARNING_RATE"), NULL);
-    LEARNING_RATE = 0.99;
 
     SetSampling(seed);
     SetZiggurat();

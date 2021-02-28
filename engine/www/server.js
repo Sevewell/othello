@@ -140,6 +140,7 @@ wss.on('connection', function connection(ws, req) {
                 break;
             case 'switch':
                 if (ws === player[table.turn].ws) {
+                    player[table.turn].com.learning_rate = message.value;
                     player[table.turn].com.search(table);
                 };
                 break;

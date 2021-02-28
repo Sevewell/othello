@@ -134,7 +134,7 @@ document.getElementById('black_switch').addEventListener("click", () => {
 
     ws.send(JSON.stringify({
         key: 'switch',
-        value: 'black'
+        value: parseFloat(document.getElementById('black_learning_rate').value)
     }));
 
 });
@@ -150,7 +150,7 @@ document.getElementById('white_switch').addEventListener("click", () => {
 
     ws.send(JSON.stringify({
         key: 'switch',
-        value: 'white'
+        value: parseFloat(document.getElementById('white_learning_rate').value)
     }));
 
 });
