@@ -1,9 +1,8 @@
 const WebSocket = require('ws');
 const fs = require('fs');
 const { exec } = require('child_process');
-const { spawn } = require('child_process');
-const readline = require('readline');
 const process = require('process');
+const Computer = require('./search');
 
 if (process.env.CERT == 'true') {
     const https = require('https');
@@ -18,73 +17,93 @@ if (process.env.CERT == 'true') {
 }
 const wss = new WebSocket.Server({ server });
 
-const num_process = parseInt(process.env.SEARCH_NODE);
+const table = {
 
-const status = {
+    turn: 'black',
+    black: '0'.repeat(64),
+    white: '0'.repeat(64)
 
-    table: {
-        seat: false,
-        black: '0'.repeat(64),
-        white: '0'.repeat(64),
-        turn: null,
-        time: 0,        
-    },
+};
+
+const player = {
+
     black: {
-        player: null,
-        time: 0
+        ws: null,
+        time: null,
+        move: null,
+        com: new Computer()
     },
     white: {
-        player: null,
-        time: 0
-    },
-    computing: {
-        process: 0,
-        search: [],
-        playout: [],
-        rate: [],
-        node: []
+        ws: null,
+        time: null,
+        move: null,
+        com: new Computer()
     }
 
-}
+};
 
 function takeSeat(ws, turn) {
 
-    if (status[turn].player) {
+    if (player[turn].ws) {
 
-        if (ws === status[turn].player) {
-            status[turn].player = null;
-            ws.status.player = null;
+        if (ws === player[turn].ws) {
+            player[turn].ws = null;
+            ws.status[turn] = false;
         }
 
     } else {
 
-        status[turn].player = ws;
-        status[turn].time = 0;
-        ws.status.player = turn;
-        status.table.black = '0'.repeat(28) + '1' + '0'.repeat(6) + '1' + '0'.repeat(28);
-        status.table.white = '0'.repeat(27) + '1' + '0'.repeat(8) + '1' + '0'.repeat(27);
+        player[turn].ws = ws;
+
+        table.turn = 'black';
+        player.black.time = 0;
+        player.white.time = 0;
+
+        ws.status[turn] = true;
+
+        if (turn = 'black') {
+            table.black = '0'.repeat(28) + '1' + '0'.repeat(6) + '1' + '0'.repeat(28);
+        }
+        if (turn = 'white') {
+            table.white = '0'.repeat(27) + '1' + '0'.repeat(8) + '1' + '0'.repeat(27);
+        }
 
     }
 
 }
 
-function putStone(point) {
+function putStone(ws, point) {
 
-    if (status.computing.process > 0) {
-        return;
+    // 着手可能箇所でなかったらターンは変えない
+
+    if (table.turn == 'black') {
+
+        const option = `${table.black} ${table.white} ${point}`;
+
+        exec(`./move ${option}`, (err, stdout, stderr) => {
+
+            const move = JSON.parse(stdout);
+            table.black = to2From16(move.m);
+            table.white = to2From16(move.y);
+            table.turn = 'white';
+    
+        });
+    
     }
+    if (table.turn == 'white') {
 
-    const option = `${status.table.black} ${status.table.white} ${point}`;
+        const option = `${table.white} ${table.black} ${point}`;
 
-    exec(`./move ${option}`, (err, stdout, stderr) => {
+        exec(`./move ${option}`, (err, stdout, stderr) => {
 
-        const move = JSON.parse(stdout);
-        status.table.black = to2From16(move.m);
-        status.table.white = to2From16(move.y);
-
-        search();
-
-    });
+            const move = JSON.parse(stdout);    
+            table.white = to2From16(move.m);
+            table.black = to2From16(move.y);
+            table.turn = 'black';
+    
+        });
+    
+    }
 
 }
 
@@ -100,162 +119,12 @@ function to2From16(str) {
 
 }
 
-function summaryMoves(process) {
-
-    const moves = process.reduce((moves, p) => {
-
-        const move = moves.find((move) => {
-            return move.move == p.move;
-        });
-    
-        if (move) {
-            move.count += 1;
-        } else {
-            moves.push({
-                move: p.move,
-                count: 1
-            });
-        }
-
-        return moves;
-        
-    }, []);
-
-    return moves;
-
-}
-
-function choiceMove(moves) {
-
-    const choice = moves.reduce((choice, move) => {
-
-        if (move.count > choice.count) {
-            return move;
-        } else {
-            return choice;
-        }
-
-    }, { move: '0', count: 0 });
-
-    return choice;
-
-}
-
-function streamSearch(record) {
-
-    setTimeout(() => {
-
-        const process = record.map((process) => {
-            return process[process.length - 1];
-        }).filter((p) => {
-            return p;
-            // undefinedになることがある
-            // 出力がまだ一度も来ていない場合など
-        });
-
-        const moves = summaryMoves(process)
-        const choice = choiceMove(moves);
-
-        if (status.computing.process == 0) {
-
-            const point = to2From16(choice.move).indexOf('1');
-
-            status.computing.search = [];
-            status.computing.node = [];
-            status.computing.playout = [];
-            status.computing.rate = [];
-
-            const option = `${status.table.white} ${status.table.black} ${point}`;
-
-            exec(`./move ${option}`, (err, stdout, stderr) => {
-
-                const move = JSON.parse(stdout);
-                status.table.white = to2From16(move.m);
-                status.table.black = to2From16(move.y);
-
-            });
-
-            status.table.turn = 'black';
-        
-        } else {
-
-            moves.forEach((move) => {
-                move.move = to2From16(move.move).indexOf('1')
-            });
-            status.computing.search = moves;
-            
-            status.computing.playout = process.map((p) => {
-                return p.playout;
-            });
-            status.computing.rate = process.map((p) => {
-                return p.rate;
-            });
-            status.computing.node = process.map((p) => {
-                return p.node;
-            });
-    
-            streamSearch(record);
-
-        }
-
-    }, 2000);
-
-}
-
-function spawnSearch(record) {
-
-    // プロセス毎の情報はまとめて送りたい
-    const process_move = [];
-    record.push(process_move);
-
-    const seed = Math.floor(Math.random() * Math.floor(1000)).toString();
-    const search = spawn('./search', [status.table.white, status.table.black, seed]);
-
-    search.on('close', (code) => {
-        status.computing.process -= 1;
-    });
-
-    const rl = readline.createInterface(search.stdout);
-
-    rl.on('line', (input) => {
-
-        const data = JSON.parse(input);
-        process_move.push(data);
-    
-    });
-
-}
-
-function search() {
-
-    if (status.computing.process != 0) {
-        return;
-    }
-
-    status.table.turn = 'white';
-
-    const record = [];
-
-    for (let i = 0; i < num_process; i++) {
-        spawnSearch(record);
-        status.computing.process += 1;
-    }
-
-    // プロセスを作るのに時間がかかるっぽい
-    // はじめのストリームまでの時間稼ぎ
-    setTimeout(() => {
-        streamSearch(record);
-    }, 1000);
-
-}
-
 wss.on('connection', function connection(ws, req) {
 
     ws.status = {
-        player: false
+        black: false,
+        white: false
     };
-    status.user = ws.status;
-    ws.send(JSON.stringify(status));
 
     ws.on('message', function incoming(message) {
 
@@ -269,10 +138,15 @@ wss.on('connection', function connection(ws, req) {
             case 'seat':
                 takeSeat(ws, message.value);
                 break;
-            case 'move':
-                if (ws.status.player) {
-                    putStone(message.value);
+            case 'switch':
+                if (ws === player[table.turn].ws) {
+                    player[table.turn].com.search(table);
                 };
+                break;
+            case 'move':
+                if (ws === player[table.turn].ws) {
+                    putStone(ws, message.value);
+                }
                 break;
 
         }
@@ -288,35 +162,41 @@ wss.on('connection', function connection(ws, req) {
 });
 
 setInterval(() => {
-    
-    if (status.table.turn == 'black') {
-        status.black.time += 1;
-    }
-    if (status.table.turn == 'white') {
-        status.white.time += 1;
-    }
 
-    send_status = {
+    player[table.turn].time += 1;
 
-        turn: status.table.turn,
-        time: status.table.time,
+    const status = {
+
+        turn: table.turn,
         black: {
-            stone: status.table.black,
-            player: Boolean(status.black.player),
-            time: status.black.time
+            stone: table.black,
+            time: player['black'].time,
+            player: Boolean(player['black'].ws)
         },
         white: {
-            stone: status.table.white,
-            player: Boolean(status.white.player),
-            time: status.white.time
-        },
-        computing: status.computing
+            stone: table.white,
+            time: player['white'].time,
+            player: Boolean(player['white'].ws)
+        }
 
     }
 
+    status.black.com = {
+        search: player['black'].com.moves,
+        playout: player['black'].com.playout,
+        rate: player['black'].com.rate,
+        node: player['black'].com.node
+    };
+    status.white.com = {
+        search: player['white'].com.moves,
+        playout: player['white'].com.playout,
+        rate: player['white'].com.rate,
+        node: player['white'].com.node
+    };
+
     wss.clients.forEach(function each(client) {
-        send_status.user = client.status;
-        client.send(JSON.stringify(send_status));
+        status.user = client.status;
+        client.send(JSON.stringify(status));
     });
 
 }, 1000);

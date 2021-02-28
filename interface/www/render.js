@@ -57,7 +57,7 @@ export function renderBoard(canvas, ctx, update) {
 
 }
 
-export function renderComputing(canvas, ctx, computing) {
+export function renderComputing(canvas, ctx, computing, turn) {
 
     const mean_playout = Math.floor(computing.playout.reduce((sum, p) => {
             return sum + p;
@@ -69,8 +69,8 @@ export function renderComputing(canvas, ctx, computing) {
         return sum + n;
     }, 0) / computing.node.length);
 
-    document.getElementById("playout").textContent = 'playout: ' + mean_playout.toLocaleString();
-    document.getElementById("rate").textContent = 'rate: ' + mean_rate.toFixed(3);
-    document.getElementById("node").textContent = 'node: ' + mean_node.toLocaleString();
+    document.getElementById(turn + "_playout").textContent = 'playout: ' + mean_playout.toLocaleString();
+    document.getElementById(turn + "_rate").textContent = 'rate: ' + mean_rate.toFixed(3);
+    document.getElementById(turn + "_node").textContent = 'node: ' + mean_node.toLocaleString();
 
 };

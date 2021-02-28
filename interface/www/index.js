@@ -31,6 +31,7 @@ function connectWebSocket() {
         console.log(status);
 
         updateTurn(status, 'black');
+        updateTurn(status, 'white');
 
         document.getElementById('black_time').textContent = '持ち時間：' + status.black.time;
         document.getElementById('white_time').textContent = '持ち時間：' + status.white.time;
@@ -44,18 +45,24 @@ function connectWebSocket() {
 
 function updateTurn(status, turn) {
 
-    if (status[turn].player) {
+    if (status.user[turn]) {
 
-        if (status.user.player == turn) {
-            document.getElementById('seat').textContent = '席を離れる';
-        } else {
-            document.getElementById('seat').textContent = '他の人が着席中';
-        }
+        document.getElementById(turn + '_seat').textContent = '席を離れる';
 
     } else {
 
-        document.getElementById('seat').textContent = '席に座る';
+        if (status[turn].player) {
+            document.getElementById(turn + '_seat').textContent = '他の人が着席中';
+        } else {
+            document.getElementById(turn + '_seat').textContent = '席に座る';
+        }
 
+    }
+
+    if (status[turn].com) {
+        document.getElementById(turn + '_switch').textContent = 'コンピュータ';
+    } else {
+        document.getElementById(turn + '_switch').textContent = '人間';
     }
 
 }
@@ -78,6 +85,8 @@ function updateStone(board_) {
 function drawPanel(status) {
 
     const board_ = [];
+    const com = status[status.turn].com;
+
     for (let i = 0; i < 64; i++) {
 
         if (status.black.stone[i] == '1') {
@@ -89,13 +98,15 @@ function drawPanel(status) {
             continue;
         }
 
-        const move = status.computing.search.find((move) => {
-            return move.move == i;
-        });
-        if (move) {
-            board_.push(move.count);
-            continue;
-        }
+        if (com) {
+            const move = com.search.find((move) => {
+                return move.move == i;
+            });
+            if (move) {
+                board_.push(move.count);
+                continue;
+            }
+        };
 
         board_.push('plane');
 
@@ -105,15 +116,41 @@ function drawPanel(status) {
     board = board_;
 
     renderBoard(canvas, ctx, update);
-    renderComputing(canvas, ctx, status.computing);
+    if (com) {
+        renderComputing(canvas, ctx, com, status.turn);
+    }
 
 }
 
-document.getElementById('seat').addEventListener("click", () => {
+document.getElementById('black_seat').addEventListener("click", () => {
 
     ws.send(JSON.stringify({
         key: 'seat',
         value: 'black'
+    }));
+
+});
+document.getElementById('black_switch').addEventListener("click", () => {
+
+    ws.send(JSON.stringify({
+        key: 'switch',
+        value: 'black'
+    }));
+
+});
+document.getElementById('white_seat').addEventListener("click", () => {
+
+    ws.send(JSON.stringify({
+        key: 'seat',
+        value: 'white'
+    }));
+
+});
+document.getElementById('white_switch').addEventListener("click", () => {
+
+    ws.send(JSON.stringify({
+        key: 'switch',
+        value: 'white'
     }));
 
 });
@@ -141,7 +178,6 @@ let board = [];
 for (let i = 0; i < 64; i++) {
     board.push(undefined);
 }
-console.log(board);
 
 const canvas = document.getElementById("board");
 canvas.addEventListener('click', move, false);
