@@ -6,9 +6,9 @@ function connectWebSocket() {
     let hostname = window.location.hostname; // サーバ情報が取れるはず
     console.log(hostname);
     if (hostname == 'localhost') {
-	var ws = new WebSocket(`ws://${hostname}:8080/`);
+	    var ws = new WebSocket(`ws://${hostname}/`);
     } else {
-        var ws = new WebSocket(`wss://${hostname}:8080/`);
+        var ws = new WebSocket(`wss://${hostname}/`);
     }
 
     ws.onopen = function (event) {
