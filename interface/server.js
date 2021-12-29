@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const WebSocket = require('ws');
 const { exec } = require('child_process');
-const Computer = require('./www/search');
+const Computer = require('./search');
 
 let server = undefined;
 let port = undefined;
@@ -17,8 +17,7 @@ if (process.env.CERT == 'true') {
     server = https.createServer(options, request_);
     port = 443;
 } else {
-    const http = require('http');
-    server = http.createServer(request_);
+    server = require('http').createServer(request_);
     port = 80;
 }
 
@@ -75,6 +74,8 @@ function request_(request, response) {
     });
 
 };
+
+const http = require('http');
 
 const table = {
 
@@ -133,39 +134,44 @@ function takeSeat(ws, turn) {
 
 function putStone(ws, point) {
 
-    console.log('debug');
-    console.log(point);
+    const data = JSON.stringify({
+        table: table,
+        move: point
+    });
 
-    // 着手可能箇所でなかったらターンは変えない
+    const options = {
+        hostname: 'engine',
+        port: 8080,
+        path: '/move',
+        method: 'GET',
+        headers: {
+            'Content-Type': 'application/json',
+            'Content-Length': data.length
+        }
+    };
 
-    if (table.turn == 'black') {
+    const req = http.request(options, (res) => {
 
-        const option = `${table.black} ${table.white} ${point}`;
+        console.log(`StatusCode: ${res.statusCode}`);
 
-        exec(`./move ${option}`, (err, stdout, stderr) => {
+        res.on('data', (d) => {
 
-            const move = JSON.parse(stdout);
-            table.black = to2From16(move.m);
-            table.white = to2From16(move.y);
-            table.turn = 'white';
-    
+            table_updated = JSON.parse(d);
+            console.log(table_updated);
+            table.black = table_updated.black;
+            table.white = table_updated.white;
+            table.turn = table_updated.turn;
+
         });
-    
-    }
-    if (table.turn == 'white') {
 
-        const option = `${table.white} ${table.black} ${point}`;
+    });
 
-        exec(`./move ${option}`, (err, stdout, stderr) => {
+    req.on('error', function response(error) {
+        console.log(error);
+    });
 
-            const move = JSON.parse(stdout);    
-            table.white = to2From16(move.m);
-            table.black = to2From16(move.y);
-            table.turn = 'black';
-    
-        });
-    
-    }
+    req.write(data);
+    req.end();
 
 }
 

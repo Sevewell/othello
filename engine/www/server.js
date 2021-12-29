@@ -4,16 +4,37 @@ const { exec } = require('child_process');
 const process = require('process');
 const Computer = require('./search');
 
+let server = undefined;
+
 if (process.env.CERT == 'true') {
     const https = require('https');
     const options = {
         key: fs.readFileSync('cert/key.pem'),
         cert: fs.readFileSync('cert/cert.pem')
     };
-    var server = https.createServer(options);
+    server = https.createServer(options);
 } else {
     const http = require('http');
-    var server = http.createServer();
+    server = http.createServer((req, res) => {
+
+        console.log(req.url);
+
+        let data = ''
+
+        req.on('data', (chunk) => {
+            data += chunk;
+        });
+
+        req.on('end', () => {
+
+            data = JSON.parse(data);
+            console.log(data);
+
+            putStone(res, data);
+
+        });
+
+    });
 }
 const wss = new WebSocket.Server({ server });
 
@@ -72,35 +93,43 @@ function takeSeat(ws, turn) {
 
 }
 
-function putStone(ws, point) {
+function putStone(res, data) {
 
-    // 着手可能箇所でなかったらターンは変えない
+    // 着手可能箇所でなかったらターンは変えたくない
 
-    if (table.turn == 'black') {
+    if (data.table.turn == 'black') {
 
-        const option = `${table.black} ${table.white} ${point}`;
+        const option = `${data.table.black} ${data.table.white} ${data.move}`;
 
         exec(`./move ${option}`, (err, stdout, stderr) => {
 
             const move = JSON.parse(stdout);
-            table.black = to2From16(move.m);
-            table.white = to2From16(move.y);
-            table.turn = 'white';
+            data.table.black = to2From16(move.m);
+            data.table.white = to2From16(move.y);
+            data.table.turn = 'white';
+
+            res.writeHead(200, { 'Content-Type': 'application/json'} );
+            res.write(JSON.stringify(data.table));
+            res.end();
     
         });
     
     }
-    if (table.turn == 'white') {
+    if (data.table.turn == 'white') {
 
-        const option = `${table.white} ${table.black} ${point}`;
+        const option = `${data.table.white} ${data.table.black} ${data.move}`;
 
         exec(`./move ${option}`, (err, stdout, stderr) => {
 
             const move = JSON.parse(stdout);    
-            table.white = to2From16(move.m);
-            table.black = to2From16(move.y);
-            table.turn = 'black';
-    
+            data.table.white = to2From16(move.m);
+            data.table.black = to2From16(move.y);
+            data.table.turn = 'black';
+
+            res.writeHead(200, { 'Content-Type': 'application/json'} );
+            res.write(JSON.stringify(data.table));
+            res.end();
+
         });
     
     }
