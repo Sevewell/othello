@@ -27,10 +27,24 @@ if (process.env.CERT == 'true') {
 
         req.on('end', () => {
 
-            data = JSON.parse(data);
             console.log(data);
+            data = JSON.parse(data);
 
-            putStone(res, data);
+            switch (req.url) {
+
+                case '/move':
+                    putStone(res, data);
+                    break;
+
+                case '/search':
+                    startSearch(res, data);
+                    break;
+
+                case '/progress':
+                    viewProgress(res, data);
+                    break;
+
+            }
 
         });
 
@@ -62,6 +76,8 @@ const player = {
     }
 
 };
+
+const com = new Computer();
 
 function takeSeat(ws, turn) {
 
@@ -133,6 +149,43 @@ function putStone(res, data) {
         });
     
     }
+
+}
+
+function startSearch(res, req_body) {
+
+    const res_body = {
+        status: undefined
+    };
+
+    if (!com.process) {
+        com.search(req_body.table);
+        res_body.status = 'kicked';
+    } else {
+        res_body.status = 'no kicked because resouce is used.'
+    }
+
+    res.writeHead(200, { 'Content-Type': 'application/json'} );
+
+    res.write(JSON.stringify(res_body));
+    res.end();
+
+}
+
+function viewProgress(res, req_body) {
+
+    res.writeHead(200, { 'Content-Type': 'application/json'} );
+
+    const res_body = {
+        process: com.process,
+        moves: com.moves,
+        playout: com.playout,
+        rate: com.rate,
+        node: com.node
+    };
+
+    res.write(JSON.stringify(res_body));
+    res.end();
 
 }
 
@@ -231,4 +284,4 @@ setInterval(() => {
 
 }, 1000);
 
-server.listen(8080);
+server.listen(parseInt(process.env.PORT));

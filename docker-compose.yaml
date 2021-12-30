@@ -1,6 +1,6 @@
 version: '3'
-services: 
-    engine:
+services:
+    engine1:
         build: ./engine
         ports: 
             - "8080:8080"
@@ -10,6 +10,18 @@ services:
         environment: 
             - CERT=${CERT}
             - SEARCH_NODE=${SEARCH_NODE}
+            - PORT=8080
+    engine2:
+        build: ./engine
+        ports: 
+            - "8081:8081"
+        volumes:
+            - ./engine/www:/usr/src/app/www
+            - ./cert:/usr/src/app/cert
+        environment: 
+            - CERT=${CERT}
+            - SEARCH_NODE=${SEARCH_NODE}
+            - PORT=8081
     interface:
         build: ./interface
         ports: 

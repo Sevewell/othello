@@ -7,6 +7,7 @@ module.exports = class Computer {
     num_process = parseInt(process.env.SEARCH_NODE);
 
     constructor() {
+        this.power = false;
         this.process = 0;
         this.moves = [];
         this.playout = [];
@@ -202,6 +203,8 @@ module.exports = class Computer {
         setTimeout(() => {
             this.streamSearch(table, record);
         }, 1000);
+
+        this.power = true;
     
     }
     

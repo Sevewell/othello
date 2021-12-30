@@ -102,6 +102,8 @@ const player = {
 
 };
 
+let coms = [];
+
 function takeSeat(ws, turn) {
 
     if (player[turn].ws) {
@@ -140,7 +142,7 @@ function putStone(ws, point) {
     });
 
     const options = {
-        hostname: 'engine',
+        hostname: 'engine1',
         port: 8080,
         path: '/move',
         method: 'GET',
@@ -172,6 +174,166 @@ function putStone(ws, point) {
 
     req.write(data);
     req.end();
+
+}
+
+function requestSearch(hostname, port) {
+
+    const data = JSON.stringify({
+        table: table
+    });
+
+    const options = {
+        hostname: hostname,
+        port: port,
+        path: '/search',
+        method: 'GET',
+        headers: {
+            'Content-Type': 'application/json',
+            'Content-Length': data.length
+        }
+    };
+
+    const req = http.request(options, (res) => {
+
+        console.log(`StatusCode: ${res.statusCode}`);
+
+        res.on('data', (d) => {
+
+            progress = JSON.parse(d);
+            console.log(progress);
+            player[table.turn].com.computing = true; // ?
+            const com = {
+                name: hostname,
+                port: port,
+                progress: true
+            }
+            coms.push(com);
+            setTimeout(() => { viewProgress(com); }, 2000);
+
+        });
+
+    });
+
+    req.on('error', function response(error) {
+        console.log(error);
+    });
+
+    req.write(data);
+    req.end();
+
+}
+
+function viewProgress(com) {
+
+    const data = '{}';
+
+    const options = {
+        hostname: com.name,
+        port: com.port,
+        path: '/progress',
+        method: 'GET',
+        headers: {
+            'Content-Type': 'application/json',
+            'Content-Length': data.length
+        }
+    };
+
+    const req = http.request(options, (res) => {
+
+        console.log(`StatusCode: ${res.statusCode}`);
+
+        res.on('data', (d) => {
+
+            const progress = JSON.parse(d);
+            player[table.turn].com.computing = progress.status;
+            com.process = progress.process;
+            com.moves = progress.moves;
+            com.playout = progress.playout;
+            com.rate = progress.rate;
+            com.node = progress.node;
+
+            if (com.process != 0) {
+                setTimeout(() => { viewProgress(com); }, 1000);
+            } else {
+                com.progress = false;
+            }
+
+        });
+
+    });
+
+    req.on('error', function response(error) {
+        console.log(error);
+    });
+
+    req.write(data);
+    req.end();
+    
+}
+
+function summarySearch() {
+
+    setTimeout(() => {
+
+        const progresses = coms.map((com) => {
+            return com.progress;
+        });
+
+        const check = progresses.some((value) => { return value });
+
+        if (!check) {
+
+            const choices = [];
+
+            coms.forEach(com => {
+
+                com.moves.forEach(move => {
+
+                    let new_move = true;
+
+                    choices.forEach(choice => {
+                        if (choice.move == move.move) {
+                            choice.count += move.count;
+                            new_move = false;
+                        }
+                    });
+
+                    if (new_move) {
+                        choices.push(move);
+                    }
+                });
+            });
+
+            coms = [];
+
+            console.log(choices);
+
+            if (choices.length) {
+
+                const choice = choices.reduce((p, c) => {
+                    if (c.count > p.count) {
+                        return c;
+                    } else {
+                        return p;
+                    }
+                });
+
+                console.log(choice);
+                putStone({}, choice.move);
+        
+            } else {
+
+                console.log('no choice.');
+
+            }
+
+
+        } else {
+            summarySearch();
+        }
+
+    }, 1000);
 
 }
 
@@ -208,8 +370,11 @@ wss.on('connection', function connection(ws, req) {
                 break;
             case 'switch':
                 if (ws === player[table.turn].ws) {
-                    player[table.turn].com.learning_rate = message.value;
-                    player[table.turn].com.search(table);
+                    //player[table.turn].com.learning_rate = message.value;
+                    //player[table.turn].com.search(table);
+                    requestSearch('engine1', 8080);
+                    requestSearch('engine2', 8081);
+                    setTimeout(summarySearch, 5000);
                 };
                 break;
             case 'move':
