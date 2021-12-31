@@ -2,8 +2,6 @@ const process = require('process');
 const fs = require('fs');
 const path = require('path');
 const WebSocket = require('ws');
-const { exec } = require('child_process');
-const Computer = require('./search');
 
 let server = undefined;
 let port = undefined;
@@ -90,19 +88,17 @@ const player = {
     black: {
         ws: null,
         time: null,
-        move: null,
-        com: new Computer()
+        move: null
+        //com: new Computer()
     },
     white: {
         ws: null,
         time: null,
-        move: null,
-        com: new Computer()
+        move: null
+        //com: new Computer()
     }
 
 };
-
-let coms = [];
 
 function takeSeat(ws, turn) {
 
@@ -154,8 +150,6 @@ function putStone(ws, point) {
 
     const req = http.request(options, (res) => {
 
-        console.log(`StatusCode: ${res.statusCode}`);
-
         res.on('data', (d) => {
 
             table_updated = JSON.parse(d);
@@ -177,10 +171,11 @@ function putStone(ws, point) {
 
 }
 
-function requestSearch(hostname, port) {
+function requestSearch(hostname, port, process, result) {
 
     const data = JSON.stringify({
-        table: table
+        table: table,
+        process: process
     });
 
     const options = {
@@ -191,25 +186,19 @@ function requestSearch(hostname, port) {
         headers: {
             'Content-Type': 'application/json',
             'Content-Length': data.length
-        }
+        },
+        timeout: 60000
     };
 
     const req = http.request(options, (res) => {
-
-        console.log(`StatusCode: ${res.statusCode}`);
 
         res.on('data', (d) => {
 
             progress = JSON.parse(d);
-            console.log(progress);
-            player[table.turn].com.computing = true; // ?
-            const com = {
-                name: hostname,
-                port: port,
-                progress: true
-            }
-            coms.push(com);
-            setTimeout(() => { viewProgress(com); }, 2000);
+
+            progress.forEach(process => {
+                result.push(process);
+            });
 
         });
 
@@ -224,128 +213,61 @@ function requestSearch(hostname, port) {
 
 }
 
-function viewProgress(com) {
-
-    const data = '{}';
-
-    const options = {
-        hostname: com.name,
-        port: com.port,
-        path: '/progress',
-        method: 'GET',
-        headers: {
-            'Content-Type': 'application/json',
-            'Content-Length': data.length
-        }
-    };
-
-    const req = http.request(options, (res) => {
-
-        console.log(`StatusCode: ${res.statusCode}`);
-
-        res.on('data', (d) => {
-
-            const progress = JSON.parse(d);
-            player[table.turn].com.computing = progress.status;
-            com.process = progress.process;
-            com.moves = progress.moves;
-            com.playout = progress.playout;
-            com.rate = progress.rate;
-            com.node = progress.node;
-
-            if (com.process != 0) {
-                setTimeout(() => { viewProgress(com); }, 1000);
-            } else {
-                com.progress = false;
-            }
-
-        });
-
-    });
-
-    req.on('error', function response(error) {
-        console.log(error);
-    });
-
-    req.write(data);
-    req.end();
-    
-}
-
-function summarySearch() {
+function summarySearch(result, process) {
 
     setTimeout(() => {
 
-        const progresses = coms.map((com) => {
-            return com.progress;
-        });
+        if (result.length == process) {
 
-        const check = progresses.some((value) => { return value });
+            const aggregate = [];
 
-        if (!check) {
+            result.forEach(p => {
 
-            const choices = [];
+                const move = aggregate.find(m => {
+                    return m.point == p.move;
+                });
 
-            coms.forEach(com => {
+                if (move) {
 
-                com.moves.forEach(move => {
+                    move.count += 1;
+                    move.rate.push(p.rate);
+                    move.node.push(p.node);
 
-                    let new_move = true;
+                } else {
 
-                    choices.forEach(choice => {
-                        if (choice.move == move.move) {
-                            choice.count += move.count;
-                            new_move = false;
-                        }
+                    aggregate.push({
+                        point: p.move,
+                        count: 1,
+                        rate: [p.rate],
+                        node: [p.node]
                     });
 
-                    if (new_move) {
-                        choices.push(move);
-                    }
-                });
+                }
+
             });
 
-            coms = [];
-
-            console.log(choices);
-
-            if (choices.length) {
-
-                const choice = choices.reduce((p, c) => {
-                    if (c.count > p.count) {
-                        return c;
-                    } else {
-                        return p;
-                    }
-                });
-
-                console.log(choice);
-                putStone({}, choice.move);
-        
-            } else {
-
-                console.log('no choice.');
-
-            }
-
+            selectMove(aggregate);
 
         } else {
-            summarySearch();
+            summarySearch(result, process);
         }
 
     }, 1000);
 
 }
 
-function to2From16(str) {
+function selectMove(options) {
 
-    const move16bit = ('0'.repeat(16) + str).slice(-16);
-    const move2bit = move16bit.split('').map((bits) => {
-        const move2bits = parseInt(bits, 16).toString(2);
-        return ('0000' + move2bits).slice(-4);
-    });
-    const bits = move2bit.join('');
-    return bits;
+    const choice = options.reduce((p, c) => {
+        if (c.count > p.count) {
+            return c;
+        } else {
+            return p;
+        }
+    }, { point: '0', count: 0 });
+
+    console.log(choice);
+    putStone({}, choice.point);
 
 }
 
@@ -370,11 +292,11 @@ wss.on('connection', function connection(ws, req) {
                 break;
             case 'switch':
                 if (ws === player[table.turn].ws) {
-                    //player[table.turn].com.learning_rate = message.value;
-                    //player[table.turn].com.search(table);
-                    requestSearch('engine1', 8080);
-                    requestSearch('engine2', 8081);
-                    setTimeout(summarySearch, 5000);
+                    const result = [];
+                    const process = 4;
+                    requestSearch('engine1', 8080, process, result);
+                    requestSearch('engine2', 8081, process, result);
+                    summarySearch(result, process*2);
                 };
                 break;
             case 'move':
@@ -415,7 +337,7 @@ setInterval(() => {
 
     }
 
-    status.black.com = {
+    /*status.black.com = {
         search: player['black'].com.moves,
         playout: player['black'].com.playout,
         rate: player['black'].com.rate,
@@ -426,7 +348,7 @@ setInterval(() => {
         playout: player['white'].com.playout,
         rate: player['white'].com.rate,
         node: player['white'].com.node
-    };
+    };*/
 
     wss.clients.forEach(function each(client) {
         status.user = client.status;

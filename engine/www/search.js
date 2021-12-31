@@ -1,6 +1,7 @@
 const { spawn } = require('child_process');
 const readline = require('readline');
 const { exec } = require('child_process');
+const { execFile } = require('child_process');
 
 module.exports = class Computer {
 
@@ -27,47 +28,6 @@ module.exports = class Computer {
     
     }
     
-    summaryMoves(process) {
-
-        const moves = process.reduce((moves, p) => {
-    
-            const move = moves.find((move) => {
-                return move.move == p.move;
-            });
-        
-            if (move) {
-                move.count += 1;
-            } else {
-                moves.push({
-                    move: p.move,
-                    count: 1
-                });
-            }
-    
-            return moves;
-            
-        }, []);
-    
-        return moves;
-    
-    }
-    
-    choiceMove(moves) {
-    
-        const choice = moves.reduce((choice, move) => {
-    
-            if (move.count > choice.count) {
-                return move;
-            } else {
-                return choice;
-            }
-    
-        }, { move: '0', count: 0 });
-    
-        return choice;
-    
-    }
-
     move(table, choice) {
 
         const point = this.to2From16(choice.move).indexOf('1');
@@ -108,56 +68,8 @@ module.exports = class Computer {
 
     }
     
-    streamSearch(table, record) {
-
-        setTimeout(() => {
-    
-            const process = record.map((process) => {
-                return process[process.length - 1];
-            }).filter((p) => {
-                return p;
-                // undefinedになることがある
-                // 出力がまだ一度も来ていない場合など
-            });
-    
-            const moves = this.summaryMoves(process);
-            const choice = this.choiceMove(moves);
-    
-            if (this.process == 0) {
-    
-                this.move(table, choice);
-            
-            } else {
-    
-                moves.forEach((move) => {
-                    move.move = this.to2From16(move.move).indexOf('1')
-                });
-                this.moves = moves;
-                
-                this.playout = process.map((p) => {
-                    return p.playout;
-                });
-                this.rate = process.map((p) => {
-                    return p.rate;
-                });
-                this.node = process.map((p) => {
-                    return p.node;
-                });
-
-                this.streamSearch(table, record);
-    
-            }
-    
-        }, 2000);
-    
-    }
-    
     spawnSearch(table, record) {
 
-        // プロセス毎の情報はまとめて送りたい
-        const process_move = [];
-        record.push(process_move);
-    
         let m;
         let y;
         if (table.turn == 'black') {
@@ -170,41 +82,43 @@ module.exports = class Computer {
         }
 
         const seed = Math.floor(Math.random() * Math.floor(1000)).toString();
-        const search = spawn('./search', [m, y, seed, this.learning_rate]);
-    
-        search.on('close', (code) => {
-            this.process -= 1;
+
+        execFile('./search', [m, y, seed, this.learning_rate], (error, stdout, stderr) => {
+            
+            if (error) { return console.error('ERROR', error); };
+
+            const result = JSON.parse(stdout);
+            result.move = this.to2From16(result.move).indexOf('1')
+            record.push(result);
+
         });
-    
-        const rl = readline.createInterface(search.stdout);
-    
-        rl.on('line', (input) => {
-    
-            const data = JSON.parse(input);
-            process_move.push(data);
         
-        });
-    
     }
     
-    search(table) {
+    search(table, process, res) {
 
-        if (this.process > 0) { return };
-    
         const record = [];
     
-        for (let i = 0; i < this.num_process; i++) {
+        for (let i = 0; i < process; i++) {
+            
             this.spawnSearch(table, record);
             this.process += 1;
+
         }
     
-        // プロセスを作るのに時間がかかるっぽい
-        // はじめのストリームまでの時間稼ぎ
-        setTimeout(() => {
-            this.streamSearch(table, record);
-        }, 1000);
+        const intervalID = setInterval(() => {
+            
+            if (record.length == process) {
 
-        this.power = true;
+                clearInterval(intervalID);
+
+                res.writeHead(200, { 'Content-Type': 'application/json'} );
+                res.write(JSON.stringify(record));
+                res.end();            
+
+            }
+
+        }, 1000);
     
     }
     

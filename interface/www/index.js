@@ -59,12 +59,6 @@ function updateTurn(status, turn) {
 
     }
 
-    if (status[turn].com) {
-        document.getElementById(turn + '_switch').textContent = 'コンピュータ';
-    } else {
-        document.getElementById(turn + '_switch').textContent = '人間';
-    }
-
 }
 
 function updateStone(board_) {
@@ -85,7 +79,6 @@ function updateStone(board_) {
 function drawPanel(status) {
 
     const board_ = [];
-    const com = status[status.turn].com;
 
     for (let i = 0; i < 64; i++) {
 
@@ -98,16 +91,6 @@ function drawPanel(status) {
             continue;
         }
 
-        if (com) {
-            const move = com.search.find((move) => {
-                return move.move == i;
-            });
-            if (move) {
-                board_.push(move.count);
-                continue;
-            }
-        };
-
         board_.push('plane');
 
     }
@@ -116,9 +99,6 @@ function drawPanel(status) {
     board = board_;
 
     renderBoard(canvas, ctx, update);
-    if (com) {
-        renderComputing(canvas, ctx, com, status.turn);
-    }
 
 }
 

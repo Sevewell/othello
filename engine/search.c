@@ -55,17 +55,6 @@ void Search(struct Node *node, unsigned int trial)
     {
         result = 'n';
         PlayOut(node, &result);
-
-        clock_end = clock();
-
-        if ((double)(clock_end - clock_start) / CLOCKS_PER_SEC > 5) {
-
-            node_count = 0;
-            CountNode(node, &node_count);            
-            PrintNode(node, i, node_count);
-
-            clock_start = clock_end;
-        }
     }
 
     node_count = 0;
