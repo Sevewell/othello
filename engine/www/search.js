@@ -1,11 +1,7 @@
-const { spawn } = require('child_process');
-const readline = require('readline');
 const { exec } = require('child_process');
 const { execFile } = require('child_process');
 
 module.exports = class Computer {
-
-    num_process = parseInt(process.env.SEARCH_NODE);
 
     constructor() {
         this.power = false;
@@ -95,20 +91,19 @@ module.exports = class Computer {
         
     }
     
-    search(table, process, res) {
+    search(table, res) {
 
         const record = [];
     
-        for (let i = 0; i < process; i++) {
+        for (let i = 0; i < this.process; i++) {
             
             this.spawnSearch(table, record);
-            this.process += 1;
 
         }
     
         const intervalID = setInterval(() => {
             
-            if (record.length == process) {
+            if (record.length == this.process) {
 
                 clearInterval(intervalID);
 

@@ -1,10 +1,10 @@
-const WebSocket = require('ws');
 const fs = require('fs');
 const { exec } = require('child_process');
 const process = require('process');
 const Computer = require('./search');
 
 let server = undefined;
+let port;
 
 if (process.env.CERT == 'true') {
     const https = require('https');
@@ -13,6 +13,7 @@ if (process.env.CERT == 'true') {
         cert: fs.readFileSync('cert/cert.pem')
     };
     server = https.createServer(options);
+    port = 443;
 } else {
     const http = require('http');
     server = http.createServer((req, res) => {
@@ -37,7 +38,7 @@ if (process.env.CERT == 'true') {
                     break;
 
                 case '/search':
-                    com.search(data.table, data.process, res);
+                    com.search(data.table, res);
                     break;
 
             }
@@ -45,10 +46,12 @@ if (process.env.CERT == 'true') {
         });
 
     });
+    port = 80;
 }
 
 const com = new Computer();
 com.learning_rate = 1.0;
+com.process = parseInt(process.env.PROCESS);
 
 function putStone(res, data) {
 
@@ -105,4 +108,4 @@ function to2From16(str) {
 
 }
 
-server.listen(parseInt(process.env.PORT));
+server.listen(port);

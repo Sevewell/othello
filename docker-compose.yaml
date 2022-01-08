@@ -1,34 +1,15 @@
 version: '3'
 services:
-    engine1:
+    engine:
         build: ./engine
+        image: sevewell/othello_engine
         ports: 
             - "8080:8080"
-        volumes:
-            - ./engine/www:/usr/src/app/www
-            - ./cert:/usr/src/app/cert
-        environment: 
-            - CERT=${CERT}
-            - SEARCH_NODE=${SEARCH_NODE}
-            - PORT=8080
-    engine2:
-        build: ./engine
-        ports: 
-            - "8081:8081"
-        volumes:
-            - ./engine/www:/usr/src/app/www
-            - ./cert:/usr/src/app/cert
-        environment: 
-            - CERT=${CERT}
-            - SEARCH_NODE=${SEARCH_NODE}
-            - PORT=8081
+        env_file: ./engine.env
     interface:
         build: ./interface
+        image: sevewell/othello_interface
         ports: 
             - "80:80"
             - "443:443"
-        volumes: 
-            - ./interface/www:/usr/src/app/www
-            - ./cert:/usr/src/app/cert
-        environment: 
-            - CERT=${CERT}
+        env_file: ./interface.env

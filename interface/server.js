@@ -19,6 +19,15 @@ if (process.env.CERT == 'true') {
     port = 80;
 }
 
+const engines = [];
+
+for (let i = 1; i < 20; i++) {
+    const hostname = process.env['ENGINE' + i];
+    if (hostname) {
+        engines.push(hostname);
+    };
+};
+
 const wss = new WebSocket.Server({ server });
 server.listen(port);
 
@@ -138,8 +147,8 @@ function putStone(ws, point) {
     });
 
     const options = {
-        hostname: 'engine1',
-        port: 8080,
+        hostname: engines[0],
+        port: 80,
         path: '/move',
         method: 'GET',
         headers: {
@@ -171,16 +180,15 @@ function putStone(ws, point) {
 
 }
 
-function requestSearch(hostname, port, process, result) {
+function requestSearch(hostname, result) {
 
     const data = JSON.stringify({
-        table: table,
-        process: process
+        table: table
     });
 
     const options = {
         hostname: hostname,
-        port: port,
+        port: 80,
         path: '/search',
         method: 'GET',
         headers: {
@@ -194,11 +202,8 @@ function requestSearch(hostname, port, process, result) {
 
         res.on('data', (d) => {
 
-            progress = JSON.parse(d);
-
-            progress.forEach(process => {
-                result.push(process);
-            });
+            const progress = JSON.parse(d);
+            result.push(progress);
 
         });
 
@@ -213,35 +218,38 @@ function requestSearch(hostname, port, process, result) {
 
 }
 
-function summarySearch(result, process) {
+function summarySearch(result, engine) {
 
     setTimeout(() => {
 
-        if (result.length == process) {
+        if (result.length == engine) {
+
+            const processes = result.reduce((p, c) => {
+                c.forEach(process => {
+                    p.push(process);
+                });
+                return p;
+            }, []);
 
             const aggregate = [];
 
-            result.forEach(p => {
+            processes.forEach(p => {
 
                 const move = aggregate.find(m => {
                     return m.point == p.move;
                 });
 
                 if (move) {
-
                     move.count += 1;
                     move.rate.push(p.rate);
                     move.node.push(p.node);
-
                 } else {
-
                     aggregate.push({
                         point: p.move,
                         count: 1,
                         rate: [p.rate],
                         node: [p.node]
                     });
-
                 }
 
             });
@@ -249,7 +257,7 @@ function summarySearch(result, process) {
             selectMove(aggregate);
 
         } else {
-            summarySearch(result, process);
+            summarySearch(result, engine);
         }
 
     }, 1000);
@@ -292,11 +300,15 @@ wss.on('connection', function connection(ws, req) {
                 break;
             case 'switch':
                 if (ws === player[table.turn].ws) {
+
                     const result = [];
-                    const process = 4;
-                    requestSearch('engine1', 8080, process, result);
-                    requestSearch('engine2', 8081, process, result);
-                    summarySearch(result, process*2);
+
+                    engines.forEach(engine => {
+                        requestSearch(engine, result);
+                    });
+
+                    summarySearch(result, engines.length);
+
                 };
                 break;
             case 'move':

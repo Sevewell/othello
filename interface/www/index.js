@@ -8,7 +8,7 @@ function connectWebSocket() {
     if (hostname == 'localhost') {
 	    var ws = new WebSocket(`ws://${hostname}/`);
     } else {
-        var ws = new WebSocket(`wss://${hostname}/`);
+        var ws = new WebSocket(`ws://${hostname}/`); // 本当はTLSにする
     }
 
     ws.onopen = function (event) {
