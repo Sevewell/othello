@@ -1,5 +1,5 @@
-import { renderBoard } from '/render.js';
 import { renderComputing } from './render.js';
+import { renderBoard } from '/render.js';
 
 function connectWebSocket() {
 
@@ -12,7 +12,10 @@ function connectWebSocket() {
     }
 
     ws.onopen = function (event) {
+
         console.log('WebSocketに接続しました');
+        drawPanel(null);
+
     };
 
     ws.onerror = function (event) {
@@ -30,13 +33,21 @@ function connectWebSocket() {
         let status = JSON.parse(event.data);
         console.log(status);
 
-        updateTurn(status, 'black');
-        updateTurn(status, 'white');
+        if (status.name == 'computing') {
 
-        document.getElementById('black_time').textContent = '持ち時間：' + status.black.time;
-        document.getElementById('white_time').textContent = '持ち時間：' + status.white.time;
+            renderComputing(canvas, ctx, status.data);
 
-        drawPanel(status);
+        } else {
+
+            updateTurn(status, 'black');
+            updateTurn(status, 'white');
+    
+            document.getElementById('black_time').textContent = '持ち時間:' + status.black.time;
+            document.getElementById('white_time').textContent = '持ち時間:' + status.white.time;
+    
+            drawPanel(status);
+    
+        }
     
     }
 
@@ -61,7 +72,7 @@ function updateTurn(status, turn) {
 
 }
 
-function updateStone(board_) {
+function updateStone(board_) { //重いので更新部分だけ描画したい
 
     const update = [];
     for (let i = 0; i < 64; i++) {
@@ -78,27 +89,32 @@ function updateStone(board_) {
 
 function drawPanel(status) {
 
-    const board_ = [];
+    const board = [];
 
     for (let i = 0; i < 64; i++) {
-
-        if (status.black.stone[i] == '1') {
-            board_.push('black');
-            continue;
-        }
-        if (status.white.stone[i] == '1') {
-            board_.push('white');
-            continue;
-        }
-
-        board_.push('plane');
-
+        board.push(null);
     }
 
-    const update = updateStone(board_);
-    board = board_;
+    if (status) {
 
-    renderBoard(canvas, ctx, update);
+        for (let i = 0; i < 64; i++) {
+
+            board[i] = null;
+
+            if (status.black.stone[i] == '1') {
+                board[i] = 'black';
+                continue;
+            }
+            if (status.white.stone[i] == '1') {
+                board[i] = 'white';
+                continue;
+            }
+    
+        }
+    
+    }
+
+    renderBoard(canvas, ctx, board);
 
 }
 
@@ -152,11 +168,6 @@ function move(event) {
         value: r * 8 + c
     }));
 
-}
-
-let board = [];
-for (let i = 0; i < 64; i++) {
-    board.push(undefined);
 }
 
 const canvas = document.getElementById("board");

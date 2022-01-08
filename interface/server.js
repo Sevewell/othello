@@ -97,14 +97,20 @@ const player = {
     black: {
         ws: null,
         time: null,
-        move: null
-        //com: new Computer()
+        move: null,
+        com: {
+            rate: null,
+            node: null
+        }
     },
     white: {
         ws: null,
         time: null,
-        move: null
-        //com: new Computer()
+        move: null,
+        com: {
+            rate: null,
+            node: null
+        }
     }
 
 };
@@ -137,6 +143,8 @@ function takeSeat(ws, turn) {
 
     }
 
+    sendResponse();
+
 }
 
 function putStone(ws, point) {
@@ -166,6 +174,8 @@ function putStone(ws, point) {
             table.black = table_updated.black;
             table.white = table_updated.white;
             table.turn = table_updated.turn;
+
+            sendResponse();
 
         });
 
@@ -241,26 +251,47 @@ function summarySearch(result, engine) {
 
                 if (move) {
                     move.count += 1;
-                    move.rate.push(p.rate);
-                    move.node.push(p.node);
                 } else {
                     aggregate.push({
                         point: p.move,
-                        count: 1,
-                        rate: [p.rate],
-                        node: [p.node]
+                        count: 1
                     });
                 }
 
             });
 
-            selectMove(aggregate);
+            summayComputing(processes, aggregate);
+
+            //selectMove(aggregate);
 
         } else {
             summarySearch(result, engine);
         }
 
     }, 1000);
+
+}
+
+function summayComputing(processes, options) {
+
+    const rates = processes.map(p => {
+        return p.rate;
+    });
+    const nodes = processes.map(p => {
+        return p.node;
+    });
+
+    wss.clients.forEach(function each(client) {
+        client.send(JSON.stringify({
+            name: 'computing',
+            data: {
+                turn: table.turn,
+                option: options,
+                rate: rates,
+                node: nodes
+            }
+        }));
+    });
 
 }
 
@@ -275,6 +306,7 @@ function selectMove(options) {
     }, { point: '0', count: 0 });
 
     console.log(choice);
+
     putStone({}, choice.point);
 
 }
@@ -329,9 +361,7 @@ wss.on('connection', function connection(ws, req) {
     
 });
 
-setInterval(() => {
-
-    player[table.turn].time += 1;
+function sendResponse() {
 
     const status = {
 
@@ -345,26 +375,24 @@ setInterval(() => {
             stone: table.white,
             time: player['white'].time,
             player: Boolean(player['white'].ws)
+        },
+        computing: {
+            rate: player[table.turn].com.rate,
+            node: player[table.turn].com.node,
+            option: player[table.turn].com.option    
         }
 
     }
-
-    /*status.black.com = {
-        search: player['black'].com.moves,
-        playout: player['black'].com.playout,
-        rate: player['black'].com.rate,
-        node: player['black'].com.node
-    };
-    status.white.com = {
-        search: player['white'].com.moves,
-        playout: player['white'].com.playout,
-        rate: player['white'].com.rate,
-        node: player['white'].com.node
-    };*/
 
     wss.clients.forEach(function each(client) {
         status.user = client.status;
         client.send(JSON.stringify(status));
     });
+
+}
+
+setInterval(() => {
+
+    player[table.turn].time += 1;
 
 }, 1000);
