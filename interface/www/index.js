@@ -1,6 +1,8 @@
 import { renderComputing } from './render.js';
 import { renderBoard } from '/render.js';
 
+let intervalID;
+
 function connectWebSocket() {
 
     let hostname = window.location.hostname; // サーバ情報が取れるはず
@@ -41,10 +43,22 @@ function connectWebSocket() {
 
             updateTurn(status, 'black');
             updateTurn(status, 'white');
+
+            document.getElementById('black_name').style.fontSize = '18px';
+            document.getElementById('white_name').style.fontSize = '18px';
+            document.getElementById(`${status.turn}_name`).style.fontSize = '36px';
+            
+            document.getElementById('black_time').textContent = status.black.time;
+            document.getElementById('white_time').textContent = status.white.time;
     
-            document.getElementById('black_time').textContent = '持ち時間:' + status.black.time;
-            document.getElementById('white_time').textContent = '持ち時間:' + status.white.time;
-    
+            if (intervalID) {
+                clearInterval(intervalID);
+            }
+            intervalID = setInterval(() => {
+                let content = document.getElementById(`${status.turn}_time`);
+                content.textContent = (parseInt(content.textContent) + 1).toString();
+            }, 1000);
+
             drawPanel(status);
     
         }
