@@ -64,7 +64,7 @@ module.exports = class Computer {
 
     }
     
-    spawnSearch(table, record) {
+    spawnSearch(table, record, kick) {
 
         let m;
         let y;
@@ -81,11 +81,20 @@ module.exports = class Computer {
 
         execFile('./search', [m, y, seed, this.learning_rate], (error, stdout, stderr) => {
             
-            if (error) { return console.error('ERROR', error); };
+            if (error) {
+                
+                console.error(error);
+                console.error(stderr);
 
-            const result = JSON.parse(stdout);
-            result.move = this.to2From16(result.move).indexOf('1')
-            record.push(result);
+            } else {
+
+                const result = JSON.parse(stdout);
+                result.move = this.to2From16(result.move).indexOf('1')
+                record.push(result);
+    
+            };
+
+            kick.num += 1;
 
         });
         
@@ -94,16 +103,17 @@ module.exports = class Computer {
     search(table, res) {
 
         const record = [];
+        const kick = { num: 0 };
     
         for (let i = 0; i < this.process; i++) {
             
-            this.spawnSearch(table, record);
+            this.spawnSearch(table, record, kick);
 
         }
     
         const intervalID = setInterval(() => {
             
-            if (record.length == this.process) {
+            if (kick.num == this.process) {
 
                 clearInterval(intervalID);
 
