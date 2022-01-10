@@ -43,17 +43,22 @@ body {
     flex: auto;
     align-items: center;
     justify-content: center;
-    margin: 5px;
 }
 
 #black {
     border: solid;
     background-color: lightgreen;
+    margin: 5px;
 }
 
 #white {
     border: solid;
     background-color: lightgreen;
+    margin: 5px;
+}
+
+#white_name {
+    color: white;
 }
 
 #seat {

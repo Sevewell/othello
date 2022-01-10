@@ -190,10 +190,11 @@ function putStone(ws, point) {
 
 }
 
-function requestSearch(hostname, result) {
+function requestSearch(hostname, result, learning_rate) {
 
     const data = JSON.stringify({
-        table: table
+        table: table,
+        learning_rate: learning_rate
     });
 
     const options = {
@@ -336,7 +337,7 @@ wss.on('connection', function connection(ws, req) {
                     const result = [];
 
                     engines.forEach(engine => {
-                        requestSearch(engine, result);
+                        requestSearch(engine, result, message.value);
                     });
 
                     summarySearch(result, engines.length);

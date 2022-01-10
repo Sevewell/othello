@@ -64,22 +64,22 @@ module.exports = class Computer {
 
     }
     
-    spawnSearch(table, record, kick) {
+    spawnSearch(data, record, kick) {
 
         let m;
         let y;
-        if (table.turn == 'black') {
-            m = table.black;
-            y = table.white;
+        if (data.table.turn == 'black') {
+            m = data.table.black;
+            y = data.table.white;
         }
-        if (table.turn == 'white') {
-            m = table.white;
-            y = table.black;
+        if (data.table.turn == 'white') {
+            m = data.table.white;
+            y = data.table.black;
         }
 
         const seed = Math.floor(Math.random() * Math.floor(1000)).toString();
 
-        execFile('./search', [m, y, seed, this.learning_rate], (error, stdout, stderr) => {
+        execFile('./search', [m, y, seed, data.learning_rate], (error, stdout, stderr) => {
             
             if (error) {
                 
@@ -100,14 +100,14 @@ module.exports = class Computer {
         
     }
     
-    search(table, res) {
+    search(data, res) {
 
         const record = [];
         const kick = { num: 0 };
     
         for (let i = 0; i < this.process; i++) {
             
-            this.spawnSearch(table, record, kick);
+            this.spawnSearch(data, record, kick);
 
         }
     

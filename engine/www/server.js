@@ -38,7 +38,7 @@ if (process.env.CERT == 'true') {
                     break;
 
                 case '/search':
-                    com.search(data.table, res);
+                    com.search(data, res);
                     break;
 
             }
@@ -50,7 +50,6 @@ if (process.env.CERT == 'true') {
 }
 
 const com = new Computer();
-com.learning_rate = 1.0;
 com.process = parseInt(process.env.PROCESS);
 
 function putStone(res, data) {
