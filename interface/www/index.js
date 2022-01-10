@@ -39,6 +39,10 @@ function connectWebSocket() {
 
             renderComputing(canvas, ctx, status.data);
 
+            if (document.getElementsByName('auto')[0].checked) {
+                setTimeout(() => { selectMove(status.data.option); }, 2000); 
+            }
+
         } else {
 
             updateTurn(status, 'black');
@@ -61,6 +65,13 @@ function connectWebSocket() {
 
             drawPanel(status);
     
+            if (document.getElementsByName('auto')[0].checked) {
+                ws.send(JSON.stringify({
+                    key: 'switch',
+                    value: parseFloat(document.getElementById(`${status.turn}_learning_rate`).value)
+                }));
+            }
+
         }
     
     }
@@ -98,6 +109,25 @@ function updateStone(board_) { //重いので更新部分だけ描画したい
     }
 
     return update;
+
+}
+
+function selectMove(options) {
+
+    const choice = options.reduce((p, c) => {
+        if (c.count > p.count) {
+            return c;
+        } else {
+            return p;
+        }
+    }, { point: '0', count: 0 });
+
+    console.log(choice);
+
+    ws.send(JSON.stringify({
+        key: 'move',
+        value: choice.point
+    }));
 
 }
 

@@ -296,22 +296,6 @@ function summayComputing(processes, options) {
 
 }
 
-function selectMove(options) {
-
-    const choice = options.reduce((p, c) => {
-        if (c.count > p.count) {
-            return c;
-        } else {
-            return p;
-        }
-    }, { point: '0', count: 0 });
-
-    console.log(choice);
-
-    putStone({}, choice.point);
-
-}
-
 wss.on('connection', function connection(ws, req) {
 
     ws.status = {
