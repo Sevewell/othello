@@ -221,7 +221,10 @@ function requestSearch(hostname, result, learning_rate) {
     });
 
     req.on('error', function response(error) {
-        console.log(error);
+
+        console.error(error);
+        result.push([]);
+
     });
 
     req.write(data);

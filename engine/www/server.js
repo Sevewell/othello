@@ -18,7 +18,7 @@ if (process.env.CERT == 'true') {
     const http = require('http');
     server = http.createServer((req, res) => {
 
-        console.log(req.url);
+        console.log(`Request URI is ${req.url}`);
 
         let data = ''
 
@@ -28,16 +28,17 @@ if (process.env.CERT == 'true') {
 
         req.on('end', () => {
 
-            console.log(data);
-            data = JSON.parse(data);
+            console.log(`Request Body is ${data}`);
 
             switch (req.url) {
 
                 case '/move':
+                    data = JSON.parse(data);
                     putStone(res, data);
                     break;
 
                 case '/search':
+                    data = JSON.parse(data);
                     com.search(data, res);
                     break;
 

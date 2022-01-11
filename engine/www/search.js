@@ -77,7 +77,7 @@ module.exports = class Computer {
             y = data.table.black;
         }
 
-        const seed = Math.floor(Math.random() * Math.floor(1000)).toString();
+        const seed = Math.floor(Math.random() * Math.floor(1000)).toString(); //0になったらダメっぽい
 
         execFile('./search', [m, y, seed, data.learning_rate], (error, stdout, stderr) => {
             
