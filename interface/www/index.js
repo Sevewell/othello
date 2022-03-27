@@ -40,7 +40,7 @@ function connectWebSocket() {
             renderComputing(canvas, ctx, status.data);
 
             if (document.getElementsByName('auto')[0].checked) {
-                setTimeout(() => { selectMove(status.data.option); }, 2000); 
+                setTimeout(() => { selectMove(status.data.option); }, 3000); 
             }
 
         } else {
