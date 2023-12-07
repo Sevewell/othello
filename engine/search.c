@@ -1,6 +1,5 @@
 #include "engine.c"
 #include <sys/types.h>
-#include <sys/wait.h>
 #include <unistd.h>
 #include <time.h>
 
@@ -16,10 +15,17 @@ int CountNode(struct Node *node, int *count) {
 
 }
 
+void ConvertToBinary(unsigned long long stone) {
+    if (stone > 1) ConvertToBinary(stone / 2);
+    printf("%d", stone % 2);
+}
+
 void PrintNode(struct Node *node, int playout, int node_count)
 {
     struct Node *child = node->child;
     unsigned long long move = 0;
+    unsigned long long m = 0;
+    unsigned long long y = 0;
     double max_rate = 0;
     double rate;
 
@@ -29,16 +35,23 @@ void PrintNode(struct Node *node, int playout, int node_count)
         if (rate > max_rate)
         {
             move = (node->m | node->y) ^ (child->m | child->y);
+            m = child->y;
+            y = child->m;
             max_rate = rate;
         }
         child = child->next;
     }
 
     printf("{ ");
-    printf("\"move\": \"%llx\", ", move);
+    printf("\"move\": %llx, ", move);
+    printf("\"m\": '");
+    ConvertToBinary(m);
+    printf("', ");
+    printf("\"y\": '");
+    ConvertToBinary(y);
+    printf("', ");
     printf("\"rate\": %lf, ", node->a / (node->a + node->b));
     printf("\"node\": %d, ", node_count);
-    printf("\"playout\": %d", playout);
     printf(" }\n");
     fflush(stdout);
 

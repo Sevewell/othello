@@ -14,7 +14,7 @@ double F[256];
 void SetSampling(int seed)
 {
     SEED = (uint64_t)seed;
-    srandom(seed);
+    srand(seed);
 }
 
 void SetZiggurat()

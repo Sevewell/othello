@@ -5,11 +5,11 @@ https://sevenwell.hatenablog.com/entry/2020/02/11/112707
 
 # Requirement
 CPU x86_64  
-Linux kernel5.4.0  
-GCC 9.3.0  
+Windows
 
 # Installation
-`gcc search.c -lm -o search`
+`docker build -t my_c_app ./engine`
+`docker run -v $PWD/volume:/host my_c_app`
 
 # Usage
-`python main.py $RANDOM`
+`python main.py`

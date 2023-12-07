@@ -110,7 +110,7 @@ class App(tkinter.Frame):
                     else:
                         black += '0'
                         white += '0'
-            self.engine(black, white)
+            self.engine(black, white, self.turn.get())
         button = tkinter.Button(self, text='探索', command=Start)
         button.pack()
 
