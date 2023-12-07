@@ -2,7 +2,7 @@ import tkinter
 
 class App(tkinter.Frame):
 
-    def __init__(self, master):
+    def __init__(self, master, engine):
         super().__init__(master)
         self.pack()
         self.board_size = 480
@@ -10,10 +10,14 @@ class App(tkinter.Frame):
         self.Cell()
         self.stones = [[None for col in range(8)] for row in range(8)]
         self.Stone()
+        self.Turn()
+        self.turn.set('black')
+        self.engine = engine
+        self.Engine()
     
     def Board(self):
         canvas = tkinter.Canvas(
-            None,
+            self,
             background='green',
             width=self.board_size,
             height=self.board_size
@@ -73,6 +77,41 @@ class App(tkinter.Frame):
             fill='white'
         )
 
+    def Turn(self):
+        self.turn = tkinter.StringVar()
+        button_black = tkinter.Radiobutton(
+            self,
+            text='黒番',
+            value='black',
+            variable=self.turn
+        )
+        button_black.pack()
+        button_white = tkinter.Radiobutton(
+            self,
+            text='白番',
+            value='white',
+            variable=self.turn
+        )
+        button_white.pack()
+
+    def Engine(self):
+        def Start():
+            black = ''
+            white = ''
+            for row in self.stones:
+                for stone in row:
+                    if stone:
+                        if self.board.itemcget(stone, 'fill') == 'black':
+                            black += '1'
+                            white += '0'
+                        if self.board.itemcget(stone, 'fill') == 'white':
+                            black += '0'
+                            white += '1'
+                    else:
+                        black += '0'
+                        white += '0'
+            self.engine(black, white)
+        button = tkinter.Button(self, text='探索', command=Start)
+        button.pack()
+
 root = tkinter.Tk()
-app = App(root)
-app.mainloop()
