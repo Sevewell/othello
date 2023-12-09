@@ -27,15 +27,19 @@ class App(tkinter.Frame):
             size = int(self.board_size / 8)
             col = event.x // size
             row = event.y // size
-            if not self.stones[row][col]:
-                self.stones[row][col] = self.board.create_oval(
-                    size*col,size*row,
-                    size*col+size,size*row+size,
-                    fill='black'
-                )
-            elif self.board.itemcget(self.stones[row][col], 'fill') == 'black':
-                self.board.itemconfigure(self.stones[row][col], fill='white')
-            elif self.board.itemcget(self.stones[row][col], 'fill') == 'white':
+            if event.num == 1:
+                if self.stones[row][col]:
+                    if self.board.itemcget(self.stones[row][col], 'fill') == 'black':
+                        self.board.itemconfigure(self.stones[row][col], fill='white')
+                    elif self.board.itemcget(self.stones[row][col], 'fill') == 'white':
+                        self.board.itemconfigure(self.stones[row][col], fill='black')
+                else:
+                    self.stones[row][col] = self.board.create_oval(
+                        size*col,size*row,
+                        size*col+size,size*row+size,
+                        fill=self.turn.get()
+                    )
+            elif event.num == 3:
                 self.board.delete(self.stones[row][col])
                 self.stones[row][col] = None
         canvas.bind('<ButtonPress>', ChangeStone)
