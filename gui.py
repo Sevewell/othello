@@ -13,7 +13,8 @@ class App(tkinter.Frame):
         self.Turn()
         self.turn.set('black')
         self.engine = engine
-        self.Engine()
+        button = tkinter.Button(self, text='探索', command=self.Engine)
+        button.pack()
     
     def Board(self):
         canvas = tkinter.Canvas(
@@ -26,17 +27,17 @@ class App(tkinter.Frame):
             size = int(self.board_size / 8)
             col = event.x // size
             row = event.y // size
-            if not self.stones[col][row]:
-                self.stones[col][row] = self.board.create_oval(
+            if not self.stones[row][col]:
+                self.stones[row][col] = self.board.create_oval(
                     size*col,size*row,
                     size*col+size,size*row+size,
                     fill='black'
                 )
-            elif self.board.itemcget(self.stones[col][row], 'fill') == 'black':
-                self.board.itemconfigure(self.stones[col][row], fill='white')
-            elif self.board.itemcget(self.stones[col][row], 'fill') == 'white':
-                self.board.delete(self.stones[col][row])
-                self.stones[col][row] = None
+            elif self.board.itemcget(self.stones[row][col], 'fill') == 'black':
+                self.board.itemconfigure(self.stones[row][col], fill='white')
+            elif self.board.itemcget(self.stones[row][col], 'fill') == 'white':
+                self.board.delete(self.stones[row][col])
+                self.stones[row][col] = None
         canvas.bind('<ButtonPress>', ChangeStone)
         canvas.pack()
         return canvas
@@ -61,12 +62,12 @@ class App(tkinter.Frame):
             size*3+size,size*3+size,
             fill='white'
         )
-        self.stones[4][3] = self.board.create_oval(
+        self.stones[3][4] = self.board.create_oval(
             size*4,size*3,
             size*4+size,size*3+size,
             fill='black'
         )
-        self.stones[3][4] = self.board.create_oval(
+        self.stones[4][3] = self.board.create_oval(
             size*3,size*4,
             size*3+size,size*4+size,
             fill='black'
@@ -95,23 +96,38 @@ class App(tkinter.Frame):
         button_white.pack()
 
     def Engine(self):
-        def Start():
-            black = ''
-            white = ''
-            for row in self.stones:
-                for stone in row:
-                    if stone:
-                        if self.board.itemcget(stone, 'fill') == 'black':
-                            black += '1'
-                            white += '0'
-                        if self.board.itemcget(stone, 'fill') == 'white':
-                            black += '0'
-                            white += '1'
-                    else:
-                        black += '0'
+        turn = self.turn.get()
+        black = ''
+        white = ''
+        for row in self.stones:
+            for stone in row:
+                if stone:
+                    if self.board.itemcget(stone, 'fill') == 'black':
+                        black += '1'
                         white += '0'
-            self.engine(black, white, self.turn.get())
-        button = tkinter.Button(self, text='探索', command=Start)
-        button.pack()
+                    if self.board.itemcget(stone, 'fill') == 'white':
+                        black += '0'
+                        white += '1'
+                else:
+                    black += '0'
+                    white += '0'
+        if turn == 'black':
+            move, m, y = self.engine(black, white)
+            old_new = zip(move, m, white)
+        if turn == 'white':
+            move, m, y = self.engine(white, black)
+            old_new = zip(move, m, black)
+        for i,set_ in enumerate(old_new):
+            col = i % 8
+            row = i // 8
+            if set_[0] == '1':
+                size = self.board_size / 8
+                self.stones[row][col] = self.board.create_oval(
+                    size*col,size*row,
+                    size*col+size,size*row+size,
+                    fill=turn
+                )
+            elif set_[1] == '1' and set_[2] == '1':
+                self.board.itemconfigure(self.stones[row][col], fill=turn)
 
 root = tkinter.Tk()

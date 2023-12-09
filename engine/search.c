@@ -43,7 +43,9 @@ void PrintNode(struct Node *node, int playout, int node_count)
     }
 
     printf("{ ");
-    printf("\"move\": %llx, ", move);
+    printf("\"move\": '", move);
+    ConvertToBinary(move);
+    printf("', ");
     printf("\"m\": '");
     ConvertToBinary(m);
     printf("', ");
@@ -80,18 +82,16 @@ int main(int argc, char *argv[])
 {
     unsigned long long m = strtoull(argv[1], NULL, 2);
     unsigned long long y = strtoull(argv[2], NULL, 2);
-    int seed = atoi(argv[3]);
-    LEARNING_RATE = strtod(argv[4], NULL);
-
-    //int trial = atoi(getenv("TRIAL"));
-    unsigned int trial = 500000;
+    unsigned int playout = atoi(argv[3]);
+    int seed = atoi(argv[4]);
+    LEARNING_RATE = strtod(argv[5], NULL);
 
     SetSampling(seed);
     SetZiggurat();
     SetupZigguratExpo();
 
     struct Node *node = CreateNode(m, y);
-    Search(node, trial);
+    Search(node, playout);
 
     return 0;
 }

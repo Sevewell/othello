@@ -4,3 +4,4 @@ cert
 __pycache__
 venv
 othello.exe
+config.json
