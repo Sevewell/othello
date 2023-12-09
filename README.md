@@ -8,8 +8,8 @@ CPU x86_64
 Windows
 
 # Installation
-`docker build -t my_c_app ./engine`
-`docker run -v $PWD/volume:/host my_c_app`
+`docker build -t othello ./engine`
+`docker run -v $PWD/volume:/host othello`
 
 # Usage
 `python main.py`

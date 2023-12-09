@@ -4,12 +4,11 @@ import random
 import subprocess
 import time
 
-with open('config.json', 'r') as f:
-    config = json.load(f)
+random.seed(time.time_ns())
 
-def Engine(m, y, seed):
+def Engine(m, y, playout, learning_rate):
     return subprocess.Popen(
-        ['othello.exe', m, y, str(config['playout']), seed, str(config['learning_rate'])],
+        ['othello.exe', m, y, str(playout), str(random.randint(1, 10000)), str(learning_rate)],
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         encoding='utf-8',
@@ -36,22 +35,23 @@ def Aggregate(processes):
     votes.sort(key=lambda x: x['count'], reverse=True)
     return votes
 
-def Explore(stone_m, stone_y):
-    seeds = [str(random.randint(1, 1000)) for i in range(config['process'])]
-    processes = [Engine(stone_m, stone_y, seed) for seed in seeds]
+def Explore(stone_m, stone_y, config):
+    processes = []
     seconds = 0
-    while any([process.poll() == None for process in processes]):
-        time.sleep(1)
-        seconds += 1
-    def Convert(stdout):
-        result = eval(stdout)
-        result['move'] = result['move'].zfill(64)
-        result['m'] = result['m'].zfill(64)
-        result['y'] = result['y'].zfill(64)
-        return result
-    processes = [Convert(process.stdout.read()) for process in processes]
+    for batch in range(config['batch']):
+        processes_batch = [Engine(stone_m, stone_y, config['playout'], config['learning_rate']) for p in range(config['process'])]
+        while any([process.poll() == None for process in processes_batch]):
+            time.sleep(1)
+            seconds += 1
+        def Convert(stdout):
+            result = eval(stdout)
+            result['move'] = result['move'].zfill(64)
+            result['m'] = result['m'].zfill(64)
+            result['y'] = result['y'].zfill(64)
+            return result
+        processes += [Convert(process.stdout.read()) for process in processes_batch]
     votes = Aggregate(processes)
-    print(seconds, votes[0]['rate'])
+    print(seconds, votes[0])
     return votes[0]['move'], votes[0]['m'], votes[0]['y']
 
 app = gui.App(gui.root, Explore)

@@ -15,6 +15,7 @@ class App(tkinter.Frame):
         self.engine = engine
         button = tkinter.Button(self, text='探索', command=self.Engine)
         button.pack()
+        self.Config()
     
     def Board(self):
         canvas = tkinter.Canvas(
@@ -115,11 +116,17 @@ class App(tkinter.Frame):
                 else:
                     black += '0'
                     white += '0'
+        config = {
+            'playout': self.playout,
+            'process': self.process,
+            'batch': self.batch,
+            'learning_rate': self.learning_rate
+        }
         if turn == 'black':
-            move, m, y = self.engine(black, white)
+            move, m, y = self.engine(black, white, config)
             old_new = zip(move, m, white)
         if turn == 'white':
-            move, m, y = self.engine(white, black)
+            move, m, y = self.engine(white, black, config)
             old_new = zip(move, m, black)
         for i,set_ in enumerate(old_new):
             col = i % 8
@@ -133,5 +140,11 @@ class App(tkinter.Frame):
                 )
             elif set_[1] == '1' and set_[2] == '1':
                 self.board.itemconfigure(self.stones[row][col], fill=turn)
+    
+    def Config(self):
+        self.playout = 500000
+        self.process = 16
+        self.batch = 1
+        self.learning_rate = 1.0
 
 root = tkinter.Tk()
