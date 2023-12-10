@@ -5,3 +5,4 @@ __pycache__
 venv
 othello.exe
 config.json
+simulation.json

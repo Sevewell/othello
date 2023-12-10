@@ -24,8 +24,8 @@ void PrintNode(struct Node *node, int playout, int node_count)
 {
     struct Node *child = node->child;
     unsigned long long move = 0;
-    unsigned long long m = 0;
-    unsigned long long y = 0;
+    unsigned long long m = node->m;
+    unsigned long long y = node->y;
     double max_rate = 0;
     double rate;
 

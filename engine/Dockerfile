@@ -8,13 +8,6 @@ RUN dpkg --add-architecture amd64 \
     && rm -rf /var/lib/apt/lists/*
 
 # 作業ディレクトリを指定
-WORKDIR /app
+WORKDIR /host
 
-# ローカルのソースコードをコンテナにコピー
-COPY . /app
-
-# Windows向けにクロスコンパイル
-RUN x86_64-w64-mingw32-gcc -o othello.exe search.c
-
-# コンパイルした実行ファイルをホストにコピー
-CMD ["cp", "othello.exe", "/host"]
+ENTRYPOINT ["x86_64-w64-mingw32-gcc", "-O2", "-o", "othello.exe", "search.c"]

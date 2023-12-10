@@ -6,9 +6,12 @@ import time
 
 random.seed(time.time_ns())
 
-def Engine(m, y, playout, learning_rate):
+with open('config.json', 'r') as f:
+    config = json.load(f)
+
+def Engine(m, y):
     return subprocess.Popen(
-        ['othello.exe', m, y, str(playout), str(random.randint(1, 10000)), str(learning_rate)],
+        ['othello.exe', m, y, str(config['playout']), str(random.randint(1, 10000)), str(config['learning_rate'])],
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         encoding='utf-8',
@@ -35,11 +38,11 @@ def Aggregate(processes):
     votes.sort(key=lambda x: x['count'], reverse=True)
     return votes
 
-def Explore(stone_m, stone_y, config):
+def Explore(stone_m, stone_y):
     processes = []
     seconds = 0
     for batch in range(config['batch']):
-        processes_batch = [Engine(stone_m, stone_y, config['playout'], config['learning_rate']) for p in range(config['process'])]
+        processes_batch = [Engine(stone_m, stone_y) for p in range(config['process'])]
         while any([process.poll() == None for process in processes_batch]):
             time.sleep(1)
             seconds += 1
@@ -54,5 +57,6 @@ def Explore(stone_m, stone_y, config):
     print(seconds, votes[0])
     return votes[0]['move'], votes[0]['m'], votes[0]['y']
 
-app = gui.App(gui.root, Explore)
-app.mainloop()
+if __name__ == '__main__':
+    app = gui.App(gui.root, Explore)
+    app.mainloop()
