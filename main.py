@@ -10,8 +10,11 @@ with open('config.json', 'r') as f:
     config = json.load(f)
 
 def Engine(m, y):
+    playout = str(config['playout'])
+    seed = str(random.randint(1, 10000))
+    learning_rate = str(config['learning_rate'])
     return subprocess.Popen(
-        ['othello.exe', m, y, str(config['playout']), str(random.randint(1, 10000)), str(config['learning_rate'])],
+        ['othello.exe', m, y, playout, seed, learning_rate],
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         encoding='utf-8',
