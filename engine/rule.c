@@ -1,7 +1,7 @@
-unsigned long long GetMovableL
-(unsigned long long player, unsigned long long masked, unsigned long long blank, int dir)
+uint64_t GetMovableL
+(uint64_t player, uint64_t masked, uint64_t blank, int dir)
 {
-    unsigned long long tmp;
+    uint64_t tmp;
     tmp = masked & (player << dir);
     tmp |= masked & (tmp << dir);
     tmp |= masked & (tmp << dir);
@@ -12,10 +12,10 @@ unsigned long long GetMovableL
     return blank & (tmp << dir);
 }
 
-unsigned long long GetMovableR
-(unsigned long long player, unsigned long long masked, unsigned long long blank, int dir)
+uint64_t GetMovableR
+(uint64_t player, uint64_t masked, uint64_t blank, int dir)
 {
-    unsigned long long tmp;
+    uint64_t tmp;
     tmp = masked & (player >> dir);
     tmp |= masked & (tmp >> dir);
     tmp |= masked & (tmp >> dir);
@@ -26,13 +26,13 @@ unsigned long long GetMovableR
     return blank & (tmp >> dir);
 }
 
-unsigned long long GetMovable(unsigned long long m, unsigned long long y)
+uint64_t GetMovable(uint64_t m, uint64_t y)
 {
-    unsigned long long blank = ~(m | y);
-    unsigned long long h = y & 0x7e7e7e7e7e7e7e7e;
-    unsigned long long v = y & 0x00ffffffffffff00;
-    unsigned long long a = y & 0x007e7e7e7e7e7e00;
-    unsigned long long legal;
+    uint64_t blank = ~(m | y);
+    uint64_t h = y & 0x7e7e7e7e7e7e7e7e;
+    uint64_t v = y & 0x00ffffffffffff00;
+    uint64_t a = y & 0x007e7e7e7e7e7e00;
+    uint64_t legal;
     legal = GetMovableL(m, h, blank, 1);
     legal |= GetMovableL(m, v, blank, 8);
     legal |= GetMovableL(m, a, blank, 7);
@@ -45,11 +45,11 @@ unsigned long long GetMovable(unsigned long long m, unsigned long long y)
     return legal;
 }
 
-unsigned long long GetReversableL
-(unsigned long long player, unsigned long long blank_masked, unsigned long long site, int dir)
+uint64_t GetReversableL
+(uint64_t player, uint64_t blank_masked, uint64_t site, int dir)
 {
-    unsigned long long rev = 0;
-    unsigned long long tmp = ~(player | blank_masked) & (site << dir);
+    uint64_t rev = 0;
+    uint64_t tmp = ~(player | blank_masked) & (site << dir);
 
     if (tmp)
     {
@@ -75,11 +75,11 @@ unsigned long long GetReversableL
     return rev;
 }
 
-unsigned long long GetReversableR
-(unsigned long long player, unsigned long long blank_masked, unsigned long long site, int dir)
+uint64_t GetReversableR
+(uint64_t player, uint64_t blank_masked, uint64_t site, int dir)
 {
-    unsigned long long rev = 0;
-    unsigned long long tmp = ~(player | blank_masked) & (site >> dir);
+    uint64_t rev = 0;
+    uint64_t tmp = ~(player | blank_masked) & (site >> dir);
 
     if (tmp)
     {
@@ -105,13 +105,13 @@ unsigned long long GetReversableR
     return rev;
 }
 
-unsigned long long GetReversable
-(unsigned long long m, unsigned long long y, unsigned long long move)
+uint64_t GetReversable
+(uint64_t m, uint64_t y, uint64_t move)
 {
-    unsigned long long blank_h = ~(m | (y & 0x7e7e7e7e7e7e7e7e));
-    unsigned long long blank_v = ~(m | (y & 0x00ffffffffffff00));
-    unsigned long long blank_a = ~(m | (y & 0x007e7e7e7e7e7e00));
-    unsigned long long rev;
+    uint64_t blank_h = ~(m | (y & 0x7e7e7e7e7e7e7e7e));
+    uint64_t blank_v = ~(m | (y & 0x00ffffffffffff00));
+    uint64_t blank_a = ~(m | (y & 0x007e7e7e7e7e7e00));
+    uint64_t rev;
     rev = GetReversableL(m, blank_h, move, 1);
     rev |= GetReversableL(m, blank_v, move, 8);
     rev |= GetReversableL(m, blank_a, move, 7);

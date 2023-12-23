@@ -11,8 +11,8 @@ double LEARNING_RATE;
 
 struct Node
 {
-    unsigned long long m;
-    unsigned long long y;
+    uint64_t m;
+    uint64_t y;
 
     double a;
     double b;
@@ -21,7 +21,7 @@ struct Node
     struct Node *next;
 };
 
-struct Node* CreateNode(unsigned long long m, unsigned long long y)
+struct Node* CreateNode(uint64_t m, uint64_t y)
 {
     struct Node* node;
     node = (struct Node*)malloc(sizeof(struct Node));
@@ -38,7 +38,7 @@ struct Node* CreateNode(unsigned long long m, unsigned long long y)
     return node;
 }
 
-struct Node* Move(struct Node* node, unsigned long long movable)
+struct Node* Move(struct Node* node, uint64_t movable)
 {
     struct Node* choice = NULL;
     double winrate = 1.0;
@@ -57,7 +57,7 @@ struct Node* Move(struct Node* node, unsigned long long movable)
         child = child->next;
     }
 
-    unsigned long long move = 0;
+    uint64_t move = 0;
 
     while (movable)
     {
@@ -72,7 +72,7 @@ struct Node* Move(struct Node* node, unsigned long long movable)
 
     if (move)
     {
-        unsigned long long reversable = GetReversable(node->m, node->y, move);
+        uint64_t reversable = GetReversable(node->m, node->y, move);
         choice = CreateNode(node->y ^ reversable, node->m | move | reversable);
         choice->next = node->child;
         node->child = choice;
@@ -131,7 +131,7 @@ double End(struct Node* node, char *result)
 double PlayOut(struct Node* node, char *result)
 {
     double value;
-    unsigned long long movable = GetMovable(node->m, node->y);
+    uint64_t movable = GetMovable(node->m, node->y);
 
     if (movable)
     {

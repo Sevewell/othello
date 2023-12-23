@@ -2,6 +2,8 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <time.h>
+#include <stdint.h>
+#include <inttypes.h>
 
 extern double LEARNING_RATE;
 
@@ -15,7 +17,7 @@ int CountNode(struct Node *node, int *count) {
 
 }
 
-void ConvertToBinary(unsigned long long stone) {
+void ConvertToBinary(uint64_t stone) {
     if (stone > 1) ConvertToBinary(stone / 2);
     printf("%d", stone % 2);
 }
@@ -23,9 +25,9 @@ void ConvertToBinary(unsigned long long stone) {
 void PrintNode(struct Node *node, int playout, int node_count)
 {
     struct Node *child = node->child;
-    unsigned long long move = 0;
-    unsigned long long m = node->m;
-    unsigned long long y = node->y;
+    uint64_t move = 0;
+    uint64_t m = node->m;
+    uint64_t y = node->y;
     double max_rate = 0;
     double rate;
 
@@ -81,8 +83,8 @@ void Search(struct Node *node, unsigned int trial)
 
 int main(int argc, char *argv[])
 {
-    unsigned long long m = strtoull(argv[1], NULL, 2);
-    unsigned long long y = strtoull(argv[2], NULL, 2);
+    uint64_t m = (uint64_t)strtoull(argv[1], NULL, 2);
+    uint64_t y = (uint64_t)strtoull(argv[2], NULL, 2);
     unsigned int playout = atoi(argv[3]);
     int seed = atoi(argv[4]);
     LEARNING_RATE = strtod(argv[5], NULL);
