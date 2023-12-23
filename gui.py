@@ -15,6 +15,8 @@ class App(tkinter.Frame):
         self.engine = engine
         button = tkinter.Button(self, text='探索', command=self.Engine)
         button.pack()
+        button_export = tkinter.Button(self, text='出力', command=self.Export)
+        button_export.pack()
     
     def Board(self):
         canvas = tkinter.Canvas(
@@ -99,8 +101,7 @@ class App(tkinter.Frame):
         )
         button_white.pack()
 
-    def Engine(self):
-        turn = self.turn.get()
+    def ConvertBits(self):
         black = ''
         white = ''
         for row in self.stones:
@@ -115,6 +116,11 @@ class App(tkinter.Frame):
                 else:
                     black += '0'
                     white += '0'
+        return black, white
+
+    def Engine(self):
+        turn = self.turn.get()
+        black, white = self.ConvertBits()
         if turn == 'black':
             move, m, y = self.engine(black, white)
             old_new = zip(move, m, white)
@@ -133,5 +139,10 @@ class App(tkinter.Frame):
                 )
             elif set_[1] == '1' and set_[2] == '1':
                 self.board.itemconfigure(self.stones[row][col], fill=turn)
+    
+    def Export(self):
+        black, white = self.ConvertBits()
+        print('black', black, int(black, 2))
+        print('white', white, int(white, 2))
 
 root = tkinter.Tk()
