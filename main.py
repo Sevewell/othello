@@ -9,12 +9,12 @@ random.seed(time.time_ns())
 with open('config.json', 'r') as f:
     config = json.load(f)
 
-def Engine(m, y):
+def Execute(m, y):
     playout = str(config['playout'])
     seed = str(random.randint(1, 10000))
     learning_rate = str(config['learning_rate'])
     return subprocess.Popen(
-        ['othello.exe', m, y, playout, seed, learning_rate],
+        ['explorer.exe', m, y, playout, seed, learning_rate],
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         encoding='utf-8',
@@ -45,7 +45,7 @@ def Explore(stone_m, stone_y):
     processes = []
     seconds = 0
     for batch in range(config['batch']):
-        processes_batch = [Engine(stone_m, stone_y) for p in range(config['process'])]
+        processes_batch = [Execute(stone_m, stone_y) for p in range(config['process'])]
         while any([process.poll() == None for process in processes_batch]):
             time.sleep(1)
             seconds += 1

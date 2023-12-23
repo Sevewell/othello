@@ -3,6 +3,7 @@ env
 cert
 __pycache__
 venv
-othello.exe
+explorer.exe
+test_explorer.exe
 config.json
 simulation.json

@@ -10,4 +10,5 @@ RUN dpkg --add-architecture amd64 \
 # 作業ディレクトリを指定
 WORKDIR /host
 
-ENTRYPOINT ["x86_64-w64-mingw32-gcc", "-O2", "-o", "othello.exe", "search.c"]
+ENTRYPOINT ["x86_64-w64-mingw32-gcc", "-O2"]
+CMD ["-o", "explorer.exe", "explorer.c"]
