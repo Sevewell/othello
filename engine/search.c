@@ -53,7 +53,8 @@ void PrintNode(struct Node *node, int playout, int node_count)
     ConvertToBinary(y);
     printf("', ");
     printf("\"rate\": %.4f, ", node->a / (node->a + node->b));
-    printf("\"node\": %d, ", node_count);
+    node_count = node_count / 1000;
+    printf("\"node\": '%dk', ", node_count);
     printf(" }\n");
     fflush(stdout);
 

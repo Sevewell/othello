@@ -9,7 +9,7 @@ Windows
 
 # Installation
 `docker build -t othello ./engine`
-`docker run -v $PWD/engine:/host othello`
+`docker run -v $PWD/engine:/host -rm othello`
 
 # Usage
 `python main.py`

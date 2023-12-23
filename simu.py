@@ -1,5 +1,8 @@
 import main
 import json
+import sys
+import random
+import time
 
 def Put(player, m, y, pass_count):
     main.config['playout'] = player['playout']
@@ -43,18 +46,19 @@ def Play(player_black, player_white):
         json.dump(record, f, indent='\t')        
 
 if __name__ == '__main__':
-    player_1 = {
-        'playout': 500000,
-        'process': 16,
-        'batch': 1,
-        'learning_rate': 1.0
-    }
-    player_2 = {
-        'playout': 300000,
-        'process': 16,
-        'batch': 2,
-        'learning_rate': 1.0
-    }
-    for i in range(1):    
+    random.seed(time.time_ns())
+    for i in range(int(sys.argv[1])):    
+        player_1 = {
+            'playout': 500000,
+            'process': 16,
+            'batch': 1,
+            'learning_rate': random.uniform(0.9, 1.0)
+        }
+        player_2 = {
+            'playout': 500000,
+            'process': 16,
+            'batch': 1,
+            'learning_rate': random.uniform(0.9, 1.0)
+        }
+        print(player_1, player_2)
         Play(player_1, player_2)
-        Play(player_2, player_1)
