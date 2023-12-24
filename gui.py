@@ -31,20 +31,14 @@ class App(tkinter.Frame):
             col = event.x // size
             row = event.y // size
             if event.num == 1:
-                if self.stones[row][col]:
-                    if self.board.itemcget(self.stones[row][col], 'fill') == 'black':
-                        self.board.itemconfigure(self.stones[row][col], fill='white')
-                    elif self.board.itemcget(self.stones[row][col], 'fill') == 'white':
-                        self.board.itemconfigure(self.stones[row][col], fill='black')
-                else:
-                    self.stones[row][col] = self.board.create_oval(
-                        size*col,size*row,
-                        size*col+size,size*row+size,
-                        fill=self.turn.get()
-                    )
+                if self.board.itemcget(self.stones[row][col], 'fill') == 'black':
+                    self.board.itemconfigure(self.stones[row][col], fill='white')
+                elif self.board.itemcget(self.stones[row][col], 'fill') == 'white':
+                    self.board.itemconfigure(self.stones[row][col], fill='green')
+                elif self.board.itemcget(self.stones[row][col], 'fill') == 'green':
+                    self.board.itemconfigure(self.stones[row][col], fill='black')
             elif event.num == 3:
-                self.board.delete(self.stones[row][col])
-                self.stones[row][col] = None
+                self.board.itemconfigure(self.stones[row][col], fill='green')
         canvas.bind('<ButtonPress>', ChangeStone)
         canvas.pack()
         return canvas
@@ -64,26 +58,18 @@ class App(tkinter.Frame):
 
     def Stone(self):
         size = self.board_size / 8
-        self.stones[3][3] = self.board.create_oval(
-            size*3,size*3,
-            size*3+size,size*3+size,
-            fill='white'
-        )
-        self.stones[3][4] = self.board.create_oval(
-            size*4,size*3,
-            size*4+size,size*3+size,
-            fill='black'
-        )
-        self.stones[4][3] = self.board.create_oval(
-            size*3,size*4,
-            size*3+size,size*4+size,
-            fill='black'
-        )
-        self.stones[4][4] = self.board.create_oval(
-            size*4,size*4,
-            size*4+size,size*4+size,
-            fill='white'
-        )
+        for i in range(64):
+            row = i // 8
+            col = i % 8
+            self.stones[row][col] = self.board.create_oval(
+                size*col,size*row,
+                size*col+size,size*row+size,
+                fill='green'
+            )
+        self.board.itemconfigure(self.stones[3][3], fill='white')
+        self.board.itemconfigure(self.stones[3][4], fill='black')
+        self.board.itemconfigure(self.stones[4][3], fill='black')
+        self.board.itemconfigure(self.stones[4][4], fill='white')
 
     def Turn(self):
         self.turn = tkinter.StringVar()
@@ -107,14 +93,13 @@ class App(tkinter.Frame):
         white = ''
         for row in self.stones:
             for stone in row:
-                if stone:
-                    if self.board.itemcget(stone, 'fill') == 'black':
-                        black += '1'
-                        white += '0'
-                    if self.board.itemcget(stone, 'fill') == 'white':
-                        black += '0'
-                        white += '1'
-                else:
+                if self.board.itemcget(stone, 'fill') == 'black':
+                    black += '1'
+                    white += '0'
+                elif self.board.itemcget(stone, 'fill') == 'white':
+                    black += '0'
+                    white += '1'
+                elif self.board.itemcget(stone, 'fill') == 'green':
                     black += '0'
                     white += '0'
         return black, white
@@ -132,12 +117,7 @@ class App(tkinter.Frame):
             col = i % 8
             row = i // 8
             if set_[0] == '1':
-                size = self.board_size / 8
-                self.stones[row][col] = self.board.create_oval(
-                    size*col,size*row,
-                    size*col+size,size*row+size,
-                    fill=turn
-                )
+                self.board.itemconfigure(self.stones[row][col], fill=turn)
             elif set_[1] == '1' and set_[2] == '1':
                 self.board.itemconfigure(self.stones[row][col], fill=turn)
     
@@ -158,25 +138,17 @@ class App(tkinter.Frame):
             for i in range(64):
                 row = i // 8
                 col = i % 8
-                self.board.delete(self.stones[row][col])
+                self.board.itemconfigure(self.stones[row][col], fill='green')
             for i,b in enumerate(format(black.get(), '064b')):
                 if b == '1':
                     row = i // 8
                     col = i % 8
-                    self.stones[row][col] = self.board.create_oval(
-                        size*col,size*row,
-                        size*col+size,size*row+size,
-                        fill='black'
-                    )
+                    self.board.itemconfigure(self.stones[row][col], fill='black')
             for i,w in enumerate(format(white.get(), '064b')):
                 if w == '1':
                     row = i // 8
                     col = i % 8
-                    self.stones[row][col] = self.board.create_oval(
-                        size*col,size*row,
-                        size*col+size,size*row+size,
-                        fill='white'
-                    )
+                    self.board.itemconfigure(self.stones[row][col], fill='white')
         button_import = tkinter.Button(self, text='入力', command=Output)
         button_import.pack()
 
