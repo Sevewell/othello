@@ -60,5 +60,6 @@ if __name__ == '__main__':
             'batch': 1,
             'learning_rate': random.uniform(0.9, 1.0)
         }
-        print(player_1, player_2)
+        print('black', player_1)
+        print('white', player_2)
         Play(player_1, player_2)

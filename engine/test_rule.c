@@ -8,27 +8,47 @@ void Test_GetMovable_1()
     uint64_t output = GetMovable(m, y);
     if (output == expectation)
     {
-        printf("Correct!");
+        printf("Correct!\n");
     }
     else
     {
         printf("Wrong!: %" PRIu64, output);
+        printf("\n");
     }
 }
 
-void TEst_GetReversable_1()
+void Test_GetReversable_1()
 {
-    uint64_t m = 4398046511104;
-    uint64_t y = 562949953421312;
-    uint64_t move = 72057594037927936;
-    uint64_t expectation = 562949953421312;
+    uint64_t m = 585467951558295808;
+    uint64_t y = 2278188294604808;
+    uint64_t move = 34359738368;
+    uint64_t expectation = 2278188159860736;
     uint64_t output = GetReversable(m, y, move);
     if (output == expectation)
     {
-        printf("Correct!");
+        printf("Correct!\n");
     }
     else
     {
         printf("Wrong!: %" PRIu64, output);
+        printf("\n");
+    }
+}
+
+void Test_GetReversable_2()
+{
+    uint64_t m = 2260595906707464;
+    uint64_t y = 576460786663688192;
+    uint64_t move = 134217728;
+    uint64_t expectation = 34360264704;
+    uint64_t output = GetReversable(m, y, move);
+    if (output == expectation)
+    {
+        printf("Correct!\n");
+    }
+    else
+    {
+        printf("Wrong!: %" PRIu64, output);
+        printf("\n");
     }
 }
