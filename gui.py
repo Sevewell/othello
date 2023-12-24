@@ -17,6 +17,7 @@ class App(tkinter.Frame):
         button.pack()
         button_export = tkinter.Button(self, text='出力', command=self.Export)
         button_export.pack()
+        self.Import()
     
     def Board(self):
         canvas = tkinter.Canvas(
@@ -47,7 +48,7 @@ class App(tkinter.Frame):
         canvas.bind('<ButtonPress>', ChangeStone)
         canvas.pack()
         return canvas
-    
+
     def Cell(self):
         size = self.board_size / 8
         for column in range(8):
@@ -144,5 +145,39 @@ class App(tkinter.Frame):
         black, white = self.ConvertBits()
         print('black', black, int(black, 2))
         print('white', white, int(white, 2))
+
+    def Import(self):
+        black = tkinter.IntVar(self)
+        white = tkinter.IntVar(self)
+        entry_black = tkinter.Entry(self, textvariable=black, name='black')
+        entry_white = tkinter.Entry(self, textvariable=white, name='white')
+        entry_black.pack()
+        entry_white.pack()
+        def Output():
+            size = int(self.board_size / 8)
+            for i in range(64):
+                row = i // 8
+                col = i % 8
+                self.board.delete(self.stones[row][col])
+            for i,b in enumerate(format(black.get(), '064b')):
+                if b == '1':
+                    row = i // 8
+                    col = i % 8
+                    self.stones[row][col] = self.board.create_oval(
+                        size*col,size*row,
+                        size*col+size,size*row+size,
+                        fill='black'
+                    )
+            for i,w in enumerate(format(white.get(), '064b')):
+                if w == '1':
+                    row = i // 8
+                    col = i % 8
+                    self.stones[row][col] = self.board.create_oval(
+                        size*col,size*row,
+                        size*col+size,size*row+size,
+                        fill='white'
+                    )
+        button_import = tkinter.Button(self, text='入力', command=Output)
+        button_import.pack()
 
 root = tkinter.Tk()
