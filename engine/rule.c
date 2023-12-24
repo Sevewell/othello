@@ -48,80 +48,59 @@ uint64_t GetMovable(uint64_t m, uint64_t y)
 }
 
 uint64_t GetReversableL
-(uint64_t player, uint64_t blank_masked, uint64_t site, int dir)
+(uint64_t m, uint64_t y, uint64_t move, uint64_t mask, uint8_t dir)
 {
-    uint64_t rev = 0;
-    uint64_t tmp = ~(player | blank_masked) & (site << dir);
-
-    if (tmp)
+    uint64_t tmp = (move << dir) & mask;
+    uint64_t reverse = tmp & y;
+    while (tmp & y)
     {
-        for (int i = 0; i < 6; i++)
-        {
-            tmp <<= dir;
-            if (tmp & blank_masked)
-            {
-                break;
-            }
-            else if (tmp & player)
-            {
-                rev |= tmp >> dir;
-                break;
-            }
-            else
-            {
-                tmp |= tmp >> dir;
-            }
-        }
+        tmp = tmp << dir;
+        reverse |= tmp & y;
     }
-
-    return rev;
+    if (m & tmp)
+    {
+        return reverse;
+    }
+    else
+    {
+        return 0;
+    }
 }
 
 uint64_t GetReversableR
-(uint64_t player, uint64_t blank_masked, uint64_t site, int dir)
+(uint64_t m, uint64_t y, uint64_t move, uint64_t mask, uint8_t dir)
 {
-    uint64_t rev = 0;
-    uint64_t tmp = ~(player | blank_masked) & (site >> dir);
-
-    if (tmp)
+    uint64_t tmp = (move >> dir) & mask;
+    uint64_t reverse = tmp & y;
+    while (tmp & y)
     {
-        for (int i = 0; i < 6; i++)
-        {
-            tmp >>= dir;
-            if (tmp & blank_masked)
-            {
-                break;
-            }
-            else if (tmp & player)
-            {
-                rev |= tmp << dir;
-                break;
-            }
-            else
-            {
-                tmp |= tmp << dir;
-            }
-        }
+        tmp = tmp >> dir;
+        reverse |= tmp & y;
     }
-
-    return rev;
+    if (m & tmp)
+    {
+        return reverse;
+    }
+    else
+    {
+        return 0;
+    }
 }
 
 uint64_t GetReversable
 (uint64_t m, uint64_t y, uint64_t move)
 {
-    uint64_t blank_h = ~(m | (y & 0x7e7e7e7e7e7e7e7e));
-    uint64_t blank_v = ~(m | (y & 0x00ffffffffffff00));
-    uint64_t blank_a = ~(m | (y & 0x007e7e7e7e7e7e00));
-    uint64_t rev;
-    rev = GetReversableL(m, blank_h, move, 1);
-    rev |= GetReversableL(m, blank_v, move, 8);
-    rev |= GetReversableL(m, blank_a, move, 7);
-    rev |= GetReversableL(m, blank_a, move, 9);
-    rev |= GetReversableR(m, blank_h, move, 1);
-    rev |= GetReversableR(m, blank_v, move, 8);
-    rev |= GetReversableR(m, blank_a, move, 7);
-    rev |= GetReversableR(m, blank_a, move, 9);
-    
-    return rev;
+    uint64_t mask_horizontal = 9114861777597660798;
+    uint64_t mask_vertical = 72057594037927680;
+    uint64_t mask_allside = 35604928818740736;
+    uint64_t reverse = 0;
+    reverse |= GetReversableL(m, y, move, mask_horizontal, 1);
+    reverse |= GetReversableL(m, y, move, mask_vertical, 8);
+    reverse |= GetReversableL(m, y, move, mask_allside, 7);
+    reverse |= GetReversableL(m, y, move, mask_allside, 9);
+    reverse |= GetReversableR(m, y, move, mask_horizontal, 1);
+    reverse |= GetReversableR(m, y, move, mask_vertical, 8);
+    reverse |= GetReversableR(m, y, move, mask_allside, 7);
+    reverse |= GetReversableR(m, y, move, mask_allside, 9);
+    return reverse;
 }
