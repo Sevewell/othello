@@ -1,47 +1,49 @@
 uint64_t GetMovableL
-(uint64_t player, uint64_t masked, uint64_t blank, int dir)
+(uint64_t m, uint64_t y, uint64_t mask, uint64_t dir)
 {
-    uint64_t tmp;
-    tmp = masked & (player << dir);
-    tmp |= masked & (tmp << dir);
-    tmp |= masked & (tmp << dir);
-    tmp |= masked & (tmp << dir);
-    tmp |= masked & (tmp << dir);
-    tmp |= masked & (tmp << dir);
-
-    return blank & (tmp << dir);
+    uint64_t y_masked = y & mask;
+    uint64_t tmp = (m << dir) & y_masked;
+    tmp |= (tmp << dir) & y_masked;
+    tmp |= (tmp << dir) & y_masked;
+    tmp |= (tmp << dir) & y_masked;
+    tmp |= (tmp << dir) & y_masked;
+    tmp |= (tmp << dir) & y_masked;
+    tmp |= (tmp << dir) & y_masked;
+    uint64_t stone = m | y;
+    uint64_t empty = ~stone;
+    return (tmp << dir) & empty;
 }
 
 uint64_t GetMovableR
-(uint64_t player, uint64_t masked, uint64_t blank, int dir)
+(uint64_t m, uint64_t y, uint64_t mask, uint64_t dir)
 {
-    uint64_t tmp;
-    tmp = masked & (player >> dir);
-    tmp |= masked & (tmp >> dir);
-    tmp |= masked & (tmp >> dir);
-    tmp |= masked & (tmp >> dir);
-    tmp |= masked & (tmp >> dir);
-    tmp |= masked & (tmp >> dir);
-
-    return blank & (tmp >> dir);
+    uint64_t y_masked = y & mask;
+    uint64_t tmp = (m >> dir) & y_masked;
+    tmp |= (tmp >> dir) & y_masked;
+    tmp |= (tmp >> dir) & y_masked;
+    tmp |= (tmp >> dir) & y_masked;
+    tmp |= (tmp >> dir) & y_masked;
+    tmp |= (tmp >> dir) & y_masked;
+    tmp |= (tmp >> dir) & y_masked;
+    uint64_t stone = m | y;
+    uint64_t empty = ~stone;
+    return (tmp >> dir) & empty;
 }
 
 uint64_t GetMovable(uint64_t m, uint64_t y)
 {
-    uint64_t blank = ~(m | y);
-    uint64_t h = y & 0x7e7e7e7e7e7e7e7e;
-    uint64_t v = y & 0x00ffffffffffff00;
-    uint64_t a = y & 0x007e7e7e7e7e7e00;
-    uint64_t legal;
-    legal = GetMovableL(m, h, blank, 1);
-    legal |= GetMovableL(m, v, blank, 8);
-    legal |= GetMovableL(m, a, blank, 7);
-    legal |= GetMovableL(m, a, blank, 9);
-    legal |= GetMovableR(m, h, blank, 1);
-    legal |= GetMovableR(m, v, blank, 8);
-    legal |= GetMovableR(m, a, blank, 7);
-    legal |= GetMovableR(m, a, blank, 9);
-
+    uint64_t mask_horizontal = 9114861777597660798;
+    uint64_t mask_vertical = 72057594037927680;
+    uint64_t mask_allside = 35604928818740736;
+    uint64_t legal = 0;
+    legal |= GetMovableL(m, y, mask_horizontal, 1);
+    legal |= GetMovableL(m, y, mask_vertical, 8);
+    legal |= GetMovableL(m, y, mask_allside, 7);
+    legal |= GetMovableL(m, y, mask_allside, 9);
+    legal |= GetMovableR(m, y, mask_horizontal, 1);
+    legal |= GetMovableR(m, y, mask_vertical, 8);
+    legal |= GetMovableR(m, y, mask_allside, 7);
+    legal |= GetMovableR(m, y, mask_allside, 9);
     return legal;
 }
 
