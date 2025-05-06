@@ -224,3 +224,35 @@ double SampleBeta(double a, double b)
     double gamma_b = SampleGamma(b);
     return gamma_a / (gamma_a + gamma_b);
 }
+
+#define MAX_A 32
+#define MAX_B 32
+#define NUM_SAMPLES 64
+
+double SAMPLES[MAX_A*MAX_B][NUM_SAMPLES];
+
+void SetHashTable()
+{
+    for (int a = 0; a < MAX_A; a++)
+    {
+        for (int b = 0; b < MAX_B; b++)
+        {
+            for (int n = 0; n < NUM_SAMPLES; n++)
+            {
+                SAMPLES[a*MAX_B+b][n] = SampleBeta(a+1, b+1);  // a+1, b+1にして0にならないようにする
+            }
+        }
+    }
+}
+
+double SampleBetaFast(double a, double b, uint8_t index)
+{
+    if (a <= MAX_A && b <= MAX_B)
+    {
+        return SAMPLES[((int)a - 1)*MAX_B + ((int)b - 1)][index];
+    }
+    else
+    {
+        return SampleBeta(a, b);
+    }
+}

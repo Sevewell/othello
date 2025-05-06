@@ -56,7 +56,7 @@ void PrintNode(struct Node *node, int playout, int node_count)
     printf("', ");
     printf("\"rate\": %.4f, ", node->a / (node->a + node->b));
     node_count = node_count / 1000;
-    printf("\"node\": '%dk', ", node_count);
+    printf("\"node\": '%dk'", node_count);
     printf(" }\n");
     fflush(stdout);
 
@@ -92,7 +92,8 @@ int main(int argc, char *argv[])
     SetSampling(seed);
     SetZiggurat();
     SetupZigguratExpo();
-
+    SetHashTable();
+    
     struct Node *node = CreateNode(m, y);
     Search(node, playout);
 

@@ -47,7 +47,7 @@ struct Node* Move(struct Node* node, uint64_t movable)
 
     while (child != NULL)
     {
-        sample = SampleBeta(child->a, child->b);
+        sample = SampleBetaFast(child->a, child->b, SampleUINT64() % NUM_SAMPLES);
         if (sample <= winrate)
         {
             choice = child;
