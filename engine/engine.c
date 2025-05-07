@@ -14,8 +14,8 @@ struct Node
     uint64_t m;
     uint64_t y;
 
-    double a;
-    double b;
+    float a;
+    float b;
 
     struct Node *child;
     struct Node *next;
@@ -47,7 +47,7 @@ struct Node* Move(struct Node* node, uint64_t movable)
 
     while (child != NULL)
     {
-        sample = SampleBetaFast(child->a, child->b, SampleUINT64() % NUM_SAMPLES);
+        sample = SampleBetaFast((double)child->a, (double)child->b, SampleUINT64() % NUM_SAMPLES);
         if (sample <= winrate)
         {
             choice = child;
@@ -86,18 +86,18 @@ double Update(struct Node* node, char *result, double value)
     switch (*result)
     {
         case 'w':
-            node->a += value;
+            node->a += (float)value;
             *result = 'l';
             break;
         
         case 'l':
-            node->b += value;
+            node->b += (float)value;
             *result = 'w';
             break;
 
         case 'd':
-            node->a += value / 2;
-            node->b += value / 2;
+            node->a += (float)value / 2;
+            node->b += (float)value / 2;
             *result = 'd';
             break;
 

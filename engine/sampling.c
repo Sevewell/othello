@@ -225,9 +225,9 @@ double SampleBeta(double a, double b)
     return gamma_a / (gamma_a + gamma_b);
 }
 
-#define MAX_A 32
-#define MAX_B 32
-#define NUM_SAMPLES 64
+#define MAX_A 16
+#define MAX_B 16
+#define NUM_SAMPLES 32
 
 double SAMPLES[MAX_A*MAX_B][NUM_SAMPLES];
 
@@ -251,8 +251,5 @@ double SampleBetaFast(double a, double b, uint8_t index)
     {
         return SAMPLES[((int)a - 1)*MAX_B + ((int)b - 1)][index];
     }
-    else
-    {
-        return SampleBeta(a, b);
-    }
+    return SampleBeta(a, b);
 }
