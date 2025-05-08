@@ -135,3 +135,154 @@ uint64_t GetReversable
     reverse |= GetReversableR(m, y, move, mask_allside, 9);
     return reverse;
 }
+
+uint64_t GetReversable_SIMD(uint64_t m, uint64_t y, uint64_t move)
+{
+    uint64_t flipped = 0;
+    uint64_t blank = ~(m | y);
+
+    uint64_t mask_horizontal = y & 9114861777597660798;
+    uint64_t mask_vertical = y & 72057594037927680;
+    uint64_t mask_diagonal = y & 35604928818740736;
+
+    uint64_t temp;
+    uint64_t moves;
+
+    temp = m << 1 & mask_horizontal;
+    temp |= temp << 1 & mask_horizontal;
+    temp |= temp << 1 & mask_horizontal;
+    temp |= temp << 1 & mask_horizontal;
+    temp |= temp << 1 & mask_horizontal;
+    temp |= temp << 1 & mask_horizontal;
+    moves = temp << 1 & blank;
+
+    temp = (move & moves) >> 1 & y;
+    temp |= temp >> 1 & y;
+    temp |= temp >> 1 & y;
+    temp |= temp >> 1 & y;
+    temp |= temp >> 1 & y;
+    temp |= temp >> 1 & y;
+
+    flipped |= temp;
+
+    temp = m << 9 & mask_diagonal;
+    temp |= temp << 9 & mask_diagonal;
+    temp |= temp << 9 & mask_diagonal;
+    temp |= temp << 9 & mask_diagonal;
+    temp |= temp << 9 & mask_diagonal;
+    temp |= temp << 9 & mask_diagonal;
+    moves = temp << 9 & blank;
+
+    temp = (move & moves) >> 9 & y;
+    temp |= temp >> 9 & y;
+    temp |= temp >> 9 & y;
+    temp |= temp >> 9 & y;
+    temp |= temp >> 9 & y;
+    temp |= temp >> 9 & y;
+
+    flipped |= temp;
+
+    temp = m << 8 & mask_vertical;
+    temp |= temp << 8 & mask_vertical;
+    temp |= temp << 8 & mask_vertical;
+    temp |= temp << 8 & mask_vertical;
+    temp |= temp << 8 & mask_vertical;
+    temp |= temp << 8 & mask_vertical;
+    moves = temp << 8 & blank;
+
+    temp = (move & moves) >> 8 & y;
+    temp |= temp >> 8 & y;
+    temp |= temp >> 8 & y;
+    temp |= temp >> 8 & y;
+    temp |= temp >> 8 & y;
+    temp |= temp >> 8 & y;
+
+    flipped |= temp;
+
+    temp = m << 7 & mask_diagonal;
+    temp |= temp << 7 & mask_diagonal;
+    temp |= temp << 7 & mask_diagonal;
+    temp |= temp << 7 & mask_diagonal;
+    temp |= temp << 7 & mask_diagonal;
+    temp |= temp << 7 & mask_diagonal;
+    moves = temp << 7 & blank;
+
+    temp = (move & moves) >> 7 & y;
+    temp |= temp >> 7 & y;
+    temp |= temp >> 7 & y;
+    temp |= temp >> 7 & y;
+    temp |= temp >> 7 & y;
+    temp |= temp >> 7 & y;
+
+    flipped |= temp;
+
+    temp = m >> 1 & mask_horizontal;
+    temp |= temp >> 1 & mask_horizontal;
+    temp |= temp >> 1 & mask_horizontal;
+    temp |= temp >> 1 & mask_horizontal;
+    temp |= temp >> 1 & mask_horizontal;
+    temp |= temp >> 1 & mask_horizontal;
+    moves = temp >> 1 & blank;
+
+    temp = (move & moves) << 1 & y;
+    temp |= temp << 1 & y;
+    temp |= temp << 1 & y;
+    temp |= temp << 1 & y;
+    temp |= temp << 1 & y;
+    temp |= temp << 1 & y;
+
+    flipped |= temp;
+
+    temp = m >> 9 & mask_diagonal;
+    temp |= temp >> 9 & mask_diagonal;
+    temp |= temp >> 9 & mask_diagonal;
+    temp |= temp >> 9 & mask_diagonal;
+    temp |= temp >> 9 & mask_diagonal;
+    temp |= temp >> 9 & mask_diagonal;
+    moves = temp >> 9 & blank;
+
+    temp = (move & moves) << 9 & y;
+    temp |= temp << 9 & y;
+    temp |= temp << 9 & y;
+    temp |= temp << 9 & y;
+    temp |= temp << 9 & y;
+    temp |= temp << 9 & y;
+
+    flipped |= temp;
+
+    temp = m >> 8 & mask_vertical;
+    temp |= temp >> 8 & mask_vertical;
+    temp |= temp >> 8 & mask_vertical;
+    temp |= temp >> 8 & mask_vertical;
+    temp |= temp >> 8 & mask_vertical;
+    temp |= temp >> 8 & mask_vertical;
+    moves = temp >> 8 & blank;
+
+    temp = (move & moves) << 8 & y;
+    temp |= temp << 8 & y;
+    temp |= temp << 8 & y;
+    temp |= temp << 8 & y;
+    temp |= temp << 8 & y;
+    temp |= temp << 8 & y;
+
+    flipped |= temp;
+
+    temp = m >> 7 & mask_diagonal;
+    temp |= temp >> 7 & mask_diagonal;
+    temp |= temp >> 7 & mask_diagonal;
+    temp |= temp >> 7 & mask_diagonal;
+    temp |= temp >> 7 & mask_diagonal;
+    temp |= temp >> 7 & mask_diagonal;
+    moves = temp >> 7 & blank;
+
+    temp = (move & moves) << 7 & y;
+    temp |= temp << 7 & y;
+    temp |= temp << 7 & y;
+    temp |= temp << 7 & y;
+    temp |= temp << 7 & y;
+    temp |= temp << 7 & y;
+
+    flipped |= temp;
+
+    return flipped;
+}

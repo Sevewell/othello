@@ -72,7 +72,7 @@ struct Node* Move(struct Node* node, uint64_t movable)
 
     if (move)
     {
-        uint64_t reversable = GetReversable(node->m, node->y, move);
+        uint64_t reversable = GetReversable_SIMD(node->m, node->y, move);
         choice = CreateNode(node->y ^ reversable, node->m | move | reversable);
         choice->next = node->child;
         node->child = choice;

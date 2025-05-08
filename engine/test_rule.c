@@ -43,7 +43,7 @@ void Test_GetReversable_1()
     uint64_t y = 2278188294604808;
     uint64_t move = 34359738368;
     uint64_t expectation = 2278188159860736;
-    uint64_t output = GetReversable(m, y, move);
+    uint64_t output = GetReversable_SIMD(m, y, move);
     if (output == expectation)
     {
         printf("Correct!\n");
@@ -61,7 +61,7 @@ void Test_GetReversable_2()
     uint64_t y = 576460786663688192;
     uint64_t move = 134217728;
     uint64_t expectation = 34360264704;
-    uint64_t output = GetReversable(m, y, move);
+    uint64_t output = GetReversable_SIMD(m, y, move);
     if (output == expectation)
     {
         printf("Correct!\n");
@@ -79,7 +79,7 @@ void Test_GetReversable_3()
     uint64_t y = 400509994242179072;
     uint64_t move = 2048;
     uint64_t expectation = 134742016;
-    uint64_t output = GetReversable(m, y, move);
+    uint64_t output = GetReversable_SIMD(m, y, move);
     if (output == expectation)
     {
         printf("Correct!\n");
@@ -93,6 +93,8 @@ void Test_GetReversable_3()
 
 int main(int argc, char *argv[])
 {
+    Test_GetReversable_1();
+    Test_GetReversable_2();
     Test_GetReversable_3();
     return 0;
 }
