@@ -131,7 +131,7 @@ double End(struct Node* node, char *result)
 double PlayOut(struct Node* node, char *result)
 {
     double value;
-    uint64_t movable = GetMovable(node->m, node->y);
+    uint64_t movable = GetMovable_SIMD(node->m, node->y);
 
     if (movable)
     {
@@ -139,7 +139,7 @@ double PlayOut(struct Node* node, char *result)
         value = PlayOut(child, result);
         value = Update(node, result, value);
     }
-    else if (GetMovable(node->y, node->m))
+    else if (GetMovable_SIMD(node->y, node->m))
     {
         if (node->child == NULL)
         {

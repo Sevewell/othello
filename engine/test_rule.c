@@ -1,3 +1,6 @@
+#include <stdint.h>
+#include <stdio.h>
+#include <inttypes.h>
 #include "rule.c"
 
 void Test_GetMovable_1()
@@ -6,6 +9,23 @@ void Test_GetMovable_1()
     uint64_t y = 72057662891638784;
     uint64_t expectation = 17729692631168;
     uint64_t output = GetMovable(m, y);
+    if (output == expectation)
+    {
+        printf("Correct!\n");
+    }
+    else
+    {
+        printf("Wrong!: %" PRIu64, output);
+        printf("\n");
+    }
+}
+
+void Test_GetMovable_SIMD()
+{
+    uint64_t m = 567382630203392;
+    uint64_t y = 72057662891638784;
+    uint64_t expectation = 17729692631168;
+    uint64_t output = GetMovable_SIMD(m, y);
     if (output == expectation)
     {
         printf("Correct!\n");
@@ -51,4 +71,28 @@ void Test_GetReversable_2()
         printf("Wrong!: %" PRIu64, output);
         printf("\n");
     }
+}
+
+void Test_GetReversable_3()
+{
+    uint64_t m = 3472304210319652216;
+    uint64_t y = 400509994242179072;
+    uint64_t move = 2048;
+    uint64_t expectation = 134742016;
+    uint64_t output = GetReversable(m, y, move);
+    if (output == expectation)
+    {
+        printf("Correct!\n");
+    }
+    else
+    {
+        printf("Wrong!: %" PRIu64, output);
+        printf("\n");
+    }
+}
+
+int main(int argc, char *argv[])
+{
+    Test_GetReversable_3();
+    return 0;
 }
