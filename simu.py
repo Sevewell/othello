@@ -47,18 +47,20 @@ def Play(player_black, player_white):
 
 if __name__ == '__main__':
     random.seed(time.time_ns())
-    for i in range(int(sys.argv[1])):    
+    for i in range(int(sys.argv[1])):
+        rates = [0.99, 1.0]
+        random.shuffle(rates)
         player_1 = {
-            'playout': 500000,
-            'process': 16,
+            'playout': 1000000,
+            'process': 8,
             'batch': 1,
-            'learning_rate': random.uniform(0.9, 1.0)
+            'learning_rate': rates[0]
         }
         player_2 = {
-            'playout': 500000,
-            'process': 16,
+            'playout': 1000000,
+            'process': 8,
             'batch': 1,
-            'learning_rate': random.uniform(0.9, 1.0)
+            'learning_rate': rates[1]
         }
         print('black', player_1)
         print('white', player_2)
