@@ -138,151 +138,54 @@ uint64_t GetReversable
 
 uint64_t GetReversable_SIMD(uint64_t m, uint64_t y, uint64_t move)
 {
-    uint64_t flipped = 0;
-    uint64_t blank = ~(m | y);
+    __m256i flipped = _mm256_setzero_si256();
 
-    uint64_t mask_horizontal = y & 9114861777597660798;
-    uint64_t mask_vertical = y & 72057594037927680;
-    uint64_t mask_diagonal = y & 35604928818740736;
+    __m256i ms = _mm256_set1_epi64x(m);
+    __m256i ys = _mm256_set1_epi64x(y);
+    __m256i move_ = _mm256_set1_epi64x(move);
 
-    uint64_t temp;
-    uint64_t moves;
+    __m256i shifts = _mm256_set_epi64x(1, 7, 8, 9);
+    __m256i mask = _mm256_set_epi64x(9114861777597660798, 35604928818740736, 72057594037927680, 35604928818740736);
 
-    temp = m << 1 & mask_horizontal;
-    temp |= temp << 1 & mask_horizontal;
-    temp |= temp << 1 & mask_horizontal;
-    temp |= temp << 1 & mask_horizontal;
-    temp |= temp << 1 & mask_horizontal;
-    temp |= temp << 1 & mask_horizontal;
-    moves = temp << 1 & blank;
+    __m256i blank = _mm256_set1_epi64x(~(m | y));
 
-    temp = (move & moves) >> 1 & y;
-    temp |= temp >> 1 & y;
-    temp |= temp >> 1 & y;
-    temp |= temp >> 1 & y;
-    temp |= temp >> 1 & y;
-    temp |= temp >> 1 & y;
+    __m256i temp = _mm256_setzero_si256();
+    __m256i moves = _mm256_setzero_si256();
 
-    flipped |= temp;
+    temp = _mm256_and_si256(_mm256_sllv_epi64(ms, shifts), mask);
+    temp = _mm256_or_si256(temp, _mm256_and_si256(_mm256_sllv_epi64(temp, shifts), mask));
+    temp = _mm256_or_si256(temp, _mm256_and_si256(_mm256_sllv_epi64(temp, shifts), mask));
+    temp = _mm256_or_si256(temp, _mm256_and_si256(_mm256_sllv_epi64(temp, shifts), mask));
+    temp = _mm256_or_si256(temp, _mm256_and_si256(_mm256_sllv_epi64(temp, shifts), mask));
+    temp = _mm256_or_si256(temp, _mm256_and_si256(_mm256_sllv_epi64(temp, shifts), mask));
+    moves = _mm256_and_si256(_mm256_sllv_epi64(temp, shifts), blank);
+    temp = _mm256_and_si256(_mm256_srlv_epi64(_mm256_and_si256(move_, moves), shifts), ys);
+    temp = _mm256_or_si256(temp, _mm256_and_si256(_mm256_srlv_epi64(temp, shifts), ys));
+    temp = _mm256_or_si256(temp, _mm256_and_si256(_mm256_srlv_epi64(temp, shifts), ys));
+    temp = _mm256_or_si256(temp, _mm256_and_si256(_mm256_srlv_epi64(temp, shifts), ys));
+    temp = _mm256_or_si256(temp, _mm256_and_si256(_mm256_srlv_epi64(temp, shifts), ys));
+    temp = _mm256_or_si256(temp, _mm256_and_si256(_mm256_srlv_epi64(temp, shifts), ys));
+    flipped = _mm256_or_si256(flipped, temp);
 
-    temp = m << 9 & mask_diagonal;
-    temp |= temp << 9 & mask_diagonal;
-    temp |= temp << 9 & mask_diagonal;
-    temp |= temp << 9 & mask_diagonal;
-    temp |= temp << 9 & mask_diagonal;
-    temp |= temp << 9 & mask_diagonal;
-    moves = temp << 9 & blank;
+    temp = _mm256_and_si256(_mm256_srlv_epi64(ms, shifts), mask);
+    temp = _mm256_or_si256(temp, _mm256_and_si256(_mm256_srlv_epi64(temp, shifts), mask));
+    temp = _mm256_or_si256(temp, _mm256_and_si256(_mm256_srlv_epi64(temp, shifts), mask));
+    temp = _mm256_or_si256(temp, _mm256_and_si256(_mm256_srlv_epi64(temp, shifts), mask));
+    temp = _mm256_or_si256(temp, _mm256_and_si256(_mm256_srlv_epi64(temp, shifts), mask));
+    temp = _mm256_or_si256(temp, _mm256_and_si256(_mm256_srlv_epi64(temp, shifts), mask));
+    moves = _mm256_and_si256(_mm256_srlv_epi64(temp, shifts), blank);
+    temp = _mm256_and_si256(_mm256_sllv_epi64(_mm256_and_si256(move_, moves), shifts), ys);
+    temp = _mm256_or_si256(temp, _mm256_and_si256(_mm256_sllv_epi64(temp, shifts), ys));
+    temp = _mm256_or_si256(temp, _mm256_and_si256(_mm256_sllv_epi64(temp, shifts), ys));
+    temp = _mm256_or_si256(temp, _mm256_and_si256(_mm256_sllv_epi64(temp, shifts), ys));
+    temp = _mm256_or_si256(temp, _mm256_and_si256(_mm256_sllv_epi64(temp, shifts), ys));
+    temp = _mm256_or_si256(temp, _mm256_and_si256(_mm256_sllv_epi64(temp, shifts), ys));
+    flipped = _mm256_or_si256(flipped, temp);
 
-    temp = (move & moves) >> 9 & y;
-    temp |= temp >> 9 & y;
-    temp |= temp >> 9 & y;
-    temp |= temp >> 9 & y;
-    temp |= temp >> 9 & y;
-    temp |= temp >> 9 & y;
-
-    flipped |= temp;
-
-    temp = m << 8 & mask_vertical;
-    temp |= temp << 8 & mask_vertical;
-    temp |= temp << 8 & mask_vertical;
-    temp |= temp << 8 & mask_vertical;
-    temp |= temp << 8 & mask_vertical;
-    temp |= temp << 8 & mask_vertical;
-    moves = temp << 8 & blank;
-
-    temp = (move & moves) >> 8 & y;
-    temp |= temp >> 8 & y;
-    temp |= temp >> 8 & y;
-    temp |= temp >> 8 & y;
-    temp |= temp >> 8 & y;
-    temp |= temp >> 8 & y;
-
-    flipped |= temp;
-
-    temp = m << 7 & mask_diagonal;
-    temp |= temp << 7 & mask_diagonal;
-    temp |= temp << 7 & mask_diagonal;
-    temp |= temp << 7 & mask_diagonal;
-    temp |= temp << 7 & mask_diagonal;
-    temp |= temp << 7 & mask_diagonal;
-    moves = temp << 7 & blank;
-
-    temp = (move & moves) >> 7 & y;
-    temp |= temp >> 7 & y;
-    temp |= temp >> 7 & y;
-    temp |= temp >> 7 & y;
-    temp |= temp >> 7 & y;
-    temp |= temp >> 7 & y;
-
-    flipped |= temp;
-
-    temp = m >> 1 & mask_horizontal;
-    temp |= temp >> 1 & mask_horizontal;
-    temp |= temp >> 1 & mask_horizontal;
-    temp |= temp >> 1 & mask_horizontal;
-    temp |= temp >> 1 & mask_horizontal;
-    temp |= temp >> 1 & mask_horizontal;
-    moves = temp >> 1 & blank;
-
-    temp = (move & moves) << 1 & y;
-    temp |= temp << 1 & y;
-    temp |= temp << 1 & y;
-    temp |= temp << 1 & y;
-    temp |= temp << 1 & y;
-    temp |= temp << 1 & y;
-
-    flipped |= temp;
-
-    temp = m >> 9 & mask_diagonal;
-    temp |= temp >> 9 & mask_diagonal;
-    temp |= temp >> 9 & mask_diagonal;
-    temp |= temp >> 9 & mask_diagonal;
-    temp |= temp >> 9 & mask_diagonal;
-    temp |= temp >> 9 & mask_diagonal;
-    moves = temp >> 9 & blank;
-
-    temp = (move & moves) << 9 & y;
-    temp |= temp << 9 & y;
-    temp |= temp << 9 & y;
-    temp |= temp << 9 & y;
-    temp |= temp << 9 & y;
-    temp |= temp << 9 & y;
-
-    flipped |= temp;
-
-    temp = m >> 8 & mask_vertical;
-    temp |= temp >> 8 & mask_vertical;
-    temp |= temp >> 8 & mask_vertical;
-    temp |= temp >> 8 & mask_vertical;
-    temp |= temp >> 8 & mask_vertical;
-    temp |= temp >> 8 & mask_vertical;
-    moves = temp >> 8 & blank;
-
-    temp = (move & moves) << 8 & y;
-    temp |= temp << 8 & y;
-    temp |= temp << 8 & y;
-    temp |= temp << 8 & y;
-    temp |= temp << 8 & y;
-    temp |= temp << 8 & y;
-
-    flipped |= temp;
-
-    temp = m >> 7 & mask_diagonal;
-    temp |= temp >> 7 & mask_diagonal;
-    temp |= temp >> 7 & mask_diagonal;
-    temp |= temp >> 7 & mask_diagonal;
-    temp |= temp >> 7 & mask_diagonal;
-    temp |= temp >> 7 & mask_diagonal;
-    moves = temp >> 7 & blank;
-
-    temp = (move & moves) << 7 & y;
-    temp |= temp << 7 & y;
-    temp |= temp << 7 & y;
-    temp |= temp << 7 & y;
-    temp |= temp << 7 & y;
-    temp |= temp << 7 & y;
-
-    flipped |= temp;
-
-    return flipped;
+    __m128i high = _mm256_extracti128_si256(flipped, 1);
+    __m128i low = _mm256_castsi256_si128(flipped);
+    __m128i combined = _mm_or_si128(high, low);
+    __m128i shifted = _mm_unpackhi_epi64(combined, combined);
+    __m128i result = _mm_or_si128(combined, shifted);
+    return _mm_cvtsi128_si64(result);  
 }
