@@ -1,52 +1,45 @@
 #include <immintrin.h>
 
-uint64_t GetMovableL
-(uint64_t m, uint64_t y, uint64_t mask, uint64_t dir)
+uint64_t GetMovableL(uint64_t m, uint64_t y, uint64_t shift, uint64_t mask)
 {
-    uint64_t y_masked = y & mask;
-    uint64_t tmp = (m << dir) & y_masked;
-    tmp |= (tmp << dir) & y_masked;
-    tmp |= (tmp << dir) & y_masked;
-    tmp |= (tmp << dir) & y_masked;
-    tmp |= (tmp << dir) & y_masked;
-    tmp |= (tmp << dir) & y_masked;
-    tmp |= (tmp << dir) & y_masked;
-    uint64_t stone = m | y;
-    uint64_t empty = ~stone;
-    return (tmp << dir) & empty;
+    uint64_t legal = m << shift & mask;
+    legal |= legal << shift & mask;
+    legal |= legal << shift & mask;
+    legal |= legal << shift & mask;
+    legal |= legal << shift & mask;
+    legal |= legal << shift & mask;
+    return legal << shift & ~(m | y);
 }
 
-uint64_t GetMovableR
-(uint64_t m, uint64_t y, uint64_t mask, uint64_t dir)
+uint64_t GetMovableR(uint64_t m, uint64_t y, uint64_t shift, uint64_t mask)
 {
-    uint64_t y_masked = y & mask;
-    uint64_t tmp = (m >> dir) & y_masked;
-    tmp |= (tmp >> dir) & y_masked;
-    tmp |= (tmp >> dir) & y_masked;
-    tmp |= (tmp >> dir) & y_masked;
-    tmp |= (tmp >> dir) & y_masked;
-    tmp |= (tmp >> dir) & y_masked;
-    tmp |= (tmp >> dir) & y_masked;
-    uint64_t stone = m | y;
-    uint64_t empty = ~stone;
-    return (tmp >> dir) & empty;
+    uint64_t legal = m >> shift & mask;
+    legal |= legal >> shift & mask;
+    legal |= legal >> shift & mask;
+    legal |= legal >> shift & mask;
+    legal |= legal >> shift & mask;
+    legal |= legal >> shift & mask;
+    return legal >> shift & ~(m | y);
 }
 
-uint64_t GetMovable(uint64_t m, uint64_t y)
+void GetMovable(uint64_t m, uint64_t y, uint64_t* legals)
 {
-    uint64_t mask_horizontal = 9114861777597660798;
-    uint64_t mask_vertical = 72057594037927680;
-    uint64_t mask_allside = 35604928818740736;
-    uint64_t legal = 0;
-    legal |= GetMovableL(m, y, mask_horizontal, 1);
-    legal |= GetMovableL(m, y, mask_vertical, 8);
-    legal |= GetMovableL(m, y, mask_allside, 7);
-    legal |= GetMovableL(m, y, mask_allside, 9);
-    legal |= GetMovableR(m, y, mask_horizontal, 1);
-    legal |= GetMovableR(m, y, mask_vertical, 8);
-    legal |= GetMovableR(m, y, mask_allside, 7);
-    legal |= GetMovableR(m, y, mask_allside, 9);
-    return legal;
+    uint64_t mask_horizontal = y & 9114861777597660798;
+    uint64_t mask_vertical = y & 72057594037927680;
+    uint64_t mask_diagonal = y & 35604928818740736;
+    legals[0] = GetMovableL(m, y, 1, mask_horizontal);
+    legals[1] = GetMovableL(m, y, 9, mask_diagonal);
+    legals[2] = GetMovableL(m, y, 8, mask_vertical);
+    legals[3] = GetMovableL(m, y, 7, mask_diagonal);
+    legals[4] = GetMovableR(m, y, 1, mask_horizontal);
+    legals[5] = GetMovableR(m, y, 9, mask_diagonal);
+    legals[6] = GetMovableR(m, y, 8, mask_vertical);
+    legals[7] = GetMovableR(m, y, 7, mask_diagonal);
+}
+
+uint64_t GetLegal(uint64_t* legals)
+{
+    return legals[0] | legals[1] | legals[2] | legals[3] | legals[4] | legals[5] | legals[6] | legals[7];
 }
 
 uint64_t GetMovable_SIMD(const uint64_t P, const uint64_t O)
@@ -78,16 +71,9 @@ uint64_t GetMovable_SIMD(const uint64_t P, const uint64_t O)
 	return _mm_cvtsi128_si64(M) & ~(P|O);	// mask with empties
 }
 
-uint64_t GetReversableL(uint64_t m, uint64_t y, uint64_t move, uint8_t shift, uint64_t mask)
+uint64_t GetReversableL(uint64_t y, uint64_t move, uint8_t shift, uint64_t legal)
 {
-    uint64_t flipped = m << shift & mask;
-    flipped |= flipped << shift & mask;
-    flipped |= flipped << shift & mask;
-    flipped |= flipped << shift & mask;
-    flipped |= flipped << shift & mask;
-    flipped |= flipped << shift & mask;
-    uint64_t moves = flipped << shift & ~(m | y);
-    flipped = (move & moves) >> shift & y;
+    uint64_t flipped = (move & legal) >> shift & y;
     flipped |= flipped >> shift & y;
     flipped |= flipped >> shift & y;
     flipped |= flipped >> shift & y;
@@ -96,16 +82,9 @@ uint64_t GetReversableL(uint64_t m, uint64_t y, uint64_t move, uint8_t shift, ui
     return flipped;
 }
 
-uint64_t GetReversableR(uint64_t m, uint64_t y, uint64_t move, uint8_t shift, uint64_t mask)
+uint64_t GetReversableR(uint64_t y, uint64_t move, uint8_t shift, uint64_t legal)
 {
-    uint64_t flipped = m >> shift & mask;
-    flipped |= flipped >> shift & mask;
-    flipped |= flipped >> shift & mask;
-    flipped |= flipped >> shift & mask;
-    flipped |= flipped >> shift & mask;
-    flipped |= flipped >> shift & mask;
-    uint64_t moves = flipped >> shift & ~(m | y);
-    flipped = (move & moves) << shift & y;
+    uint64_t flipped = (move & legal) << shift & y;
     flipped |= flipped << shift & y;
     flipped |= flipped << shift & y;
     flipped |= flipped << shift & y;
@@ -114,24 +93,17 @@ uint64_t GetReversableR(uint64_t m, uint64_t y, uint64_t move, uint8_t shift, ui
     return flipped;
 }
 
-uint64_t GetReversable(uint64_t m, uint64_t y, uint64_t move)
+uint64_t GetReversable(uint64_t m, uint64_t y, uint64_t move, uint64_t* legals)
 {
     uint64_t flipped = 0;
-
-    uint64_t mask_horizontal = y & 9114861777597660798;
-    uint64_t mask_vertical = y & 72057594037927680;
-    uint64_t mask_diagonal = y & 35604928818740736;
-
-    flipped |= GetReversableL(m, y, move, 1, mask_horizontal);
-    flipped |= GetReversableL(m, y, move, 9, mask_diagonal);
-    flipped |= GetReversableL(m, y, move, 8, mask_vertical);
-    flipped |= GetReversableL(m, y, move, 7, mask_diagonal);
-
-    flipped |= GetReversableR(m, y, move, 1, mask_horizontal);
-    flipped |= GetReversableR(m, y, move, 9, mask_diagonal);
-    flipped |= GetReversableR(m, y, move, 8, mask_vertical);
-    flipped |= GetReversableR(m, y, move, 7, mask_diagonal);
-
+    flipped |= GetReversableL(y, move, 1, legals[0]);
+    flipped |= GetReversableL(y, move, 9, legals[1]);
+    flipped |= GetReversableL(y, move, 8, legals[2]);
+    flipped |= GetReversableL(y, move, 7, legals[3]);
+    flipped |= GetReversableR(y, move, 1, legals[4]);
+    flipped |= GetReversableR(y, move, 9, legals[5]);
+    flipped |= GetReversableR(y, move, 8, legals[6]);
+    flipped |= GetReversableR(y, move, 7, legals[7]);
     return flipped;
 }
 

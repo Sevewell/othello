@@ -38,12 +38,13 @@ struct Node* CreateNode(uint64_t m, uint64_t y)
     return node;
 }
 
-struct Node* Move(struct Node* node, uint64_t movable)
+struct Node* Move(struct Node* node, uint64_t* legals)
 {
     struct Node* choice = NULL;
     double winrate = 1.0;
     double sample;
     struct Node* child = node->child;
+    uint64_t movable = GetLegal(legals);
 
     while (child != NULL)
     {
@@ -72,7 +73,7 @@ struct Node* Move(struct Node* node, uint64_t movable)
 
     if (move)
     {
-        uint64_t reversable = GetReversable(node->m, node->y, move);
+        uint64_t reversable = GetReversable(node->m, node->y, move, legals);
         choice = CreateNode(node->y ^ reversable, node->m | move | reversable);
         choice->next = node->child;
         node->child = choice;
@@ -131,15 +132,16 @@ double End(struct Node* node, char *result)
 double PlayOut(struct Node* node, char *result)
 {
     double value;
-    uint64_t movable = GetMovable_SIMD(node->m, node->y);
+    uint64_t legals[8] = {0, 0, 0, 0, 0, 0, 0, 0};
+    GetMovable(node->m, node->y, legals);
 
-    if (movable)
+    if (GetLegal(legals))
     {
-        struct Node* child = Move(node, movable);
+        struct Node* child = Move(node, legals);
         value = PlayOut(child, result);
         value = Update(node, result, value);
     }
-    else if (GetMovable_SIMD(node->y, node->m))
+    else if (GetMovable(node->y, node->m, legals), GetLegal(legals))
     {
         if (node->child == NULL)
         {
