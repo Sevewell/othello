@@ -78,62 +78,61 @@ uint64_t GetMovable_SIMD(const uint64_t P, const uint64_t O)
 	return _mm_cvtsi128_si64(M) & ~(P|O);	// mask with empties
 }
 
-uint64_t GetReversableL
-(uint64_t m, uint64_t y, uint64_t move, uint64_t mask, uint8_t dir)
+uint64_t GetReversableL(uint64_t m, uint64_t y, uint64_t move, uint8_t shift, uint64_t mask)
 {
-    uint64_t tmp = (move << dir) & mask;
-    uint64_t reverse = tmp & y;
-    while (tmp & y)
-    {
-        tmp = tmp << dir;
-        reverse |= tmp & y;
-    }
-    if (m & tmp)
-    {
-        return reverse;
-    }
-    else
-    {
-        return 0;
-    }
+    uint64_t flipped = m << shift & mask;
+    flipped |= flipped << shift & mask;
+    flipped |= flipped << shift & mask;
+    flipped |= flipped << shift & mask;
+    flipped |= flipped << shift & mask;
+    flipped |= flipped << shift & mask;
+    uint64_t moves = flipped << shift & ~(m | y);
+    flipped = (move & moves) >> shift & y;
+    flipped |= flipped >> shift & y;
+    flipped |= flipped >> shift & y;
+    flipped |= flipped >> shift & y;
+    flipped |= flipped >> shift & y;
+    flipped |= flipped >> shift & y;
+    return flipped;
 }
 
-uint64_t GetReversableR
-(uint64_t m, uint64_t y, uint64_t move, uint64_t mask, uint8_t dir)
+uint64_t GetReversableR(uint64_t m, uint64_t y, uint64_t move, uint8_t shift, uint64_t mask)
 {
-    uint64_t tmp = (move >> dir) & mask;
-    uint64_t reverse = tmp & y;
-    while (tmp & y)
-    {
-        tmp = tmp >> dir;
-        reverse |= tmp & y;
-    }
-    if (m & tmp)
-    {
-        return reverse;
-    }
-    else
-    {
-        return 0;
-    }
+    uint64_t flipped = m >> shift & mask;
+    flipped |= flipped >> shift & mask;
+    flipped |= flipped >> shift & mask;
+    flipped |= flipped >> shift & mask;
+    flipped |= flipped >> shift & mask;
+    flipped |= flipped >> shift & mask;
+    uint64_t moves = flipped >> shift & ~(m | y);
+    flipped = (move & moves) << shift & y;
+    flipped |= flipped << shift & y;
+    flipped |= flipped << shift & y;
+    flipped |= flipped << shift & y;
+    flipped |= flipped << shift & y;
+    flipped |= flipped << shift & y;
+    return flipped;
 }
 
-uint64_t GetReversable
-(uint64_t m, uint64_t y, uint64_t move)
+uint64_t GetReversable(uint64_t m, uint64_t y, uint64_t move)
 {
-    uint64_t mask_horizontal = 9114861777597660798;
-    uint64_t mask_vertical = 72057594037927680;
-    uint64_t mask_allside = 35604928818740736;
-    uint64_t reverse = 0;
-    reverse |= GetReversableL(m, y, move, mask_horizontal, 1);
-    reverse |= GetReversableL(m, y, move, mask_vertical, 8);
-    reverse |= GetReversableL(m, y, move, mask_allside, 7);
-    reverse |= GetReversableL(m, y, move, mask_allside, 9);
-    reverse |= GetReversableR(m, y, move, mask_horizontal, 1);
-    reverse |= GetReversableR(m, y, move, mask_vertical, 8);
-    reverse |= GetReversableR(m, y, move, mask_allside, 7);
-    reverse |= GetReversableR(m, y, move, mask_allside, 9);
-    return reverse;
+    uint64_t flipped = 0;
+
+    uint64_t mask_horizontal = y & 9114861777597660798;
+    uint64_t mask_vertical = y & 72057594037927680;
+    uint64_t mask_diagonal = y & 35604928818740736;
+
+    flipped |= GetReversableL(m, y, move, 1, mask_horizontal);
+    flipped |= GetReversableL(m, y, move, 9, mask_diagonal);
+    flipped |= GetReversableL(m, y, move, 8, mask_vertical);
+    flipped |= GetReversableL(m, y, move, 7, mask_diagonal);
+
+    flipped |= GetReversableR(m, y, move, 1, mask_horizontal);
+    flipped |= GetReversableR(m, y, move, 9, mask_diagonal);
+    flipped |= GetReversableR(m, y, move, 8, mask_vertical);
+    flipped |= GetReversableR(m, y, move, 7, mask_diagonal);
+
+    return flipped;
 }
 
 uint64_t GetReversable_SIMD(uint64_t m, uint64_t y, uint64_t move)

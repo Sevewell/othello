@@ -47,7 +47,7 @@ struct Node* Move(struct Node* node, uint64_t movable)
 
     while (child != NULL)
     {
-        sample = SampleBetaFast((double)child->a, (double)child->b, SampleUINT64() % NUM_SAMPLES);
+        sample = SampleBetaFast((double)child->a, (double)child->b);
         if (sample <= winrate)
         {
             choice = child;
@@ -72,7 +72,7 @@ struct Node* Move(struct Node* node, uint64_t movable)
 
     if (move)
     {
-        uint64_t reversable = GetReversable_SIMD(node->m, node->y, move);
+        uint64_t reversable = GetReversable(node->m, node->y, move);
         choice = CreateNode(node->y ^ reversable, node->m | move | reversable);
         choice->next = node->child;
         node->child = choice;

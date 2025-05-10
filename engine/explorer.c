@@ -92,7 +92,7 @@ int main(int argc, char *argv[])
     SetSampling(seed);
     SetZiggurat();
     SetupZigguratExpo();
-    SetHashTable();
+    SetSamples();
     
     struct Node *node = CreateNode(m, y);
     Search(node, playout);

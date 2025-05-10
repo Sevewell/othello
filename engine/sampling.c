@@ -229,9 +229,9 @@ double SampleBeta(double a, double b)
 #define MAX_B 16
 #define NUM_SAMPLES 32
 
-double SAMPLES[MAX_A*MAX_B][NUM_SAMPLES];
+double SAMPLES[MAX_A][MAX_B][NUM_SAMPLES];
 
-void SetHashTable()
+void SetSamples()
 {
     for (int a = 0; a < MAX_A; a++)
     {
@@ -239,17 +239,17 @@ void SetHashTable()
         {
             for (int n = 0; n < NUM_SAMPLES; n++)
             {
-                SAMPLES[a*MAX_B+b][n] = SampleBeta(a+1, b+1);  // a+1, b+1にして0にならないようにする
+                SAMPLES[a][b][n] = SampleBeta(a + 1, b + 1);
             }
         }
     }
 }
 
-double SampleBetaFast(double a, double b, uint8_t index)
+double SampleBetaFast(double a, double b)
 {
-    if (a <= MAX_A && b <= MAX_B)
+    if ((a - 1) < MAX_A && (b - 1) < MAX_B)
     {
-        return SAMPLES[((int)a - 1)*MAX_B + ((int)b - 1)][index];
+        return SAMPLES[(int)a - 1][(int)b - 1][SampleUINT64() % NUM_SAMPLES];
     }
     return SampleBeta(a, b);
 }
