@@ -11,6 +11,8 @@ with open('config.json', 'r') as f:
     config = json.load(f)
 
 def Execute(m, y):
+    m = str(m)
+    y = str(y)
     playout = str(config['playout'])
     seed = str(random.randint(1, 10000))
     learning_rate = str(config['learning_rate'])
@@ -40,7 +42,6 @@ def Aggregate(processes):
             moves[i]['a'].append(move['a'])
             moves[i]['b'].append(move['b'])
             moves[i]['node'].append(move['node'])
-    #votes.sort(key=lambda x: x['count'], reverse=True)
     return moves
 
 def Explore(stone_m, stone_y):
@@ -51,27 +52,24 @@ def Explore(stone_m, stone_y):
         while any([process.poll() == None for process in processes_batch]):
             time.sleep(1)
             seconds += 1
-        def Convert(stdout):
-            moves = eval(stdout)
-            for move in moves:
-                move['move'] = move['move'].zfill(64)
-                move['m'] = move['m'].zfill(64)
-                move['y'] = move['y'].zfill(64)
-            return moves
-        processes += [Convert(process.stdout.read()) for process in processes_batch]
+        processes += [eval(process.stdout.read()) for process in processes_batch]
     moves = Aggregate(processes)
-    move = Caluculate(moves)
-    for move in moves:
-        print(move)
-    print(seconds, move)
+    if [move for move in moves if move]:
+        move = Caluculate(moves)
+    else: # 置ける石がなかった場合
+        move = {'m': stone_y, 'y': stone_m}
+    print('{} seconds'.format(seconds), move)
+    return move
 
 def Put(player, m, y, pass_count):
-    main.config['playout'] = player['playout']
-    main.config['process'] = player['process']
-    main.config['batch'] = player['batch']
-    main.config['learning_rate'] = player['learning_rate']
-    move, m_, y_ = main.Explore(m, y)
-    if m == m_ and y == y_:
+    config['playout'] = player['playout']
+    config['process'] = player['process']
+    config['batch'] = player['batch']
+    config['learning_rate'] = player['learning_rate']
+    move = Explore(m, y)
+    m_ = move['m']
+    y_ = move['y']
+    if m_ == y and y_ == m:
         pass_count += 1
     else:
         pass_count = 0
@@ -79,8 +77,8 @@ def Put(player, m, y, pass_count):
 
 def Play(player_black, player_white):
 
-    black = '0000000000000000000000000000100000010000000000000000000000000000'
-    white = '0000000000000000000000000001000000001000000000000000000000000000'
+    black = 34628173824
+    white = 68853694464
     pass_count = 0
 
     while pass_count < 2:
@@ -89,9 +87,9 @@ def Play(player_black, player_white):
         player = player_white
         white, black, pass_count = Put(player, white, black, pass_count)
     
-    if black.count('1') > white.count('1'):
+    if bin(black).count('1') > bin(white).count('1'):
         winner = 'black'
-    elif black.count('1') < white.count('1'):
+    elif bin(black).count('1') < bin(white).count('1'):
         winner = 'white'
     else:
         winner = 'draw'
@@ -112,13 +110,13 @@ if __name__ == '__main__':
         rates = [0.95, 1.0]
         random.shuffle(rates)
         player_1 = {
-            'playout': 1000000,
+            'playout': 10000,
             'process': 8,
             'batch': 1,
             'learning_rate': rates[0]
         }
         player_2 = {
-            'playout': 1000000,
+            'playout': 10000,
             'process': 8,
             'batch': 1,
             'learning_rate': rates[1]
