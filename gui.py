@@ -1,8 +1,9 @@
 import tkinter
+import simu
 
 class App(tkinter.Frame):
 
-    def __init__(self, master, engine):
+    def __init__(self, master):
         super().__init__(master)
         self.pack()
         self.board_size = 480
@@ -12,7 +13,6 @@ class App(tkinter.Frame):
         self.Stone()
         self.Turn()
         self.turn.set('black')
-        self.engine = engine
         button = tkinter.Button(self, text='探索', command=self.Engine)
         button.pack()
         button_export = tkinter.Button(self, text='出力', command=self.Export)
@@ -108,25 +108,16 @@ class App(tkinter.Frame):
         turn = self.turn.get()
         black, white = self.ConvertBits()
         if turn == 'black':
-            move, m, y = self.engine(black, white)
-            old_new = zip(move, m, white)
+            simu.Explore(black, white)
         if turn == 'white':
-            move, m, y = self.engine(white, black)
-            old_new = zip(move, m, black)
-        for i,set_ in enumerate(old_new):
-            col = i % 8
-            row = i // 8
-            if set_[0] == '1':
-                self.board.itemconfigure(self.stones[row][col], fill=turn)
-            elif set_[1] == '1' and set_[2] == '1':
-                self.board.itemconfigure(self.stones[row][col], fill=turn)
+            simu.Explore(white, black)
     
     def Export(self):
         black, white = self.ConvertBits()
         print('black', black, int(black, 2))
         print('white', white, int(white, 2))
 
-    def Import(self):
+    def Import(self): # 探索結果もこれに渡せばいい
         black = tkinter.IntVar(self)
         white = tkinter.IntVar(self)
         entry_black = tkinter.Entry(self, textvariable=black, name='black')

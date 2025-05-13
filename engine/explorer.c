@@ -22,63 +22,44 @@ void ConvertToBinary(uint64_t stone) {
     printf("%d", stone % 2);
 }
 
-void PrintNode(struct Node *node, int playout, int node_count)
+void PrintNode(struct Node *node)
 {
     struct Node *child = node->child;
-    uint64_t move = 0;
-    uint64_t m = node->m;
-    uint64_t y = node->y;
-    double max_rate = 0;
-    double rate;
-
+    int node_count;
+    printf("[ ");
     while (child)
     {
-        rate = child->b / (child->a + child->b);
-        if (rate > max_rate)
-        {
-            move = (node->m | node->y) ^ (child->m | child->y);
-            m = child->y;
-            y = child->m;
-            max_rate = rate;
-        }
+        printf("{ ");
+        printf("'move': '");
+        ConvertToBinary((child->m | child->y) ^ (node->m | node->y));
+        printf("', ");
+        printf("'m': '");
+        ConvertToBinary(child->y);
+        printf("', ");
+        printf("'y': '");
+        ConvertToBinary(child->m);
+        printf("', ");
+        printf("'a': %.4f, ", child->a);
+        printf("'b': %.4f, ", child->b);
+        node_count = 0;
+        CountNode(child, &node_count);
+        printf("'node': '%dk'", node_count / 1000);
+        printf(" }, ");
         child = child->next;
     }
-
-    printf("{ ");
-    printf("\"move\": '", move);
-    ConvertToBinary(move);
-    printf("', ");
-    printf("\"m\": '");
-    ConvertToBinary(m);
-    printf("', ");
-    printf("\"y\": '");
-    ConvertToBinary(y);
-    printf("', ");
-    printf("\"rate\": %.4f, ", node->a / (node->a + node->b));
-    node_count = node_count / 1000;
-    printf("\"node\": '%dk'", node_count);
-    printf(" }\n");
-    fflush(stdout);
-
+    printf(" ]");
 }
 
 void Search(struct Node *node, unsigned int trial)
 {
     clock_t clock_start = clock();
     clock_t clock_end;
-    int node_count;
-
     char result;
     for (int i = 1; i <= trial; i++)
     {
         result = 'n';
         PlayOut(node, &result);
     }
-
-    node_count = 0;
-    CountNode(node, &node_count);            
-    PrintNode(node, trial, node_count);
-
 }
 
 int main(int argc, char *argv[])
@@ -96,6 +77,8 @@ int main(int argc, char *argv[])
     
     struct Node *node = CreateNode(m, y);
     Search(node, playout);
+
+    PrintNode(node);
 
     return 0;
 }
