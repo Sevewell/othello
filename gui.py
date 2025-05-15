@@ -6,13 +6,14 @@ class App(tkinter.Frame):
     def __init__(self, master):
         super().__init__(master)
         self.pack()
+        self.black = 34628173824
+        self.white = 68853694464
         self.board_size = 480
         self.board = self.Board()
         self.Cell()
         self.stones = [[None for col in range(8)] for row in range(8)]
         self.Stone()
-        self.Turn()
-        self.turn.set('black')
+        self.InputToComputer()
         button = tkinter.Button(self, text='探索', command=self.Engine)
         button.pack()
         button_export = tkinter.Button(self, text='出力', command=self.Export)
@@ -30,15 +31,25 @@ class App(tkinter.Frame):
             size = int(self.board_size / 8)
             col = event.x // size
             row = event.y // size
+            index = 8 * row + col
+            black_bits = '{:064b}'.format(self.black)
+            white_bits = '{:064b}'.format(self.white)
             if event.num == 1:
                 if self.board.itemcget(self.stones[row][col], 'fill') == 'black':
-                    self.board.itemconfigure(self.stones[row][col], fill='white')
+                    black_bit = '0'
+                    white_bit = '1'
                 elif self.board.itemcget(self.stones[row][col], 'fill') == 'white':
-                    self.board.itemconfigure(self.stones[row][col], fill='green')
+                    black_bit = '0'
+                    white_bit = '0'
                 elif self.board.itemcget(self.stones[row][col], 'fill') == 'green':
-                    self.board.itemconfigure(self.stones[row][col], fill='black')
+                    black_bit = '1'
+                    white_bit = '0'
             elif event.num == 3:
-                self.board.itemconfigure(self.stones[row][col], fill='green')
+                black_bit = '0'
+                white_bit = '0'
+            self.black = int(black_bits[:index] + black_bit + black_bits[index+1:], 2)
+            self.white = int(white_bits[:index] + white_bit + white_bits[index+1:], 2)
+            self.Render()
         canvas.bind('<ButtonPress>', ChangeStone)
         canvas.pack()
         return canvas
@@ -66,13 +77,11 @@ class App(tkinter.Frame):
                 size*col+size,size*row+size,
                 fill='green'
             )
-        self.board.itemconfigure(self.stones[3][3], fill='white')
-        self.board.itemconfigure(self.stones[3][4], fill='black')
-        self.board.itemconfigure(self.stones[4][3], fill='black')
-        self.board.itemconfigure(self.stones[4][4], fill='white')
+        self.Render()
 
-    def Turn(self):
+    def InputToComputer(self):
         self.turn = tkinter.StringVar()
+        self.turn.set('black')
         button_black = tkinter.Radiobutton(
             self,
             text='黒番',
@@ -88,59 +97,49 @@ class App(tkinter.Frame):
         )
         button_white.pack()
 
-    def ConvertBits(self):
-        black = ''
-        white = ''
-        for row in self.stones:
-            for stone in row:
-                if self.board.itemcget(stone, 'fill') == 'black':
-                    black += '1'
-                    white += '0'
-                elif self.board.itemcget(stone, 'fill') == 'white':
-                    black += '0'
-                    white += '1'
-                elif self.board.itemcget(stone, 'fill') == 'green':
-                    black += '0'
-                    white += '0'
-        return black, white
-
     def Engine(self):
         turn = self.turn.get()
-        black, white = self.ConvertBits()
         if turn == 'black':
-            simu.Explore(black, white)
+            move = simu.Explore(self.black, self.white)
+            self.black = move['m']
+            self.white = move['y']
         if turn == 'white':
-            simu.Explore(white, black)
+            move = simu.Explore(self.white, self.black)
+            self.black = move['y']
+            self.white = move['m']
+        self.Render()
     
     def Export(self):
-        black, white = self.ConvertBits()
-        print('black', black, int(black, 2))
-        print('white', white, int(white, 2))
+        print('black', self.black)
+        print('white', self.white)
 
-    def Import(self): # 探索結果もこれに渡せばいい
-        black = tkinter.IntVar(self)
-        white = tkinter.IntVar(self)
-        entry_black = tkinter.Entry(self, textvariable=black, name='black')
-        entry_white = tkinter.Entry(self, textvariable=white, name='white')
+    def Render(self):
+        assert not (self.black & self.white)
+        black_bits = '{:064b}'.format(self.black)
+        white_bits = '{:064b}'.format(self.white)
+        for i in range(64):
+            row = i // 8
+            col = i % 8
+            if black_bits[i] == '1':
+                color = 'black'
+            elif white_bits[i] == '1':
+                color = 'white'
+            else:
+                color = 'green'
+            self.board.itemconfigure(self.stones[row][col], fill=color)
+
+    def Import(self):
+        black_tv = tkinter.IntVar(self)
+        white_tv = tkinter.IntVar(self)
+        entry_black = tkinter.Entry(self, textvariable=black_tv, name='black')
+        entry_white = tkinter.Entry(self, textvariable=white_tv, name='white')
         entry_black.pack()
         entry_white.pack()
-        def Output():
-            size = int(self.board_size / 8)
-            for i in range(64):
-                row = i // 8
-                col = i % 8
-                self.board.itemconfigure(self.stones[row][col], fill='green')
-            for i,b in enumerate(format(black.get(), '064b')):
-                if b == '1':
-                    row = i // 8
-                    col = i % 8
-                    self.board.itemconfigure(self.stones[row][col], fill='black')
-            for i,w in enumerate(format(white.get(), '064b')):
-                if w == '1':
-                    row = i // 8
-                    col = i % 8
-                    self.board.itemconfigure(self.stones[row][col], fill='white')
-        button_import = tkinter.Button(self, text='入力', command=Output)
+        def Input(self):
+            black = int(black_tv.get())
+            white = int(white_tv.get())
+            self.Render()
+        button_import = tkinter.Button(self, text='入力', command=Input)
         button_import.pack()
 
 root = tkinter.Tk()
