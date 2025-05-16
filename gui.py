@@ -72,7 +72,7 @@ class App(tkinter.Frame):
         for i in range(64):
             row = i // 8
             col = i % 8
-            self.stones[row][col] = self.board.create_oval(
+            self.stones[row][col] = self.board.create_oval( # マスいっぱいのサイズは見にくい
                 size*col,size*row,
                 size*col+size,size*row+size,
                 fill='green'
@@ -97,7 +97,7 @@ class App(tkinter.Frame):
         )
         button_white.pack()
 
-    def Engine(self):
+    def Engine(self): # 非同期にしたい
         turn = self.turn.get()
         if turn == 'black':
             move = simu.Explore(self.black, self.white)
@@ -135,9 +135,9 @@ class App(tkinter.Frame):
         entry_white = tkinter.Entry(self, textvariable=white_tv, name='white')
         entry_black.pack()
         entry_white.pack()
-        def Input(self):
-            black = int(black_tv.get())
-            white = int(white_tv.get())
+        def Input():
+            self.black = int(black_tv.get())
+            self.white = int(white_tv.get())
             self.Render()
         button_import = tkinter.Button(self, text='入力', command=Input)
         button_import.pack()
