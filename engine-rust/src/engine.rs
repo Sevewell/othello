@@ -1,16 +1,18 @@
 mod rule;
 
 use std::f64::INFINITY;
+use rand::rngs::SmallRng;
 use rand_distr::{Distribution, Gamma};
 
 pub struct Node {
-    m: u64,
-    y: u64,
-    alpha: f32,
-    children: Vec<Node>
+    pub m: u64,
+    pub y: u64,
+    pub alpha: f32,
+    pub children: Vec<Node>
 }
 
 impl Node {
+
     pub fn new(m: u64, y: u64) -> Self {
         Node {
             m: m,
@@ -19,6 +21,7 @@ impl Node {
             children: Vec::new(),
         }
     }
+
     fn update_param(self: &mut Self, result: &mut GameResult, value: f32) -> f32 {
         match result {
             GameResult::Win => {
@@ -38,6 +41,7 @@ impl Node {
         }
         value // 学習率で更新する予定
     }
+
     fn make_children(self: &mut Self, legals: &[u64; 8]) {
         let mut movable: u64 = rule::get_legal(legals);
         while movable > 0 {
@@ -47,6 +51,7 @@ impl Node {
             movable &= movable - 1;
         }
     }
+
 }
 
 pub enum GameResult {
@@ -69,21 +74,18 @@ fn end_game(node: &Node, result: &mut GameResult) -> f32 {
     1.0
 }
 
-fn move_child(node: &Node, legals: &[u64; 8]) -> usize {
-    let mut movable: u64 = rule::get_legal(legals);
-    let mut gamma: Gamma<f64>;
+fn move_child(node: &Node) -> usize {
+    let mut rng: SmallRng = rand::make_rng();
     let mut sample: f64;
     let mut min_score: f64 = INFINITY;
     let mut min_index: usize = 0;
     let mut index: usize = 0;
     for child in &node.children {
-        gamma = Gamma::new(child.alpha as f64, 1.0).unwrap();
-        sample = gamma.sample(&mut rand::rng());
+        sample = Gamma::new(child.alpha as f64, 1.0).unwrap().sample(&mut rng);
         if sample <= min_score {
             min_index = index;
             min_score = sample;
         }
-        movable ^= movable & (child.m | child.y);
         index += 1;
     }
     min_index
@@ -96,7 +98,7 @@ pub fn playout(node: &mut Node, result: &mut GameResult, passed: bool) -> f32 {
         if node.children.is_empty() {
             node.make_children(&legals);
         }
-        let index_child = move_child(node, &legals);
+        let index_child = move_child(node);
         value = playout(&mut node.children[index_child], result, false);
         value = node.update_param(result, value);
     } else {

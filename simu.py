@@ -17,7 +17,7 @@ def Execute(m, y):
     seed = str(random.randint(1, 10000))
     learning_rate = str(config['learning_rate'])
     return subprocess.Popen(
-        ['explorer.exe', m, y, playout, seed, learning_rate],
+        ['./explorer', m, y, playout],
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         encoding='utf-8',
@@ -26,24 +26,22 @@ def Execute(m, y):
 
 def Caluculate(moves):
     for move in moves:
-        move['rate'] = [round(a / (a + b), 4) for a, b in zip(move['a'], move['b'])]
+        move['score'] = [alpha for alpha in move['alpha']]
     # これが正しいかは議論の余地あり
     # こうするなら学習率は低めが良さそう
-    return min(moves, key=lambda x: sorted(x['rate'])[config['process'] // 2])
+    return min(moves, key=lambda x: sorted(x['score'])[config['process'] // 2])
 
 def AggregateToMoves(processes):
     moves = processes.pop()
     for move in moves:
-        move['a'] = [move['a']]
-        move['b'] = [move['b']]
-        move['node'] = [move['node']]
+        move['alpha'] = [move['alpha']]
+        move['nodes'] = [move['nodes']]
     for process in processes:
         for move_p in process:
             for move_a in moves:
                 if move_p['move'] == move_a['move']:
-                    move_a['a'].append(move_p['a'])
-                    move_a['b'].append(move_p['b'])
-                    move_a['node'].append(move_p['node'])
+                    move_a['alpha'].append(move_p['alpha'])
+                    move_a['nodes'].append(move_p['nodes'])
     return moves
 
 def Explore(stone_m, stone_y):

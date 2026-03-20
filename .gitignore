@@ -2,7 +2,7 @@ build
 env
 cert
 __pycache__
-venv
+.venv
 explorer.exe
 test_explorer.exe
 config.json
