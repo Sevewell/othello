@@ -16,12 +16,12 @@ fn print_node(node: engine::Node) {
     count_node(&node, &mut nodes);
     print!("[");
     for child in node.children {
-        print!("{{ ");
+        print!(" {{ ");
         print!("\"move\": {}, ", (child.m | child.y) ^ (node.m | node.y));
         print!("\"m\": {}, ", child.y);
         print!("\"y\": {}, ", child.m);
-        print!("\"alpha\": {:.3}", child.alpha);
-        print!("\"nodes\": {}k", nodes / 1000);
+        print!("\"alpha\": {:.3}, ", child.alpha);
+        print!("\"nodes\": \"{}万\"", nodes / 10000);
         print!(" }}, ");
     }
     print!("]");
