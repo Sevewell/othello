@@ -4,18 +4,18 @@ use rand::rngs::SmallRng;
 use rand_distr::{Distribution, Gamma};
 
 pub struct Node {
-    pub m: u64,
-    pub y: u64,
+    pub mine:u64,
+    pub oppo: u64,
     pub alpha: f32, // 親ノード目線のディリクレ分布母数
     pub children: Vec<Node>
 }
 
 impl Node {
 
-    pub fn new(m: u64, y: u64) -> Self {
+    pub fn new(mine: u64, oppo: u64) -> Self {
         Node {
-            m: m,
-            y: y,
+            mine: mine,
+            oppo: oppo,
             alpha: 1.0,
             children: Vec::new(),
         }
@@ -46,8 +46,8 @@ impl Node {
         let mut movable: u64 = rule::get_legal(legals);
         while movable > 0 {
             let lsb: u64 = movable & movable.wrapping_neg();
-            let reversable: u64 = rule::get_reversable(self.m, self.y, lsb, legals);
-            self.children.push(Node::new(self.y ^ reversable, self.m | lsb | reversable));
+            let reversable: u64 = rule::get_reversable(self.oppo, lsb, legals);
+            self.children.push(Node::new(self.oppo ^ reversable, self.mine | lsb | reversable));
             movable &= movable - 1;
         }
     }
@@ -62,8 +62,8 @@ pub enum GameResult {
 }
 
 fn end_game(node: &Node, result: &mut GameResult) -> f32 {
-    let count_m: u32 = node.m.count_ones();
-    let count_y: u32 = node.y.count_ones();
+    let count_m: u32 = node.mine.count_ones();
+    let count_y: u32 = node.oppo.count_ones();
     if count_m > count_y {
         *result = GameResult::Win;
     } else if count_m < count_y {
@@ -93,7 +93,7 @@ fn move_child(node: &Node) -> usize {
 
 pub fn playout(node: &mut Node, result: &mut GameResult, passed: bool) -> f32 {
     let mut value: f32;
-    let legals: [u64; 8] = rule::get_movable(node.m, node.y);
+    let legals: [u64; 8] = rule::get_movable(node.mine, node.oppo);
     if rule::get_legal(&legals) > 0 {
         if node.children.is_empty() {
             node.make_children(&legals);
@@ -107,7 +107,7 @@ pub fn playout(node: &mut Node, result: &mut GameResult, passed: bool) -> f32 {
             value = node.update_param(result, value);
         } else {
             if node.children.is_empty() {
-                node.children.push(Node::new(node.y, node.m));
+                node.children.push(Node::new(node.oppo, node.mine));
             }
             value = playout(&mut node.children[0], result, true);
         }

@@ -17,9 +17,9 @@ fn print_node(node: engine::Node) {
     print!("[");
     for child in node.children {
         print!(" {{ ");
-        print!("\"move\": {}, ", (child.m | child.y) ^ (node.m | node.y));
-        print!("\"m\": {}, ", child.y);
-        print!("\"y\": {}, ", child.m);
+        print!("\"move\": {}, ", (child.mine | child.oppo) ^ (node.mine | node.oppo));
+        print!("\"m\": {}, ", child.oppo);
+        print!("\"y\": {}, ", child.mine);
         print!("\"alpha\": {:.3}, ", child.alpha);
         print!("\"nodes\": \"{}万\"", nodes / 10000);
         print!(" }}, ");
@@ -29,10 +29,10 @@ fn print_node(node: engine::Node) {
 
 fn main() {
     let args: Vec<String> = env::args().collect();
-    let m: u64 = args[1].parse().unwrap();
-    let y: u64 = args[2].parse().unwrap();
+    let mine_stones: u64 = args[1].parse().unwrap();
+    let oppo_stones: u64 = args[2].parse().unwrap();
     let iter: u64 = args[3].parse().unwrap();
-    let mut node: engine::Node = engine::Node::new(m, y);
+    let mut node: engine::Node = engine::Node::new(mine_stones, oppo_stones);
     let mut result: engine::GameResult;
     for i in 0..iter {
         result = engine::GameResult::None;
