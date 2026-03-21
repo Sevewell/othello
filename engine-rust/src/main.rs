@@ -11,20 +11,28 @@ fn count_node(node: &engine::Node, count: &mut u32) {
     }
 }
 
-fn print_node(node: engine::Node) {
+fn print_node(node: &engine::Node) {
+    print!("\"mine\": {}, ", node.mine);
+    print!("\"oppo\": {}, ", node.oppo);
+    print!("\"alpha\": {:.3}, ", node.alpha);
+}
+
+fn print_result(node: &engine::Node) {
     let mut nodes: u32 = 0;
     count_node(&node, &mut nodes);
-    print!("[");
-    for child in node.children {
-        print!(" {{ ");
-        print!("\"move\": {}, ", (child.mine | child.oppo) ^ (node.mine | node.oppo));
-        print!("\"m\": {}, ", child.oppo);
-        print!("\"y\": {}, ", child.mine);
-        print!("\"alpha\": {:.3}, ", child.alpha);
-        print!("\"nodes\": \"{}万\"", nodes / 10000);
-        print!(" }}, ");
+    print!("{{ ");
+    print!("\"nodes\": \"{}万\", ", nodes / 10000);
+    print!("\"value\": {{ ");
+    print_node(node);
+    print!("\"children\": [ ");
+    for child in &node.children {
+        print!("{{ ");
+        print_node(child);
+        print!("}}, ");
     }
-    print!("]");
+    print!("] ");
+    print!("}} ");
+    print!("}}");
 }
 
 fn main() {
@@ -38,5 +46,5 @@ fn main() {
         result = engine::GameResult::None;
         engine::playout(&mut node, &mut result, false);
     }
-    print_node(node);
+    print_result(&node);
 }

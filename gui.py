@@ -101,12 +101,12 @@ class App(tkinter.Frame):
         turn = self.turn.get()
         if turn == 'black':
             move = simu.Explore(self.black, self.white)
-            self.black = move['m']
-            self.white = move['y']
+            self.black = move['oppo']
+            self.white = move['mine']
         if turn == 'white':
             move = simu.Explore(self.white, self.black)
-            self.black = move['y']
-            self.white = move['m']
+            self.black = move['mine']
+            self.white = move['oppo']
         self.Render()
     
     def Export(self):

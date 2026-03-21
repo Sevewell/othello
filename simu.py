@@ -24,40 +24,19 @@ def Execute(m, y):
         text=True
     )
 
-def Caluculate(moves):
-    for move in moves:
-        move['score'] = [alpha for alpha in move['alpha']]
-    # これが正しいかは議論の余地あり
-    # こうするなら学習率は低めが良さそう
-    return max(moves, key=lambda x: sorted(x['score'])[config['process'] // 2])
-
-def AggregateToMoves(processes):
-    moves = processes.pop()
-    for move in moves:
-        move['alpha'] = [move['alpha']]
-        move['nodes'] = [move['nodes']]
-    for process in processes:
-        for move_p in process:
-            for move_a in moves:
-                if move_p['move'] == move_a['move']:
-                    move_a['alpha'].append(move_p['alpha'])
-                    move_a['nodes'].append(move_p['nodes'])
-    return moves
-
 def Explore(stone_m, stone_y):
     processes = []
     seconds = 0
-    for batch in range(config['batch']): # バッチ処理は削除でいいかも
-        processes_batch = [Execute(stone_m, stone_y) for p in range(config['process'])]
-        while any([process.poll() == None for process in processes_batch]):
-            time.sleep(1)
-            seconds += 1
-        processes += [eval(process.stdout.read()) for process in processes_batch]
-    moves = AggregateToMoves(processes)
-    if [move for move in moves if move]:
-        move = Caluculate(moves)
+    process = Execute(stone_m, stone_y)
+    while process.poll() == None:
+        time.sleep(1)
+        seconds += 1
+    result = eval(process.stdout.read())
+    print(result)
+    if result["value"]["children"]:
+        move = max(result["value"]["children"], key=lambda x: x['alpha'])
     else: # 置ける石がなかった場合
-        move = {'m': stone_y, 'y': stone_m}
+        move = {'mine': stone_y, 'oppo': stone_m}
     print('{} seconds'.format(seconds))
     print(move) # これはログとして画面に説明も出そうかな
     return move
