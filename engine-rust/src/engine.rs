@@ -1,13 +1,12 @@
 mod rule;
 
-use std::f64::INFINITY;
 use rand::rngs::SmallRng;
 use rand_distr::{Distribution, Gamma};
 
 pub struct Node {
     pub m: u64,
     pub y: u64,
-    pub alpha: f32,
+    pub alpha: f32, // 親ノード目線のディリクレ分布母数
     pub children: Vec<Node>
 }
 
@@ -23,14 +22,15 @@ impl Node {
     }
 
     fn update_param(self: &mut Self, result: &mut GameResult, value: f32) -> f32 {
+        // 親ノード目線
         match result {
             GameResult::Win => {
-                self.alpha += value;
-                *result = GameResult::Lose;
-            }
-            GameResult::Lose => {
                 self.alpha -= value;
                 self.alpha = self.alpha.max(1.0);
+                *result = GameResult::Lose
+            }
+            GameResult::Lose => {
+                self.alpha += value;
                 *result = GameResult::Win;
             }
             GameResult::Draw => {
@@ -77,18 +77,18 @@ fn end_game(node: &Node, result: &mut GameResult) -> f32 {
 fn move_child(node: &Node) -> usize {
     let mut rng: SmallRng = rand::make_rng();
     let mut sample: f64;
-    let mut min_score: f64 = INFINITY;
-    let mut min_index: usize = 0;
+    let mut max_score: f64 = 0.0;
+    let mut max_index: usize = 0;
     let mut index: usize = 0;
     for child in &node.children {
         sample = Gamma::new(child.alpha as f64, 1.0).unwrap().sample(&mut rng);
-        if sample <= min_score {
-            min_index = index;
-            min_score = sample;
+        if sample > max_score {
+            max_index = index;
+            max_score = sample;
         }
         index += 1;
     }
-    min_index
+    max_index
 }
 
 pub fn playout(node: &mut Node, result: &mut GameResult, passed: bool) -> f32 {

@@ -29,7 +29,7 @@ def Caluculate(moves):
         move['score'] = [alpha for alpha in move['alpha']]
     # これが正しいかは議論の余地あり
     # こうするなら学習率は低めが良さそう
-    return min(moves, key=lambda x: sorted(x['score'])[config['process'] // 2])
+    return max(moves, key=lambda x: sorted(x['score'])[config['process'] // 2])
 
 def AggregateToMoves(processes):
     moves = processes.pop()
