@@ -36,16 +36,31 @@ fn print_result(node: &engine::Node) {
     print!("}}");
 }
 
+fn reset_node(node: &mut engine::Node) {
+    let rate: f32 = (node.a + node.b) / (node.mine | node.oppo).count_ones() as f32;
+    node.a = (node.a / rate) + 1.0;
+    node.b = (node.b / rate) + 1.0;
+    for child in &mut node.children {
+        reset_node(child);
+    }
+}
+
 fn main() {
     let args: Vec<String> = env::args().collect();
     let mine_stones: u64 = args[1].parse().unwrap();
     let oppo_stones: u64 = args[2].parse().unwrap();
-    let iter: u64 = args[3].parse().unwrap();
+    let epic: u64 = args[3].parse().unwrap();
+    let iter: u64 = args[4].parse().unwrap();
     let mut node: engine::Node = engine::Node::new(mine_stones, oppo_stones);
     let mut result: engine::GameResult;
-    for i in 0..iter {
-        result = engine::GameResult::None;
-        engine::playout(&mut node, &mut result, false);
+    for i in 0..epic {
+        for _ in 0..iter {
+            result = engine::GameResult::None;
+            engine::playout(&mut node, &mut result, false);
+        }
+        if i < (epic - 1) {
+            reset_node(&mut node);
+        }
     }
     print_result(&node);
 }

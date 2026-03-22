@@ -13,11 +13,12 @@ with open('config.json', 'r') as f:
 def Execute(m, y):
     m = str(m)
     y = str(y)
+    epic = str(config['epic'])
     playout = str(config['playout'])
     seed = str(random.randint(1, 10000))
     learning_rate = str(config['learning_rate'])
     return subprocess.Popen(
-        ['./explorer', m, y, playout],
+        ['./explorer', m, y, epic, playout],
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         encoding='utf-8',
@@ -37,8 +38,8 @@ def Explore(stone_m, stone_y):
         move = min(result["value"]["children"], key=lambda x: x["alpha"] / (x["alpha"] + x["beta"]))
     else: # 置ける石がなかった場合
         move = {'mine': stone_y, 'oppo': stone_m}
+    print(move)
     print('{} seconds'.format(seconds))
-    print(move) # これはログとして画面に説明も出そうかな
     return move
 
 def Put(player, m, y, pass_count):
