@@ -23,24 +23,23 @@ impl Node {
         }
     }
 
-    fn update_param(self: &mut Self, result: &mut GameResult, value: f32) -> f32 {
+    fn update_param(self: &mut Self, result: &mut GameResult) {
         match result {
             GameResult::Win => {
-                self.a += value;
-                *result = GameResult::Lose
+                self.a += 1.0;
+                *result = GameResult::Lose;
             }
             GameResult::Lose => {
-                self.b += value;
+                self.b += 1.0;
                 *result = GameResult::Win;
             }
             GameResult::Draw => {
-                self.a += value / 2.0;
-                self.b += value / 2.0;
+                self.a += 0.5;
+                self.b += 0.5;
                 *result = GameResult::Draw;
             }
             GameResult::None => panic!("不正なゲーム結果"),
         }
-        value // 学習率で更新する予定
     }
 
     fn make_children(self: &mut Self, legals: &[u64; 8]) {
@@ -62,7 +61,7 @@ pub enum GameResult {
     None,
 }
 
-fn end_game(node: &Node, result: &mut GameResult) -> f32 {
+fn end_game(node: &Node, result: &mut GameResult) {
     let count_m: u32 = node.mine.count_ones();
     let count_y: u32 = node.oppo.count_ones();
     if count_m > count_y {
@@ -72,7 +71,6 @@ fn end_game(node: &Node, result: &mut GameResult) -> f32 {
     } else {
         *result = GameResult::Draw;
     }
-    1.0
 }
 
 fn move_child(node: &Node) -> usize {
@@ -92,27 +90,25 @@ fn move_child(node: &Node) -> usize {
     min_index
 }
 
-pub fn playout(node: &mut Node, result: &mut GameResult, passed: bool) -> f32 {
-    let mut value: f32;
+pub fn playout(node: &mut Node, result: &mut GameResult, passed: bool) {
     let legals: [u64; 8] = rule::get_movable(node.mine, node.oppo);
     if rule::get_legal(&legals) > 0 {
         if node.children.is_empty() {
             node.make_children(&legals);
         }
         let index_child = move_child(node);
-        value = playout(&mut node.children[index_child], result, false);
-        value = node.update_param(result, value);
+        playout(&mut node.children[index_child], result, false);
+        node.update_param(result);
     } else {
         if passed {
-            value = end_game(node, result);
-            value = node.update_param(result, value);
+            end_game(node, result);
+            node.update_param(result);
         } else {
             if node.children.is_empty() {
                 node.children.push(Node::new(node.oppo, node.mine));
             }
-            value = playout(&mut node.children[0], result, true);
-            value = node.update_param(result, value);
+            playout(&mut node.children[0], result, true);
+            node.update_param(result);
         }
     }
-    value
 }
