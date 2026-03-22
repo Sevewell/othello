@@ -34,7 +34,7 @@ def Explore(stone_m, stone_y):
     result = eval(process.stdout.read())
     print(result)
     if result["value"]["children"]:
-        move = max(result["value"]["children"], key=lambda x: x['alpha'])
+        move = min(result["value"]["children"], key=lambda x: x["alpha"] / (x["alpha"] + x["beta"]))
     else: # 置ける石がなかった場合
         move = {'mine': stone_y, 'oppo': stone_m}
     print('{} seconds'.format(seconds))

@@ -1,12 +1,13 @@
 mod rule;
 
 use rand::rngs::SmallRng;
-use rand_distr::{Distribution, Gamma};
+use rand_distr::{Distribution, Beta};
 
 pub struct Node {
     pub mine:u64,
     pub oppo: u64,
-    pub alpha: f32, // 親ノード目線のディリクレ分布母数
+    pub a: f32,
+    pub b: f32,
     pub children: Vec<Node>
 }
 
@@ -16,25 +17,25 @@ impl Node {
         Node {
             mine: mine,
             oppo: oppo,
-            alpha: 1.0,
+            a: 1.0,
+            b: 1.0,
             children: Vec::new(),
         }
     }
 
     fn update_param(self: &mut Self, result: &mut GameResult, value: f32) -> f32 {
-        // 親ノード目線
         match result {
             GameResult::Win => {
-                self.alpha -= value;
-                self.alpha = self.alpha.max(1.0);
+                self.a += value;
                 *result = GameResult::Lose
             }
             GameResult::Lose => {
-                self.alpha += value;
+                self.b += value;
                 *result = GameResult::Win;
             }
             GameResult::Draw => {
-                self.alpha += value / 2.0;
+                self.a += value / 2.0;
+                self.b += value / 2.0;
                 *result = GameResult::Draw;
             }
             GameResult::None => panic!("不正なゲーム結果"),
@@ -76,19 +77,19 @@ fn end_game(node: &Node, result: &mut GameResult) -> f32 {
 
 fn move_child(node: &Node) -> usize {
     let mut rng: SmallRng = rand::make_rng();
-    let mut sample: f64;
-    let mut max_score: f64 = 0.0;
-    let mut max_index: usize = 0;
+    let mut sample: f32;
+    let mut min_score: f32 = 1.0;
+    let mut min_index: usize = 0;
     let mut index: usize = 0;
     for child in &node.children {
-        sample = Gamma::new(child.alpha as f64, 1.0).unwrap().sample(&mut rng);
-        if sample > max_score {
-            max_index = index;
-            max_score = sample;
+        sample = Beta::new(child.a, child.b).unwrap().sample(&mut rng);
+        if sample < min_score {
+            min_index = index;
+            min_score = sample;
         }
         index += 1;
     }
-    max_index
+    min_index
 }
 
 pub fn playout(node: &mut Node, result: &mut GameResult, passed: bool) -> f32 {
@@ -110,6 +111,7 @@ pub fn playout(node: &mut Node, result: &mut GameResult, passed: bool) -> f32 {
                 node.children.push(Node::new(node.oppo, node.mine));
             }
             value = playout(&mut node.children[0], result, true);
+            value = node.update_param(result, value);
         }
     }
     value

@@ -14,7 +14,8 @@ fn count_node(node: &engine::Node, count: &mut u32) {
 fn print_node(node: &engine::Node) {
     print!("\"mine\": {}, ", node.mine);
     print!("\"oppo\": {}, ", node.oppo);
-    print!("\"alpha\": {:.3}, ", node.alpha);
+    print!("\"alpha\": {:.3}, ", node.a);
+    print!("\"beta\": {:.3}, ", node.b);
 }
 
 fn print_result(node: &engine::Node) {
