@@ -18,7 +18,7 @@ def Execute(m, y):
     seed = str(random.randint(1, 10000))
     learning_rate = str(config['learning_rate'])
     return subprocess.Popen(
-        ['./explorer', m, y, epic, playout],
+        ['./explorer', m, y, playout],
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         encoding='utf-8',
@@ -32,6 +32,7 @@ def Explore(stone_m, stone_y):
     while process.poll() == None:
         time.sleep(1)
         seconds += 1
+    print(process.stderr.read())
     result = eval(process.stdout.read())
     print(result)
     if result["value"]["children"]:
