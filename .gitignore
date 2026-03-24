@@ -3,7 +3,7 @@ env
 cert
 __pycache__
 .venv
-explorer.exe
-test_explorer.exe
+explorer
+tree.postcard
 config.json
 simulation.json

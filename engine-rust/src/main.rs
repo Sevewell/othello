@@ -151,15 +151,18 @@ fn pop_hashmap(node: &mut Node, hashmap: &mut HashMap<(u64, u64), f32>) {
 fn dump_hashmap(hashmap: HashMap<(u64, u64), f32>)  {
     let bytes: Vec<u8> = postcard::to_allocvec(&hashmap).unwrap();
     fs::write("tree.postcard", &bytes).unwrap();
+    eprintln!("{} nodes are dumped.", hashmap.len());
 }
 
 fn load_hashmap() -> HashMap<(u64, u64), f32> {
+    // どこかで切らないときついかも
     let reading = fs::read("tree.postcard");
     let bytes: Vec<u8> = match reading {
         Ok(file) => file,
         Err(error) => panic!("Problem opening the file: {:?}", error),
     };
     let hashmap: HashMap<(u64, u64), f32> = postcard::from_bytes(&bytes).unwrap();
+    eprintln!("{} nodes are loaded.", hashmap.len());
     hashmap
 }
 
@@ -183,7 +186,6 @@ fn print_result(node: &Node) {
     let mut nodes: u32 = 0;
     count_node(&node, &mut nodes);
     print!("{{ ");
-    print!("\"nodes\": \"{}万\", ", nodes / 10000);
     print!("\"value\": {{ ");
     print_node(node);
     print!("\"children\": [ ");
@@ -211,5 +213,11 @@ fn main() {
     }
     print_result(&node);
     make_hashmap(node, &mut hashmap);
+    // 局面の方向による正規化でデータ量を圧縮できる
+    // 180°はビット反転
+    // 上下はバイト列にして反転
+    // 左右はバイト列毎にビット反転
+    // でも圧縮するとpopのトリガーが面倒だなあ
+    // やるなら母数はハッシュマップで持つくらいしないと
     dump_hashmap(hashmap);
 }

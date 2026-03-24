@@ -4,21 +4,29 @@ import sys
 import random
 import time
 import subprocess
+import threading
 
 random.seed(time.time_ns())
 
 with open('config.json', 'r') as f:
     config = json.load(f)
 
+def stream_output(pipe, label):
+    for line in iter(pipe.readline, ""):
+        print(f"[{label}] {line.rstrip()}")
+
+def collect_stdout(pipe, lines):
+    for line in iter(pipe.readline, ""):
+        lines.append(line)
+
 def Execute(m, y):
     m = str(m)
     y = str(y)
-    epic = str(config['epic'])
     playout = str(config['playout'])
     seed = str(random.randint(1, 10000))
     learning_rate = str(config['learning_rate'])
     return subprocess.Popen(
-        ['./explorer', m, y, playout],
+        ['./engine-rust/target/release/engine', m, y, playout],
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         encoding='utf-8',
@@ -26,21 +34,21 @@ def Execute(m, y):
     )
 
 def Explore(stone_m, stone_y):
-    processes = []
-    seconds = 0
+    stdout_lines = []
     process = Execute(stone_m, stone_y)
-    while process.poll() == None:
-        time.sleep(1)
-        seconds += 1
-    print(process.stderr.read())
-    result = eval(process.stdout.read())
-    print(result)
+    thread_out = threading.Thread(target=collect_stdout, args=(process.stdout, stdout_lines))
+    thread_err = threading.Thread(target=stream_output, args=(process.stderr, "STDERR"))
+    thread_out.start()
+    thread_err.start()
+    process.wait()
+    thread_out.join()
+    thread_err.join()
+    result = eval("".join(stdout_lines))
     if result["value"]["children"]:
         move = min(result["value"]["children"], key=lambda x: x["alpha"] / (x["alpha"] + x["beta"]))
     else: # 置ける石がなかった場合
         move = {'mine': stone_y, 'oppo': stone_m}
     print(move)
-    print('{} seconds'.format(seconds))
     return move
 
 def Put(player, m, y, pass_count):
