@@ -131,8 +131,24 @@ fn reset_node(node: &mut Node) {
     }
 }
 
+fn flip_vertical(v: u64) -> u64 { v.swap_bytes() }
+fn flip_horizontal(v: u64) -> u64 { v.reverse_bits().swap_bytes() }
+fn rotate_180(v: u64) -> u64 { v.reverse_bits() }
+
+fn canonicalize_stones(node: &Node) -> (u64, u64) {
+    let directions: [(u64, u64); 4] = [
+        (node.mine, node.oppo),
+        (flip_vertical(node.mine), flip_vertical(node.oppo)),
+        (flip_horizontal(node.mine), flip_horizontal(node.oppo)),
+        (rotate_180(node.mine), rotate_180(node.oppo))
+    ];
+    // 本当はあと4方向あるけど…
+    directions.into_iter().min().unwrap()
+}
+
 fn make_hashmap(node: Node, hashmap: &mut HashMap<(u64, u64), f32>) {
-    hashmap.insert((node.mine, node.oppo),  node.a / (node.a + node.b));
+    let (mine_canonical, oppo_canonical) = canonicalize_stones(&node);
+    hashmap.insert((mine_canonical, oppo_canonical),  node.a / (node.a + node.b));
     for child in node.children {
         make_hashmap(child, hashmap);
     }
@@ -140,7 +156,8 @@ fn make_hashmap(node: Node, hashmap: &mut HashMap<(u64, u64), f32>) {
 }
 
 fn pop_hashmap(node: &mut Node, hashmap: &mut HashMap<(u64, u64), f32>) {
-    let value: Option<f32> = hashmap.remove(&(node.mine, node.oppo));
+    let (mine_canonical, oppo_canonical) = canonicalize_stones(node);
+    let value: Option<f32> = hashmap.remove(&(mine_canonical, oppo_canonical));
     if value.is_some() {
         let p = value.unwrap();
         node.a += p;
@@ -205,6 +222,7 @@ fn main() {
     let oppo_stones: u64 = args[2].parse().unwrap();
     let iter: u64 = args[3].parse().unwrap();
     let mut hashmap: HashMap<(u64, u64), f32> = load_hashmap();
+    //let mut hashmap: HashMap<(u64, u64), f32> = HashMap::new();
     let mut node: Node = Node::new(mine_stones, oppo_stones);
     let mut result: GameResult;
     for _ in 0..iter {
