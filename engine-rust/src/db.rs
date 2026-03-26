@@ -1,4 +1,4 @@
-use redb::{Database, ReadOnlyTable, ReadTransaction, ReadableDatabase, TableDefinition, WriteTransaction};
+use redb::{Database, Table, ReadOnlyTable, ReadTransaction, ReadableDatabase, TableDefinition, WriteTransaction};
 
 const NODES: TableDefinition<(u64, u64), f32> = TableDefinition::new("nodes");
 
@@ -29,7 +29,6 @@ pub fn open_database(path_db: &str) -> Database {
 pub fn begin_read_transaction(db: &Database) -> ReadTransaction {
     match db.begin_read() {
         Ok(read_txn) => {
-            eprintln!("トランザクションを始めました。");
             read_txn
         }
         Err(error) => {
@@ -41,7 +40,6 @@ pub fn begin_read_transaction(db: &Database) -> ReadTransaction {
 pub fn begin_write_transaction(db: &Database) -> WriteTransaction {
     match db.begin_write() {
         Ok(txn) => {
-            eprintln!("トランザクションを始めました。");
             txn
         }
         Err(error) => {
@@ -61,28 +59,27 @@ pub fn open_read_table(txn: &ReadTransaction) -> ReadOnlyTable<(u64, u64), f32> 
     }
 }
 
-pub fn read_kv(table: &ReadOnlyTable<(u64, u64), f32>, key: (u64, u64)) -> f32 {
-    match table.get(key) {
-        Ok(reading) => {
-            match reading {
-                Some(guard) => guard.value(),
-                None => 0.0,
-            }
-        }
-        Err(error) => {
-            panic!("キーバリューの取得に失敗しました。{:?}", error);
-        }
-    }
-}
-
-pub fn write_kv(txn: &WriteTransaction, key: (u64, u64), value: f32) {
-    let mut table = match txn.open_table(NODES) {
+pub fn open_write_table<'txn>(txn: &'txn WriteTransaction) -> Table<'txn, (u64, u64), f32> {
+    match txn.open_table(NODES) {
         Ok(table) => {
             table
         }
         Err(error) => {
             panic!("テーブルを開けませんでした。{:?}", error);
         }
-    };
-    table.insert(key, value).expect("キーバリューの書き込みに失敗しました。");
+    }
+}
+
+pub fn read_kv(table: &ReadOnlyTable<(u64, u64), f32>, key: (u64, u64)) -> Option<f32> {
+    match table.get(key) {
+        Ok(reading) => {
+            match reading {
+                Some(guard) => Some(guard.value()),
+                None => None,
+            }
+        }
+        Err(error) => {
+            panic!("キーバリューの読み込みに失敗しました。{:?}", error);
+        }
+    }
 }

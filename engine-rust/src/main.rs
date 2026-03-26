@@ -44,7 +44,7 @@ impl Node {
         }
     }
 
-    fn make_children(self: &mut Self, legals: &[u64; 8], txn: &redb::ReadTransaction) {
+    fn make_children(self: &mut Self, legals: &[u64; 8], table: &redb::ReadOnlyTable<(u64, u64), f32>) {
         let mut movable: u64 = rule::get_legal(legals);
         let mut lsb: u64;
         let mut reversable: u64;
@@ -53,7 +53,7 @@ impl Node {
             lsb = movable & movable.wrapping_neg();
             reversable = rule::get_reversable(self.oppo, lsb, legals);
             child = Node::new(self.oppo ^ reversable, self.mine | lsb | reversable);
-            read_hashmap(&mut child, txn);
+            read_hashmap(&mut child, table);
             self.children.push(child);
             movable &= movable - 1;
         }
@@ -97,14 +97,14 @@ fn move_child(node: &Node) -> usize {
     min_index
 }
 
-pub fn playout(node: &mut Node, result: &mut GameResult, passed: bool, txn: &redb::ReadTransaction){
+pub fn playout(node: &mut Node, result: &mut GameResult, passed: bool, table: &redb::ReadOnlyTable<(u64, u64), f32>){
     let legals: [u64; 8] = rule::get_movable(node.mine, node.oppo);
     if rule::get_legal(&legals) > 0 {
         if node.children.is_empty() {
-            node.make_children(&legals, txn);
+            node.make_children(&legals, table);
         }
         let index_child = move_child(node);
-        playout(&mut node.children[index_child], result, false, txn);
+        playout(&mut node.children[index_child], result, false, table);
         node.update_param(result);
     } else {
         if passed {
@@ -114,7 +114,7 @@ pub fn playout(node: &mut Node, result: &mut GameResult, passed: bool, txn: &red
             if node.children.is_empty() {
                 node.children.push(Node::new(node.oppo, node.mine));
             }
-            playout(&mut node.children[0], result, true, txn);
+            playout(&mut node.children[0], result, true, table);
             node.update_param(result);
         }
     }
@@ -144,23 +144,23 @@ fn canonicalize_stones(node: &Node) -> (u64, u64) {
     directions.into_iter().min().unwrap()
 }
 
-fn make_hashmap(node: Node, txn: &redb::WriteTransaction) {
+fn make_hashmap<'txn>(node: Node, table: &mut redb::Table<'txn, (u64, u64), f32>) {
     let hash = canonicalize_stones(&node);
     let p = node.a / (node.a + node.b);
-    db::write_kv(txn, hash, p);
+    table.insert(hash, p).expect("キーバリューの書き込みに失敗しました。");
     for child in node.children {
-        make_hashmap(child, txn);
+        make_hashmap(child, table);
     }
     // ここでノードはメモリから消える？
 }
 
-fn read_hashmap(node: &mut Node, txn: &redb::ReadTransaction) {
+fn read_hashmap(node: &mut Node, table: &redb::ReadOnlyTable<(u64, u64), f32>) {
     let key = canonicalize_stones(node);
-    let table = db::open_read_table(txn);
-    let p: f32 = db::read_kv(&table, key);
     let pre_learn_rate: f32 = 2.0;
-    node.a += p * pre_learn_rate;
-    node.b += (1.0 - p) * pre_learn_rate;
+    if let Some(p) = db::read_kv(table, key) {
+        node.a += p * pre_learn_rate;
+        node.b += (1.0 - p) * pre_learn_rate;
+    };
 }
 
 fn count_node(node: &Node, count: &mut u32) {
@@ -200,17 +200,21 @@ fn main() {
     let oppo_stones: u64 = args[2].parse().unwrap();
     let iter: u64 = args[3].parse().unwrap();
     let database: redb::Database = db::create_database("othello.redb");
+    // まずは書き込みでテーブルを作らないといけない
     //let database: redb::Database = db::open_database("othello.redb");
     let mut node: Node = Node::new(mine_stones, oppo_stones);
     let mut result: GameResult;
-    let mut transaction: redb::ReadTransaction;
+    let transaction: redb::ReadTransaction = db::begin_read_transaction(&database);
+    let table = db::open_read_table(&transaction);
     for _ in 0..iter {
         result = GameResult::None;
-        transaction = db::begin_read_transaction(&database);
-        playout(&mut node, &mut result, false, &transaction);
+        playout(&mut node, &mut result, false, &table);
     }
     print_result(&node);
     let transaction: redb::WriteTransaction = db::begin_write_transaction(&database);
-    make_hashmap(node, &transaction);
+    {
+        let mut table = db::open_write_table(&transaction);
+        make_hashmap(node, &mut table);
+    }
     transaction.commit().expect("データベースへのコミットに失敗しました。");
 }
