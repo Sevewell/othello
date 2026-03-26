@@ -1,9 +1,7 @@
 mod rule;
+mod db;
 
 use std::env;
-use std::fs;
-use std::collections::HashMap;
-use postcard;
 use rand::rngs::SmallRng;
 use rand_distr::{Distribution, Beta};
 
@@ -46,7 +44,7 @@ impl Node {
         }
     }
 
-    fn make_children(self: &mut Self, legals: &[u64; 8], hashmap: &mut HashMap<(u64, u64), f32>) {
+    fn make_children(self: &mut Self, legals: &[u64; 8], txn: &redb::ReadTransaction) {
         let mut movable: u64 = rule::get_legal(legals);
         let mut lsb: u64;
         let mut reversable: u64;
@@ -55,7 +53,7 @@ impl Node {
             lsb = movable & movable.wrapping_neg();
             reversable = rule::get_reversable(self.oppo, lsb, legals);
             child = Node::new(self.oppo ^ reversable, self.mine | lsb | reversable);
-            pop_hashmap(&mut child, hashmap);
+            read_hashmap(&mut child, txn);
             self.children.push(child);
             movable &= movable - 1;
         }
@@ -99,14 +97,14 @@ fn move_child(node: &Node) -> usize {
     min_index
 }
 
-pub fn playout(node: &mut Node, result: &mut GameResult, passed: bool, hashmap: &mut HashMap<(u64, u64), f32>) {
+pub fn playout(node: &mut Node, result: &mut GameResult, passed: bool, txn: &redb::ReadTransaction){
     let legals: [u64; 8] = rule::get_movable(node.mine, node.oppo);
     if rule::get_legal(&legals) > 0 {
         if node.children.is_empty() {
-            node.make_children(&legals, hashmap);
+            node.make_children(&legals, txn);
         }
         let index_child = move_child(node);
-        playout(&mut node.children[index_child], result, false, hashmap);
+        playout(&mut node.children[index_child], result, false, txn);
         node.update_param(result);
     } else {
         if passed {
@@ -116,7 +114,7 @@ pub fn playout(node: &mut Node, result: &mut GameResult, passed: bool, hashmap: 
             if node.children.is_empty() {
                 node.children.push(Node::new(node.oppo, node.mine));
             }
-            playout(&mut node.children[0], result, true, hashmap);
+            playout(&mut node.children[0], result, true, txn);
             node.update_param(result);
         }
     }
@@ -146,41 +144,23 @@ fn canonicalize_stones(node: &Node) -> (u64, u64) {
     directions.into_iter().min().unwrap()
 }
 
-fn make_hashmap(node: Node, hashmap: &mut HashMap<(u64, u64), f32>) {
-    let (mine_canonical, oppo_canonical) = canonicalize_stones(&node);
-    hashmap.insert((mine_canonical, oppo_canonical),  node.a / (node.a + node.b));
+fn make_hashmap(node: Node, txn: &redb::WriteTransaction) {
+    let hash = canonicalize_stones(&node);
+    let p = node.a / (node.a + node.b);
+    db::write_kv(txn, hash, p);
     for child in node.children {
-        make_hashmap(child, hashmap);
+        make_hashmap(child, txn);
     }
     // ここでノードはメモリから消える？
 }
 
-fn pop_hashmap(node: &mut Node, hashmap: &mut HashMap<(u64, u64), f32>) {
-    let (mine_canonical, oppo_canonical) = canonicalize_stones(node);
-    let value: Option<f32> = hashmap.remove(&(mine_canonical, oppo_canonical));
-    if value.is_some() {
-        let p = value.unwrap();
-        node.a += p;
-        node.b += 1.0 - p;
-    }
-}
-
-fn dump_hashmap(hashmap: HashMap<(u64, u64), f32>)  {
-    let bytes: Vec<u8> = postcard::to_allocvec(&hashmap).unwrap();
-    fs::write("tree.postcard", &bytes).unwrap();
-    eprintln!("{} nodes are dumped.", hashmap.len());
-}
-
-fn load_hashmap() -> HashMap<(u64, u64), f32> {
-    // どこかで切らないときついかも
-    let reading = fs::read("tree.postcard");
-    let bytes: Vec<u8> = match reading {
-        Ok(file) => file,
-        Err(error) => panic!("Problem opening the file: {:?}", error),
-    };
-    let hashmap: HashMap<(u64, u64), f32> = postcard::from_bytes(&bytes).unwrap();
-    eprintln!("{} nodes are loaded.", hashmap.len());
-    hashmap
+fn read_hashmap(node: &mut Node, txn: &redb::ReadTransaction) {
+    let key = canonicalize_stones(node);
+    let table = db::open_read_table(txn);
+    let p: f32 = db::read_kv(&table, key);
+    let pre_learn_rate: f32 = 2.0;
+    node.a += p * pre_learn_rate;
+    node.b += (1.0 - p) * pre_learn_rate;
 }
 
 fn count_node(node: &Node, count: &mut u32) {
@@ -200,8 +180,6 @@ fn print_node(node: &Node) {
 }
 
 fn print_result(node: &Node) {
-    let mut nodes: u32 = 0;
-    count_node(&node, &mut nodes);
     print!("{{ ");
     print!("\"value\": {{ ");
     print_node(node);
@@ -221,21 +199,18 @@ fn main() {
     let mine_stones: u64 = args[1].parse().unwrap();
     let oppo_stones: u64 = args[2].parse().unwrap();
     let iter: u64 = args[3].parse().unwrap();
-    let mut hashmap: HashMap<(u64, u64), f32> = load_hashmap();
-    //let mut hashmap: HashMap<(u64, u64), f32> = HashMap::new();
+    let database: redb::Database = db::create_database("othello.redb");
+    //let database: redb::Database = db::open_database("othello.redb");
     let mut node: Node = Node::new(mine_stones, oppo_stones);
     let mut result: GameResult;
+    let mut transaction: redb::ReadTransaction;
     for _ in 0..iter {
         result = GameResult::None;
-        playout(&mut node, &mut result, false, &mut hashmap);
+        transaction = db::begin_read_transaction(&database);
+        playout(&mut node, &mut result, false, &transaction);
     }
     print_result(&node);
-    make_hashmap(node, &mut hashmap);
-    // 局面の方向による正規化でデータ量を圧縮できる
-    // 180°はビット反転
-    // 上下はバイト列にして反転
-    // 左右はバイト列毎にビット反転
-    // でも圧縮するとpopのトリガーが面倒だなあ
-    // やるなら母数はハッシュマップで持つくらいしないと
-    dump_hashmap(hashmap);
+    let transaction: redb::WriteTransaction = db::begin_write_transaction(&database);
+    make_hashmap(node, &transaction);
+    transaction.commit().expect("データベースへのコミットに失敗しました。");
 }
