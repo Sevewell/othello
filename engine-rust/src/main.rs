@@ -1,9 +1,11 @@
 mod rule;
-mod db;
 
 use std::env;
 use rand::rngs::SmallRng;
 use rand_distr::{Distribution, Beta};
+use redb::{Database, ReadableDatabase, TableDefinition};
+
+const NODES: TableDefinition<(u64, u64), f32> = TableDefinition::new("nodes");
 
 pub struct Node {
     pub mine:u64,
@@ -157,9 +159,11 @@ fn make_hashmap<'txn>(node: Node, table: &mut redb::Table<'txn, (u64, u64), f32>
 fn read_hashmap(node: &mut Node, table: &redb::ReadOnlyTable<(u64, u64), f32>) {
     let key = canonicalize_stones(node);
     let pre_learn_rate: f32 = 2.0;
-    if let Some(p) = db::read_kv(table, key) {
-        node.a += p * pre_learn_rate;
-        node.b += (1.0 - p) * pre_learn_rate;
+    let reading = table.get(key).expect("キーバリューの読み込みに失敗しました。");
+    if let Some(p) = reading {
+        let v = p.value();
+        node.a += v * pre_learn_rate;
+        node.b += (1.0 - v) * pre_learn_rate;
     };
 }
 
@@ -194,26 +198,34 @@ fn print_result(node: &Node) {
     print!("}}");
 }
 
+fn prepare_database(path_db: &str) -> Database {
+    let database = Database::create(path_db).expect("データベースが作れませんでした。"); // 既にあればopen
+    let transaction = database.begin_write().expect("トランザクションを始められませんでした。");
+    {
+        transaction.open_table(NODES).expect("テーブルを開けませんでした。"); // 初期化に必要な処理
+    }
+    transaction.commit().expect("データベースへのコミットに失敗しました。");
+    database
+}
+
 fn main() {
     let args: Vec<String> = env::args().collect();
     let mine_stones: u64 = args[1].parse().unwrap();
     let oppo_stones: u64 = args[2].parse().unwrap();
     let iter: u64 = args[3].parse().unwrap();
-    let database: redb::Database = db::create_database("othello.redb");
-    // まずは書き込みでテーブルを作らないといけない
-    //let database: redb::Database = db::open_database("othello.redb");
+    let database = prepare_database("ohello.redb");
     let mut node: Node = Node::new(mine_stones, oppo_stones);
     let mut result: GameResult;
-    let transaction: redb::ReadTransaction = db::begin_read_transaction(&database);
-    let table = db::open_read_table(&transaction);
+    let transaction = database.begin_read().expect("トランザクションを始められませんでした。");
+    let table = transaction.open_table(NODES).expect("テーブルを開けませんでした。");
     for _ in 0..iter {
         result = GameResult::None;
         playout(&mut node, &mut result, false, &table);
     }
     print_result(&node);
-    let transaction: redb::WriteTransaction = db::begin_write_transaction(&database);
+    let transaction = database.begin_write().expect("トランザクションを始められませんでした。");
     {
-        let mut table = db::open_write_table(&transaction);
+        let mut table = transaction.open_table(NODES).expect("テーブルを開けませんでした。");
         make_hashmap(node, &mut table);
     }
     transaction.commit().expect("データベースへのコミットに失敗しました。");
