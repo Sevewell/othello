@@ -49,6 +49,7 @@ class App(tkinter.Frame):
                 white_bit = '0'
             self.black = int(black_bits[:index] + black_bit + black_bits[index+1:], 2)
             self.white = int(white_bits[:index] + white_bit + white_bits[index+1:], 2)
+            self.board.delete('win_rate')
             self.Render()
         canvas.bind('<ButtonPress>', ChangeStone)
         canvas.pack()
@@ -100,14 +101,10 @@ class App(tkinter.Frame):
     def Engine(self): # 非同期にしたい
         turn = self.turn.get()
         if turn == 'black':
-            move = simu.Explore(self.black, self.white)
-            self.black = move['oppo']
-            self.white = move['mine']
+            moves = simu.Explore(self.black, self.white)
         if turn == 'white':
-            move = simu.Explore(self.white, self.black)
-            self.black = move['mine']
-            self.white = move['oppo']
-        self.Render()
+            moves = simu.Explore(self.white, self.black)
+        self.RenderWinRate(moves)
     
     def Export(self):
         print('black', self.black)
@@ -127,6 +124,17 @@ class App(tkinter.Frame):
             else:
                 color = 'green'
             self.board.itemconfigure(self.stones[row][col], fill=color)
+
+    def RenderWinRate(self, moves):
+        self.board.delete('win_rate')  # タグで一括削除
+        size = self.board_size / 8
+        for move in moves:
+            index = move['index']
+            row, col = index // 8, index % 8
+            x = size * col + size / 2
+            y = size * row + size / 2
+            text = f"{move['win_rate']:.0%}"  # "62%" のような表示
+            self.board.create_text(x, y, text=text, fill=self.turn.get(), tags='win_rate')
 
     def Import(self):
         black_tv = tkinter.IntVar(self)

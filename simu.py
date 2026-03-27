@@ -45,11 +45,13 @@ def Explore(stone_m, stone_y):
     thread_err.join()
     result = eval("".join(stdout_lines))
     if result["value"]["children"]:
-        move = min(result["value"]["children"], key=lambda x: x["alpha"] / (x["alpha"] + x["beta"]))
+        for child in result["value"]["children"]:
+            child["win_rate"] = child["beta"] / (child["alpha"] + child["beta"])
+            child["index"] = 63 - ((child["move"] & -child["move"]).bit_length() - 1)
+        moves = result["value"]["children"]
     else: # 置ける石がなかった場合
-        move = {'mine': stone_y, 'oppo': stone_m}
-    print(move)
-    return move
+        moves = []
+    return moves
 
 def Put(player, m, y, pass_count):
     config['playout'] = player['playout']

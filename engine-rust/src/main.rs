@@ -3,7 +3,7 @@ mod rule;
 use std::env;
 use rand::rngs::SmallRng;
 use rand_distr::{Distribution, Beta};
-use redb::{Database, ReadableDatabase, TableDefinition};
+use redb::{Database, ReadOnlyTable, ReadableDatabase, ReadableTableMetadata, TableDefinition};
 
 const NODES: TableDefinition<(u64, u64), f32> = TableDefinition::new("nodes");
 
@@ -191,6 +191,7 @@ fn print_result(node: &Node) {
     for child in &node.children {
         print!("{{ ");
         print_node(child);
+        print!("\"move\": {}, ", (node.mine | node.oppo) ^ (child.mine | child.oppo));
         print!("}}, ");
     }
     print!("] ");
@@ -208,25 +209,33 @@ fn prepare_database(path_db: &str) -> Database {
     database
 }
 
+fn output_sample_nodes(table: ReadOnlyTable<(u64, u64), f32>) {
+
+}
+
 fn main() {
     let args: Vec<String> = env::args().collect();
     let mine_stones: u64 = args[1].parse().unwrap();
     let oppo_stones: u64 = args[2].parse().unwrap();
     let iter: u64 = args[3].parse().unwrap();
-    let database = prepare_database("ohello.redb");
+    let database = prepare_database("othello.redb");
+    eprintln!("ノードデータベースを開きました。");
     let mut node: Node = Node::new(mine_stones, oppo_stones);
     let mut result: GameResult;
     let transaction = database.begin_read().expect("トランザクションを始められませんでした。");
     let table = transaction.open_table(NODES).expect("テーブルを開けませんでした。");
+    eprintln!("{} ノードが記録されています。", table.len().expect("ノード数の取得に失敗しました。"));
     for _ in 0..iter {
         result = GameResult::None;
         playout(&mut node, &mut result, false, &table);
     }
     print_result(&node);
+    eprintln!("探索が終了しました。");
     let transaction = database.begin_write().expect("トランザクションを始められませんでした。");
     {
         let mut table = transaction.open_table(NODES).expect("テーブルを開けませんでした。");
         make_hashmap(node, &mut table);
     }
     transaction.commit().expect("データベースへのコミットに失敗しました。");
+    eprintln!("ノードデータベースの更新が終了しました。");
 }
