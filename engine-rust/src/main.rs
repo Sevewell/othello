@@ -122,15 +122,6 @@ pub fn playout(node: &mut Node, result: &mut GameResult, passed: bool, table: &r
     }
 }
 
-fn reset_node(node: &mut Node) {
-    let rate: f32 = (node.a + node.b) / (node.mine | node.oppo).count_ones() as f32;
-    node.a = (node.a / rate) + 1.0;
-    node.b = (node.b / rate) + 1.0;
-    for child in &mut node.children {
-        reset_node(child);
-    }
-}
-
 fn flip_vertical(v: u64) -> u64 { v.swap_bytes() }
 fn flip_horizontal(v: u64) -> u64 { v.reverse_bits().swap_bytes() }
 fn rotate_180(v: u64) -> u64 { v.reverse_bits() }
@@ -146,13 +137,27 @@ fn canonicalize_stones(node: &Node) -> (u64, u64) {
     directions.into_iter().min().unwrap()
 }
 
-fn make_hashmap<'txn>(node: Node, table: &mut redb::Table<'txn, (u64, u64), f32>) {
+fn make_hashmap<'txn>(node: Node, table: &mut redb::Table<'txn, (u64, u64), f32>) -> (u64, u64) {
     let hash = canonicalize_stones(&node);
     let p = node.a / (node.a + node.b);
-    table.insert(hash, p).expect("キーバリューの書き込みに失敗しました。");
-    for child in node.children {
-        make_hashmap(child, table);
+    let mut count_node_update: u64 = 0;
+    let mut count_node_create: u64 = 0;
+    {
+        let writed = table.insert(hash, p).expect("キーバリューの書き込みに失敗しました。");
+        match writed {
+            Some(_p) => count_node_update += 1,
+            None => count_node_create += 1
+        }
+        // 書き込み結果を次の前にdropしなきゃいけないみたい
     }
+    let mut count_child_update: u64;
+    let mut count_child_create: u64;
+    for child in node.children {
+        (count_child_update, count_child_create) = make_hashmap(child, table);
+        count_node_update += count_child_update;
+        count_node_create += count_child_create;
+    }
+    (count_node_update, count_node_create)
     // ここでノードはメモリから消える？
 }
 
@@ -165,15 +170,6 @@ fn read_hashmap(node: &mut Node, table: &redb::ReadOnlyTable<(u64, u64), f32>) {
         node.a += v * pre_learn_rate;
         node.b += (1.0 - v) * pre_learn_rate;
     };
-}
-
-fn count_node(node: &Node, count: &mut u32) {
-    *count += 1;
-    if !node.children.is_empty() {
-        for child in &node.children {
-            count_node(child, count);
-        }
-    }
 }
 
 fn print_node(node: &Node) {
@@ -209,10 +205,6 @@ fn prepare_database(path_db: &str) -> Database {
     database
 }
 
-fn output_sample_nodes(table: ReadOnlyTable<(u64, u64), f32>) {
-
-}
-
 fn main() {
     let args: Vec<String> = env::args().collect();
     let mine_stones: u64 = args[1].parse().unwrap();
@@ -224,7 +216,8 @@ fn main() {
     let mut result: GameResult;
     let transaction = database.begin_read().expect("トランザクションを始められませんでした。");
     let table = transaction.open_table(NODES).expect("テーブルを開けませんでした。");
-    eprintln!("{} ノードが記録されています。", table.len().expect("ノード数の取得に失敗しました。"));
+    eprintln!("{}のノードが記録されています。", table.len().expect("ノード数の取得に失敗しました。"));
+    eprintln!("探索を開始します。");
     for _ in 0..iter {
         result = GameResult::None;
         playout(&mut node, &mut result, false, &table);
@@ -234,7 +227,9 @@ fn main() {
     let transaction = database.begin_write().expect("トランザクションを始められませんでした。");
     {
         let mut table = transaction.open_table(NODES).expect("テーブルを開けませんでした。");
-        make_hashmap(node, &mut table);
+        let (count_node_update, count_node_create) = make_hashmap(node, &mut table);
+        eprintln!("{}のノードがDBに更新されました。", count_node_update);
+        eprintln!("{}のノードがDBに登録されました。", count_node_create);
     }
     transaction.commit().expect("データベースへのコミットに失敗しました。");
     eprintln!("ノードデータベースの更新が終了しました。");
