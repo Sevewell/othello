@@ -11,14 +11,6 @@ random.seed(time.time_ns())
 with open('config.json', 'r') as f:
     config = json.load(f)
 
-def stream_output(pipe, label):
-    for line in iter(pipe.readline, ""):
-        print(f"[{label}] {line.rstrip()}")
-
-def collect_stdout(pipe, lines):
-    for line in iter(pipe.readline, ""):
-        lines.append(line)
-
 def Execute(m, y):
     m = str(m)
     y = str(y)

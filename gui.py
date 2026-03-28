@@ -1,5 +1,6 @@
 import tkinter
 import simu
+import threading
 
 class App(tkinter.Frame):
 
@@ -14,8 +15,8 @@ class App(tkinter.Frame):
         self.stones = [[None for col in range(8)] for row in range(8)]
         self.Stone()
         self.InputToComputer()
-        button = tkinter.Button(self, text='探索', command=self.Engine)
-        button.pack()
+        self.engine_button = tkinter.Button(self, text='探索', command=self.Engine)
+        self.engine_button.pack()
         button_export = tkinter.Button(self, text='出力', command=self.Export)
         button_export.pack()
         self.Import()
@@ -99,13 +100,41 @@ class App(tkinter.Frame):
         button_white.pack()
 
     def Engine(self): # 非同期にしたい
-        turn = self.turn.get()
-        if turn == 'black':
-            moves = simu.Explore(self.black, self.white)
-        if turn == 'white':
-            moves = simu.Explore(self.white, self.black)
-        self.RenderWinRate(moves)
-    
+        self.engine_button.config(state="disabled")
+
+        def stream_stdout(pipe):
+            for line in iter(pipe.readline, ''):
+                result = eval(line.strip())
+                if result["value"]["children"]:
+                    for child in result["value"]["children"]:
+                        child["win_rate"] = child["beta"] / (child["alpha"] + child["beta"])
+                        child["index"] = 63 - ((child["move"] & -child["move"]).bit_length() - 1)
+                    moves = result["value"]["children"]
+                else: # 置ける石がなかった場合
+                    moves = []
+                self.RenderWinRate(moves)
+
+        def stream_stderr(pipe):
+            for line in iter(pipe.readline, ''):
+                print(line.strip())
+
+        def search():
+            match self.turn.get():
+                case "black":
+                    process = simu.Execute(self.black, self.white)
+                case "white":
+                    process = simu.Execute(self.white, self.black)
+            thread_out = threading.Thread(target=stream_stdout, args=(process.stdout,))
+            thread_err = threading.Thread(target=stream_stderr, args=(process.stderr,))
+            thread_out.start()
+            thread_err.start()
+            process.wait()
+            thread_out.join()
+            thread_err.join()
+            self.engine_button.config(state="normal")
+
+        threading.Thread(target=search, daemon=True).start()
+
     def Export(self):
         print('black', self.black)
         print('white', self.white)

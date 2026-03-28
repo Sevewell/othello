@@ -192,7 +192,7 @@ fn print_result(node: &Node) {
     }
     print!("] ");
     print!("}} ");
-    print!("}}");
+    println!("}}");
 }
 
 fn prepare_database(path_db: &str) -> Database {
@@ -222,8 +222,8 @@ fn main() {
         result = GameResult::None;
         playout(&mut node, &mut result, false, &table);
     }
-    print_result(&node);
     eprintln!("探索が終了しました。");
+    print_result(&node);
     let transaction = database.begin_write().expect("トランザクションを始められませんでした。");
     {
         let mut table = transaction.open_table(NODES).expect("テーブルを開けませんでした。");
