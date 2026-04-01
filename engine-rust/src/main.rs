@@ -3,7 +3,7 @@ mod rule;
 use std::env;
 use rand::rngs::SmallRng;
 use rand_distr::{Distribution, Beta};
-use redb::{Database, ReadOnlyTable, ReadableDatabase, ReadableTableMetadata, TableDefinition};
+use redb::{Database, ReadableDatabase, ReadableTableMetadata, TableDefinition};
 
 const NODES: TableDefinition<(u64, u64), f32> = TableDefinition::new("nodes");
 
@@ -137,7 +137,11 @@ fn canonicalize_stones(node: &Node) -> (u64, u64) {
     directions.into_iter().min().unwrap()
 }
 
-fn make_hashmap<'txn>(node: Node, table: &mut redb::Table<'txn, (u64, u64), f32>) -> (u64, u64) {
+fn make_hashmap<'txn>(node: Node, table: &mut redb::Table<'txn, (u64, u64), f32>, min_visits: f32) -> (u64, u64) {
+    let visits = node.a + node.b - 2.0;
+    if visits < min_visits {
+        return (0, 0)
+    }
     let hash = canonicalize_stones(&node);
     let p = node.a / (node.a + node.b);
     let mut count_node_update: u64 = 0;
@@ -153,7 +157,7 @@ fn make_hashmap<'txn>(node: Node, table: &mut redb::Table<'txn, (u64, u64), f32>
     let mut count_child_update: u64;
     let mut count_child_create: u64;
     for child in node.children {
-        (count_child_update, count_child_create) = make_hashmap(child, table);
+        (count_child_update, count_child_create) = make_hashmap(child, table, min_visits);
         count_node_update += count_child_update;
         count_node_create += count_child_create;
     }
@@ -224,10 +228,11 @@ fn main() {
     }
     eprintln!("探索が終了しました。");
     print_result(&node);
+    // 書き込みをスキップするオプションがあってもいいかも
     let transaction = database.begin_write().expect("トランザクションを始められませんでした。");
     {
         let mut table = transaction.open_table(NODES).expect("テーブルを開けませんでした。");
-        let (count_node_update, count_node_create) = make_hashmap(node, &mut table);
+        let (count_node_update, count_node_create) = make_hashmap(node, &mut table, 2.0);
         eprintln!("{}のノードがDBに更新されました。", count_node_update);
         eprintln!("{}のノードがDBに登録されました。", count_node_create);
     }

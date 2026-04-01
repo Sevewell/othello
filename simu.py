@@ -18,7 +18,7 @@ def Execute(m, y):
     seed = str(random.randint(1, 10000))
     learning_rate = str(config['learning_rate'])
     return subprocess.Popen(
-        ['./engine-rust/target/release/engine', m, y, playout],
+        ['./engine-rust/target/release/engine', m, y, "20000"],
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         encoding='utf-8',
