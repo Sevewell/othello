@@ -11,31 +11,23 @@ random.seed(time.time_ns())
 with open('config.json', 'r') as f:
     config = json.load(f)
 
-def Execute(m, y):
-    m = str(m)
-    y = str(y)
-    playout = str(config['playout'])
-    seed = str(random.randint(1, 10000))
-    learning_rate = str(config['learning_rate'])
+def Execute(stone_mine, stone_oppo):
     return subprocess.Popen(
-        ['./engine-rust/target/release/engine', m, y, "20000"],
+        [
+            './engine-rust/target/release/engine',
+            str(stone_mine),
+            str(stone_oppo),
+            "20000"
+        ],
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         encoding='utf-8',
         text=True
     )
 
-def Explore(stone_m, stone_y):
-    stdout_lines = []
-    process = Execute(stone_m, stone_y)
-    thread_out = threading.Thread(target=collect_stdout, args=(process.stdout, stdout_lines))
-    thread_err = threading.Thread(target=stream_output, args=(process.stderr, "STDERR"))
-    thread_out.start()
-    thread_err.start()
+def parse_result(process):
     process.wait()
-    thread_out.join()
-    thread_err.join()
-    result = eval("".join(stdout_lines))
+    result = eval(process.stdout)
     if result["value"]["children"]:
         for child in result["value"]["children"]:
             child["win_rate"] = child["beta"] / (child["alpha"] + child["beta"])
@@ -45,19 +37,9 @@ def Explore(stone_m, stone_y):
         moves = []
     return moves
 
-def Put(player, m, y, pass_count):
-    config['playout'] = player['playout']
-    config['process'] = player['process']
-    config['batch'] = player['batch']
-    config['learning_rate'] = player['learning_rate']
-    move = Explore(m, y)
-    m_ = move['m']
-    y_ = move['y']
-    if m_ == y and y_ == m:
-        pass_count += 1
-    else:
-        pass_count = 0
-    return m_, y_, pass_count
+def choice_move(moves):
+    if moves:
+        return max(moves, key=lambda move: move["win_rate"])
 
 def Play(player_black, player_white):
 
@@ -88,23 +70,15 @@ def Play(player_black, player_white):
     with open('simulation.json', 'w') as f:
         json.dump(record, f, indent='\t')        
 
+def learn(iter):
+    for i in range(iter):
+        print(f"{i+1}回目")
+        black = 34628173824
+        white = 68853694464
+        process = Execute(black, white)
+        process.wait()
+        for line in process.stderr.readlines():
+            print(line.strip())
+
 if __name__ == '__main__':
-    random.seed(time.time_ns())
-    for i in range(int(sys.argv[1])):
-        rates = [0.95, 1.0]
-        random.shuffle(rates)
-        player_1 = {
-            'playout': 10000,
-            'process': 8,
-            'batch': 1,
-            'learning_rate': rates[0]
-        }
-        player_2 = {
-            'playout': 10000,
-            'process': 8,
-            'batch': 1,
-            'learning_rate': rates[1]
-        }
-        print('black', player_1)
-        print('white', player_2)
-        Play(player_1, player_2)
+    learn(100)
