@@ -88,7 +88,7 @@ fn move_child(node: &Node) -> usize {
     let mut min_score: f32 = 1.0;
     let mut min_index: usize = 0;
     let mut index: usize = 0;
-    for child in &node.children {
+    for child in &node.children { // ここで読みきりを検知したい
         sample = Beta::new(child.a, child.b).unwrap().sample(&mut rng);
         if sample < min_score {
             min_index = index;
@@ -96,11 +96,13 @@ fn move_child(node: &Node) -> usize {
         }
         index += 1;
     }
+    // 読みきりが起きればテーブルに登録する
     min_index
 }
 
 pub fn playout(node: &mut Node, result: &mut GameResult, passed: bool, table: &redb::ReadOnlyTable<(u64, u64), f32>){
     let legals: [u64; 8] = rule::get_movable(node.mine, node.oppo);
+    // 読みきりテーブルを見る
     if rule::get_legal(&legals) > 0 {
         if node.children.is_empty() {
             node.make_children(&legals, table);
@@ -111,6 +113,7 @@ pub fn playout(node: &mut Node, result: &mut GameResult, passed: bool, table: &r
     } else {
         if passed {
             end_game(node, result);
+            // 読みきりテーブルに登録する
             node.update_param(result);
         } else {
             if node.children.is_empty() {
@@ -147,6 +150,7 @@ fn make_hashmap<'txn>(node: Node, table: &mut redb::Table<'txn, (u64, u64), f32>
     let mut count_node_update: u64 = 0;
     let mut count_node_create: u64 = 0;
     {
+        // 期待値だけに情報を落とすのは学習が弱いかも
         let writed = table.insert(hash, p).expect("キーバリューの書き込みに失敗しました。");
         match writed {
             Some(_p) => count_node_update += 1,
@@ -168,6 +172,7 @@ fn make_hashmap<'txn>(node: Node, table: &mut redb::Table<'txn, (u64, u64), f32>
 fn read_hashmap(node: &mut Node, table: &redb::ReadOnlyTable<(u64, u64), f32>) {
     let key = canonicalize_stones(node);
     let pre_learn_rate: f32 = 2.0;
+    // 学習レートをかけるだけでは学習が弱いかも
     let reading = table.get(key).expect("キーバリューの読み込みに失敗しました。");
     if let Some(p) = reading {
         let v = p.value();
