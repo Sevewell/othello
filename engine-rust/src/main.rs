@@ -8,8 +8,8 @@ use rand_distr::{Distribution, Beta};
 pub struct Node {
     pub mine:u64,
     pub oppo: u64,
-    pub a: f32,
-    pub b: f32,
+    pub a: u16,
+    pub b: u16,
     pub children: Vec<Node>
 }
 
@@ -19,25 +19,27 @@ impl Node {
         Node {
             mine: mine,
             oppo: oppo,
-            a: 1.0,
-            b: 1.0,
+            a: 0,
+            b: 0,
             children: Vec::new(),
         }
     }
 
     fn update_param(self: &mut Self, result: &mut GameResult) {
+        self.a = self.a << 1;
+        self.b = self.b << 1;
         match result {
             GameResult::Win => {
-                self.a += 1.0;
+                self.a += 1;
                 *result = GameResult::Lose;
             }
             GameResult::Lose => {
-                self.b += 1.0;
+                self.b += 1;
                 *result = GameResult::Win;
             }
             GameResult::Draw => {
-                self.a += 0.5;
-                self.b += 0.5;
+                self.a += 1;
+                self.b += 1;
                 *result = GameResult::Draw;
             }
             GameResult::None => panic!("不正なゲーム結果"),
@@ -87,7 +89,9 @@ fn move_child(node: &Node) -> usize {
     let mut min_index: usize = 0;
     let mut index: usize = 0;
     for child in &node.children { // ここで読みきりを検知したい
-        sample = Beta::new(child.a, child.b).unwrap().sample(&mut rng);
+        let alpha: u32 = 1 + child.a.count_ones();
+        let beta: u32  = 1 + child.b.count_ones();
+        sample = Beta::new(alpha as f32, beta as f32).unwrap().sample(&mut rng);
         if sample < min_score {
             min_index = index;
             min_score = sample;
@@ -138,18 +142,12 @@ fn canonicalize_stones(node: &Node) -> (u64, u64) {
     directions.into_iter().min().unwrap()
 }
 
-fn make_hashmap<'txn>(node: Node, store: &mut impl store::WriteNodeStore, min_visits: f32) -> (u64, u64) {
-    let visits = node.a + node.b - 2.0;
-    if visits < min_visits {
-        return (0, 0)
-    }
-    let hash = canonicalize_stones(&node);
-    let p = node.a / (node.a + node.b);
+fn make_hashmap<'txn>(node: Node, store: &mut impl store::WriteNodeStore) -> (u64, u64) {
     let mut count_node_update: u64 = 0;
     let mut count_node_create: u64 = 0;
     {
         // 期待値だけに情報を落とすのは学習が弱いかも
-        let writed = store.write(hash, p);
+        let writed = store.write(canonicalize_stones(&node), (node.a, node.b));
         match writed {
             Some(_p) => count_node_update += 1,
             None => count_node_create += 1
@@ -159,7 +157,7 @@ fn make_hashmap<'txn>(node: Node, store: &mut impl store::WriteNodeStore, min_vi
     let mut count_child_update: u64;
     let mut count_child_create: u64;
     for child in node.children {
-        (count_child_update, count_child_create) = make_hashmap(child, store, min_visits);
+        (count_child_update, count_child_create) = make_hashmap(child, store);
         count_node_update += count_child_update;
         count_node_create += count_child_create;
     }
@@ -168,21 +166,18 @@ fn make_hashmap<'txn>(node: Node, store: &mut impl store::WriteNodeStore, min_vi
 }
 
 fn read_hashmap(node: &mut Node, store: &impl store::ReadNodeStore) {
-    let key = canonicalize_stones(node);
-    let pre_learn_rate: f32 = 2.0;
-    // 学習レートをかけるだけでは学習が弱いかも
-    let reading = store.read(key);
+    let reading = store.read(canonicalize_stones(node));
     if let Some(p) = reading {
-        node.a += p * pre_learn_rate;
-        node.b += (1.0 - p) * pre_learn_rate;
+        node.a = p.0;
+        node.b = p.1;
     };
 }
 
 fn print_node(node: &Node) {
     print!("\"mine\": {}, ", node.mine);
     print!("\"oppo\": {}, ", node.oppo);
-    print!("\"alpha\": {:.3}, ", node.a);
-    print!("\"beta\": {:.3}, ", node.b);
+    print!("\"alpha\": {}, ", 1 + node.a.count_ones());
+    print!("\"beta\": {}, ", 1 + node.b.count_ones());
 }
 
 fn print_result(node: &Node) {
@@ -222,7 +217,7 @@ fn main() {
     let transaction = store::create_write_transaction(&database);
     {
         let mut table = store::open_write_table(&transaction);
-        let (count_node_update, count_node_create) = make_hashmap(node, &mut table, 2.0);
+        let (count_node_update, count_node_create) = make_hashmap(node, &mut table);
         eprintln!("{}のノードがDBに更新されました。", count_node_update);
         eprintln!("{}のノードがDBに登録されました。", count_node_create);
     }

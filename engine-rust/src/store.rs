@@ -32,22 +32,22 @@ pub fn open_write_table(transaction: &WriteTransaction) -> RedbWriteTable<'_> {
     }
 }
 
-const NODES: TableDefinition<(u64, u64), f32> = TableDefinition::new("nodes");
+const NODES: TableDefinition<(u64, u64), (u16, u16)> = TableDefinition::new("nodes");
 
 pub trait ReadNodeStore {
-    fn read(&self, key: (u64, u64)) -> Option<f32>;
+    fn read(&self, key: (u64, u64)) -> Option<(u16, u16)>;
 }
 
 pub trait WriteNodeStore {
-    fn write(&mut self, key: (u64, u64), value: f32) -> Option<f32>;
+    fn write(&mut self, key: (u64, u64), value: (u16, u16)) -> Option<(u16, u16)>;
 }
 
 pub struct RedbReadTable {
-    table: redb::ReadOnlyTable<(u64, u64), f32>,
+    table: redb::ReadOnlyTable<(u64, u64), (u16, u16)>,
 }
 
 impl ReadNodeStore for RedbReadTable {
-    fn read(&self, key: (u64, u64)) -> Option<f32> {
+    fn read(&self, key: (u64, u64)) -> Option<(u16, u16)> {
         self.table
             .get(key)
             .expect("キーバリューの読み込みに失敗しました。")
@@ -56,11 +56,11 @@ impl ReadNodeStore for RedbReadTable {
 }
 
 pub struct RedbWriteTable<'txn> {
-    table: redb::Table<'txn, (u64, u64), f32>,
+    table: redb::Table<'txn, (u64, u64), (u16, u16)>,
 }
 
 impl<'txn> WriteNodeStore for RedbWriteTable<'txn> {
-    fn write(&mut self, key: (u64, u64), value: f32) -> Option<f32> {
+    fn write(&mut self, key: (u64, u64), value: (u16, u16)) -> Option<(u16, u16)> {
         self.table
             .insert(key, value)
             .expect("キーバリューの書き込みに失敗しました。")
