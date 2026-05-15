@@ -142,22 +142,34 @@ fn canonicalize_stones(node: &Node) -> (u64, u64) {
     directions.into_iter().min().unwrap()
 }
 
-fn make_hashmap<'txn>(node: Node, store: &mut impl store::WriteNodeStore) -> (u64, u64) {
+fn make_hashmap<'txn>(node: Node, store: &mut impl store::WriteNodeStore, update_only: bool) -> (u64, u64) {
     let mut count_node_update: u64 = 0;
     let mut count_node_create: u64 = 0;
     {
-        // 期待値だけに情報を落とすのは学習が弱いかも
-        let writed = store.write(canonicalize_stones(&node), (node.a, node.b));
-        match writed {
-            Some(_p) => count_node_update += 1,
-            None => count_node_create += 1
+        let key: (u64, u64) = canonicalize_stones(&node);
+        if update_only {
+            match store.get(key) {
+                Some(_v) => {
+                    let writed = store.write(key, (node.a, node.b));
+                    match writed {
+                        Some(_p) => count_node_update += 1,
+                        None => panic!("データベースの不整合が生じました。")
+                    }
+                },
+                None => {}
+            }
+        } else {
+            let writed = store.write(key, (node.a, node.b));
+            match writed {
+                Some(_p) => count_node_update += 1,
+                None => count_node_create += 1
+            }
         }
-        // 書き込み結果を次の前にdropしなきゃいけないみたい
     }
     let mut count_child_update: u64;
     let mut count_child_create: u64;
     for child in node.children {
-        (count_child_update, count_child_create) = make_hashmap(child, store);
+        (count_child_update, count_child_create) = make_hashmap(child, store, update_only);
         count_node_update += count_child_update;
         count_node_create += count_child_create;
     }
@@ -217,7 +229,7 @@ fn main() {
     let transaction = store::create_write_transaction(&database);
     {
         let mut table = store::open_write_table(&transaction);
-        let (count_node_update, count_node_create) = make_hashmap(node, &mut table);
+        let (count_node_update, count_node_create) = make_hashmap(node, &mut table, true);
         eprintln!("{}のノードがDBに更新されました。", count_node_update);
         eprintln!("{}のノードがDBに登録されました。", count_node_create);
     }

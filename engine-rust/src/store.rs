@@ -1,4 +1,4 @@
-use redb::{Database, ReadTransaction, ReadableDatabase, TableDefinition, WriteTransaction, ReadableTableMetadata};
+use redb::{Database, ReadTransaction, ReadableDatabase, ReadableTableMetadata, TableDefinition, WriteTransaction};
 
 pub fn prepare_database(path_db: &str) -> Database {
     let database = Database::create(path_db).expect("データベースを展開できませんでした。"); // 既にあればopen
@@ -40,6 +40,7 @@ pub trait ReadNodeStore {
 
 pub trait WriteNodeStore {
     fn write(&mut self, key: (u64, u64), value: (u16, u16)) -> Option<(u16, u16)>;
+    fn get(&mut self, key: (u64, u64)) -> Option<(u16, u16)>;
 }
 
 pub struct RedbReadTable {
@@ -64,6 +65,12 @@ impl<'txn> WriteNodeStore for RedbWriteTable<'txn> {
         self.table
             .insert(key, value)
             .expect("キーバリューの書き込みに失敗しました。")
+            .map(|p| p.value())
+    }
+    fn get(&mut self, key: (u64, u64)) -> Option<(u16, u16)> {
+        self.table
+            .get_mut(key)
+            .expect("キーバリューの読み込みに失敗しました。")
             .map(|p| p.value())
     }
 }
