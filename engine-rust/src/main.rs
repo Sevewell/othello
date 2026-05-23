@@ -46,7 +46,7 @@ impl Node {
         }
     }
 
-    fn make_children(self: &mut Self, legals: &[u64; 8], store: &impl store::ReadNodeStore) {
+    fn make_children(self: &mut Self, legals: &[u64; 8], store: &mut impl store::ReadNodeStore) {
         let mut movable: u64 = rule::get_legal(legals);
         let mut lsb: u64;
         let mut reversable: u64;
@@ -88,7 +88,7 @@ fn move_child(node: &Node) -> usize {
     let mut min_score: f32 = 1.0;
     let mut min_index: usize = 0;
     let mut index: usize = 0;
-    for child in &node.children { // ここで読みきりを検知したい
+    for child in &node.children {
         let alpha: u32 = 1 + child.a.count_ones();
         let beta: u32  = 1 + child.b.count_ones();
         sample = Beta::new(alpha as f32, beta as f32).unwrap().sample(&mut rng);
@@ -98,13 +98,11 @@ fn move_child(node: &Node) -> usize {
         }
         index += 1;
     }
-    // 読みきりが起きればテーブルに登録する
     min_index
 }
 
-pub fn playout(node: &mut Node, result: &mut GameResult, passed: bool, store: &impl store::ReadNodeStore){
+pub fn playout(node: &mut Node, result: &mut GameResult, passed: bool, store: &mut impl store::ReadNodeStore){
     let legals: [u64; 8] = rule::get_movable(node.mine, node.oppo);
-    // 読みきりテーブルを見る
     if rule::get_legal(&legals) > 0 {
         if node.children.is_empty() {
             node.make_children(&legals, store);
@@ -115,11 +113,12 @@ pub fn playout(node: &mut Node, result: &mut GameResult, passed: bool, store: &i
     } else {
         if passed {
             end_game(node, result);
-            // 読みきりテーブルに登録する
             node.update_param(result);
         } else {
             if node.children.is_empty() {
-                node.children.push(Node::new(node.oppo, node.mine));
+                let mut child = Node::new(node.oppo, node.mine);
+                read_hashmap(&mut child, store);
+                node.children.push(child);
             }
             playout(&mut node.children[0], result, true, store);
             node.update_param(result);
@@ -142,44 +141,15 @@ fn canonicalize_stones(node: &Node) -> (u64, u64) {
     directions.into_iter().min().unwrap()
 }
 
-fn make_hashmap<'txn>(node: Node, store: &mut impl store::WriteNodeStore, update_only: bool) -> (u64, u64) {
-    let mut count_node_update: u64 = 0;
-    let mut count_node_create: u64 = 0;
-    {
-        let key: (u64, u64) = canonicalize_stones(&node);
-        if update_only {
-            match store.get(key) {
-                Some(_v) => {
-                    let writed = store.write(key, (node.a, node.b));
-                    match writed {
-                        Some(_p) => count_node_update += 1,
-                        None => panic!("データベースの不整合が生じました。")
-                    }
-                },
-                None => {}
-            }
-        } else {
-            let writed = store.write(key, (node.a, node.b));
-            match writed {
-                Some(_p) => count_node_update += 1,
-                None => count_node_create += 1
-            }
-        }
-    }
-    let mut count_child_update: u64;
-    let mut count_child_create: u64;
+fn make_hashmap(node: Node, store: &mut impl store::WriteNodeStore) {
+    store.write(canonicalize_stones(&node), (node.a, node.b));
     for child in node.children {
-        (count_child_update, count_child_create) = make_hashmap(child, store, update_only);
-        count_node_update += count_child_update;
-        count_node_create += count_child_create;
+        make_hashmap(child, store);
     }
-    (count_node_update, count_node_create)
-    // ここでノードはメモリから消える？
 }
 
-fn read_hashmap(node: &mut Node, store: &impl store::ReadNodeStore) {
-    let reading = store.read(canonicalize_stones(node));
-    if let Some(p) = reading {
+fn read_hashmap(node: &mut Node, store: &mut impl store::ReadNodeStore) {
+    if let Some(p) = store.read(canonicalize_stones(node)) {
         node.a = p.0;
         node.b = p.1;
     };
@@ -217,22 +187,24 @@ fn main() {
     let mut node: Node = Node::new(mine_stones, oppo_stones);
     let mut result: GameResult;
     let transaction = store::create_read_transaction(&database);
-    let table = store::open_read_table(&transaction);
+    let mut table = store::open_read_table(&transaction);
     eprintln!("探索を開始します。");
     for _ in 0..iter {
         result = GameResult::None;
-        playout(&mut node, &mut result, false, &table);
+        playout(&mut node, &mut result, false, &mut table);
     }
     eprintln!("探索が終了しました。");
+    eprintln!("{}のノードをDBから読み取りました。", table.count_read);
     print_result(&node);
     // 書き込みをスキップするオプションがあってもいいかも
     let transaction = store::create_write_transaction(&database);
     {
         let mut table = store::open_write_table(&transaction);
-        let (count_node_update, count_node_create) = make_hashmap(node, &mut table, true);
-        eprintln!("{}のノードがDBに更新されました。", count_node_update);
-        eprintln!("{}のノードがDBに登録されました。", count_node_create);
+        make_hashmap(node, &mut table);
+        eprintln!("{}のノードがDBに更新されます。", table.count_update);
+        eprintln!("{}のノードがDBに登録されます。", table.count_create);
     }
     transaction.commit().expect("データベースへのコミットに失敗しました。");
     eprintln!("ノードデータベースの更新が終了しました。");
+    // 取得の数と更新の数がなぜか合わない
 }
