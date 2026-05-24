@@ -27,11 +27,28 @@ pub fn open_read_table(transaction: &ReadTransaction) -> RedbReadTable {
     }
 }
 
-pub fn open_write_table(transaction: &WriteTransaction) -> RedbWriteTable<'_> {
-    RedbWriteTable {
-        table: transaction.open_table(NODES).expect("テーブルを開けませんでした。"),
-        count_create: 0,
-        count_update: 0
+pub fn open_write_table<'txn>(transaction: &'txn WriteTransaction, mode: &str) -> Box<dyn WriteNodeStore + 'txn> {
+    match mode {
+        "write" => {
+            Box::new(RedbWriteTable {
+                table: transaction.open_table(NODES).expect("テーブルを開けませんでした。"),
+                count_create: 0,
+                count_update: 0
+            })
+        },
+        "update" => {
+            Box::new(RedbUpdateTable {
+                table: transaction.open_table(NODES).expect("テーブルを開けませんでした。"),
+                count_update: 0
+            })
+        },
+        _ => {
+            Box::new(RedbWriteTable {
+                table: transaction.open_table(NODES).expect("テーブルを開けませんでした。"),
+                count_create: 0,
+                count_update: 0
+            })
+        }
     }
 }
 
@@ -60,12 +77,13 @@ impl ReadNodeStore for RedbReadTable {
 
 pub trait WriteNodeStore {
     fn write(&mut self, key: (u64, u64), value: (u16, u16));
+    fn print(&self);
 }
 
 pub struct RedbWriteTable<'txn> {
     table: redb::Table<'txn, (u64, u64), (u16, u16)>,
-    pub count_create: u64,
-    pub count_update: u64
+    count_create: u64,
+    count_update: u64
 }
 
 impl<'txn> WriteNodeStore for RedbWriteTable<'txn> {
@@ -79,12 +97,16 @@ impl<'txn> WriteNodeStore for RedbWriteTable<'txn> {
             }
         }
     }
+    fn print(&self) {
+        eprintln!("{}のノードがDBに更新されます。", self.count_update);
+        eprintln!("{}のノードがDBに登録されます。", self.count_create);
+        // 取得の数と更新の数がなぜか合わない
+    }
 }
 
 pub struct RedbUpdateTable<'txn> {
     table: redb::Table<'txn, (u64, u64), (u16, u16)>,
-    pub count_create: u64,
-    pub count_update: u64
+    count_update: u64
 }
 
 impl<'txn> WriteNodeStore for RedbUpdateTable<'txn> {
@@ -96,5 +118,8 @@ impl<'txn> WriteNodeStore for RedbUpdateTable<'txn> {
             },
             None => {}
         }
+    }
+    fn print(&self) {
+        eprintln!("{}のノードがDBに更新されます。", self.count_update);
     }
 }

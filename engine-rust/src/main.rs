@@ -141,7 +141,7 @@ fn canonicalize_stones(node: &Node) -> (u64, u64) {
     directions.into_iter().min().unwrap()
 }
 
-fn make_hashmap(node: Node, store: &mut impl store::WriteNodeStore) {
+fn make_hashmap(node: Node, store: &mut dyn store::WriteNodeStore) {
     store.write(canonicalize_stones(&node), (node.a, node.b));
     for child in node.children {
         make_hashmap(child, store);
@@ -183,6 +183,7 @@ fn main() {
     let mine_stones: u64 = args[1].parse().unwrap();
     let oppo_stones: u64 = args[2].parse().unwrap();
     let iter: u64 = args[3].parse().unwrap();
+    let store_mode = args[4].as_str();
     let database = store::prepare_database("othello.redb");
     let mut node: Node = Node::new(mine_stones, oppo_stones);
     let mut result: GameResult;
@@ -196,15 +197,12 @@ fn main() {
     eprintln!("探索が終了しました。");
     eprintln!("{}のノードをDBから読み取りました。", table.count_read);
     print_result(&node);
-    // 書き込みをスキップするオプションがあってもいいかも
     let transaction = store::create_write_transaction(&database);
     {
-        let mut table = store::open_write_table(&transaction);
-        make_hashmap(node, &mut table);
-        eprintln!("{}のノードがDBに更新されます。", table.count_update);
-        eprintln!("{}のノードがDBに登録されます。", table.count_create);
+        let mut table = store::open_write_table(&transaction, store_mode);
+        make_hashmap(node, &mut *table);
+        table.print();
     }
     transaction.commit().expect("データベースへのコミットに失敗しました。");
     eprintln!("ノードデータベースの更新が終了しました。");
-    // 取得の数と更新の数がなぜか合わない
 }

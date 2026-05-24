@@ -17,7 +17,8 @@ def Execute(stone_mine, stone_oppo):
             './engine-rust/target/release/engine',
             str(stone_mine),
             str(stone_oppo),
-            "20000"
+            str(2 * 10000),
+            "write"
         ],
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
@@ -81,4 +82,4 @@ def learn(iter):
             print(line.strip())
 
 if __name__ == '__main__':
-    learn(100)
+    learn(1)
