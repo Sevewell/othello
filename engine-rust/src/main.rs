@@ -4,6 +4,7 @@ mod store;
 use std::env;
 use rand::rngs::SmallRng;
 use rand_distr::{Distribution, Beta};
+use store::{ReadNodeStore};
 
 pub struct Node {
     pub mine:u64,
@@ -54,13 +55,18 @@ impl Node {
         while movable > 0 {
             lsb = movable & movable.wrapping_neg();
             reversable = rule::get_reversable(self.oppo, lsb, legals);
-            child = Node::new(self.oppo ^ reversable, self.mine | lsb | reversable);
-            read_hashmap(&mut child, store);
+            child = generate_node(self.oppo ^ reversable, self.mine | lsb | reversable, store);
             self.children.push(child);
             movable &= movable - 1;
         }
     }
 
+}
+
+fn generate_node(mine: u64, oppo: u64, store: &mut impl store::ReadNodeStore) -> Node {
+    let mut node = Node::new(mine, oppo);
+    read_hashmap(&mut node, store);
+    node
 }
 
 pub enum GameResult {
@@ -116,8 +122,7 @@ pub fn playout(node: &mut Node, result: &mut GameResult, passed: bool, store: &m
             node.update_param(result);
         } else {
             if node.children.is_empty() {
-                let mut child = Node::new(node.oppo, node.mine);
-                read_hashmap(&mut child, store);
+                let child = generate_node(node.oppo, node.mine, store);
                 node.children.push(child);
             }
             playout(&mut node.children[0], result, true, store);
@@ -185,23 +190,23 @@ fn main() {
     let iter: u64 = args[3].parse().unwrap();
     let store_mode = args[4].as_str();
     let database = store::prepare_database("othello.redb");
-    let mut node: Node = Node::new(mine_stones, oppo_stones);
     let mut result: GameResult;
     let transaction = store::create_read_transaction(&database);
-    let mut table = store::open_read_table(&transaction);
+    let mut store = store::open_read_table(&transaction);
     eprintln!("探索を開始します。");
+    let mut node: Node = generate_node(mine_stones, oppo_stones, &mut store);
     for _ in 0..iter {
         result = GameResult::None;
-        playout(&mut node, &mut result, false, &mut table);
+        playout(&mut node, &mut result, false, &mut store);
     }
     eprintln!("探索が終了しました。");
-    eprintln!("{}のノードをDBから読み取りました。", table.count_read);
+    store.print();
     print_result(&node);
     let transaction = store::create_write_transaction(&database);
     {
-        let mut table = store::open_write_table(&transaction, store_mode);
-        make_hashmap(node, &mut *table);
-        table.print();
+        let mut store = store::open_write_table(&transaction, store_mode);
+        make_hashmap(node, &mut *store);
+        store.print();
     }
     transaction.commit().expect("データベースへのコミットに失敗しました。");
     eprintln!("ノードデータベースの更新が終了しました。");

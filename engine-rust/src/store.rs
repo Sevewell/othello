@@ -20,7 +20,7 @@ pub fn create_write_transaction(database: &Database) -> redb::WriteTransaction {
     database.begin_write().expect("トランザクションを始められませんでした。")
 }
 
-pub fn open_read_table(transaction: &ReadTransaction) -> RedbReadTable {
+pub fn open_read_table(transaction: &ReadTransaction) -> impl ReadNodeStore {
     RedbReadTable {
         table: transaction.open_table(NODES).expect("テーブルを開けませんでした。"),
         count_read: 0
@@ -56,11 +56,12 @@ const NODES: TableDefinition<(u64, u64), (u16, u16)> = TableDefinition::new("nod
 
 pub trait ReadNodeStore {
     fn read(&mut self, key: (u64, u64)) -> Option<(u16, u16)>;
+    fn print(&self);
 }
 
 pub struct RedbReadTable {
     table: redb::ReadOnlyTable<(u64, u64), (u16, u16)>,
-    pub count_read: u64
+    count_read: u64
 }
 
 impl ReadNodeStore for RedbReadTable {
@@ -72,6 +73,9 @@ impl ReadNodeStore for RedbReadTable {
             },
             None => None
         }
+    }
+    fn print(&self) {
+        eprintln!("{}のノードをDBから読み取りました。", self.count_read);
     }
 }
 
