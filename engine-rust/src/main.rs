@@ -61,6 +61,14 @@ impl Node {
         }
     }
 
+    fn count_node(self: &Self, mut count: u64) -> u64 {
+        count += 1;
+        for child in &self.children {
+            count = child.count_node(count);
+        }
+        count
+    }
+
 }
 
 fn generate_node(mine: u64, oppo: u64, store: &mut impl store::ReadNodeStore) -> Node {
@@ -201,6 +209,7 @@ fn main() {
     }
     eprintln!("探索が終了しました。");
     store.print();
+    eprintln!("{}のノードが探索木に展開されました。", node.count_node(0));
     print_result(&node);
     let transaction = store::create_write_transaction(&database);
     {
