@@ -3,7 +3,5 @@ env
 cert
 __pycache__
 .venv
-explorer
-tree.postcard
 config.json
-simulation.json
+othello.redb

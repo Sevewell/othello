@@ -14,11 +14,11 @@ with open('config.json', 'r') as f:
 def Execute(stone_mine, stone_oppo):
     return subprocess.Popen(
         [
-            './engine-rust/target/release/engine',
+            './engine/target/release/engine',
             str(stone_mine),
             str(stone_oppo),
-            str(2 * 10000),
-            "write"
+            str(5 * 10000),
+            "update"
         ],
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
@@ -82,4 +82,4 @@ def learn(iter):
             print(line.strip())
 
 if __name__ == '__main__':
-    learn(1)
+    learn(10)
