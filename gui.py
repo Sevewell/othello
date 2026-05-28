@@ -15,11 +15,33 @@ class App(tkinter.Frame):
         self.stones = [[None for col in range(8)] for row in range(8)]
         self.Stone()
         self.InputToComputer()
+        self.playout = tkinter.IntVar(self)
+        self.store_mode = tkinter.StringVar(self)
+        self.engine_setup()
         self.engine_button = tkinter.Button(self, text='探索', command=self.Engine)
         self.engine_button.pack()
         button_export = tkinter.Button(self, text='出力', command=self.Export)
         button_export.pack()
         self.Import()
+
+    def engine_setup(self):
+        playout = tkinter.Entry(self, textvariable=self.playout, name="playout")
+        playout.pack()
+        write = tkinter.Radiobutton(
+            self,
+            text='追加あり',
+            value='write',
+            variable=self.store_mode
+        )
+        write.pack()
+        update = tkinter.Radiobutton(
+            self,
+            text='更新のみ',
+            value='update',
+            variable=self.store_mode
+        )
+        update.pack()
+        self.store_mode.set("update")
     
     def Board(self):
         canvas = tkinter.Canvas(
@@ -121,9 +143,9 @@ class App(tkinter.Frame):
         def search():
             match self.turn.get():
                 case "black":
-                    process = simu.Execute(self.black, self.white)
+                    process = simu.Execute(self.black, self.white, str(self.playout.get()), self.store_mode.get())
                 case "white":
-                    process = simu.Execute(self.white, self.black)
+                    process = simu.Execute(self.white, self.black, str(self.playout.get()), self.store_mode.get())
             thread_out = threading.Thread(target=stream_stdout, args=(process.stdout,))
             thread_err = threading.Thread(target=stream_stderr, args=(process.stderr,))
             thread_out.start()
