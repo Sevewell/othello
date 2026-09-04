@@ -33,4 +33,4 @@ def learn(playout, store_mode, iter):
         thread_err.join()
 
 if __name__ == '__main__':
-    learn(sys.argv[1], int(sys.argv[2]), sys.argv[3])
+    learn(sys.argv[1], sys.argv[2], int(sys.argv[3]))

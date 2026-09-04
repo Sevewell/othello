@@ -1,15 +1,25 @@
 # Overview
-オセロAIと対局できるプログラムです。仕組みについては記事をご覧ください。  
-https://sevenwell.hatenablog.com/entry/2020/02/11/112707  
-インターフェースはPythonで、エンジンはCで実装しています。
+
+オセロのAIです。学習させて使います。対戦もできます。
+
+# Mechanism
+
+"確率的モンテカルロ木探索"です。各局面の勝率Pを出力するベータ分布の母数を、シミュレーションで推定していきます。
 
 # Requirement
-CPU x86_64  
-Windows
+
+- Rust
+- Python
 
 # Installation
-`docker build -t othello ./engine`
-`docker run -v $PWD/engine:/host --rm othello`
+
+"engine"フォルダのRustパッケージをビルドしてください。
+
+# Settings
+
+- Environment Variables
+    - DB_LIMIT_DEPTH：DBに保存する学習ツリーの深さ
 
 # Usage
+
 `python main.py`

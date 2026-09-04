@@ -150,18 +150,21 @@ fn canonicalize_stones(node: &Node) -> (u64, u64) {
         (flip_horizontal(node.mine), flip_horizontal(node.oppo)),
         (rotate_180(node.mine), rotate_180(node.oppo))
     ];
-    // 本当はあと4方向あるけど…
+    // 本当はあと4方向あるけどアルゴリズムが難しい
     directions.into_iter().min().unwrap()
 }
 
-fn make_hashmap(node: Node, store: &mut dyn store::WriteNodeStore) {
+fn make_hashmap(node: Node, store: &mut dyn store::WriteNodeStore, limit_depth: u32) {
+    let stones: u64 = node.mine | node.oppo;
+    if stones.count_ones() > limit_depth { return }
     store.write(canonicalize_stones(&node), (node.a, node.b));
     for child in node.children {
-        make_hashmap(child, store);
+        make_hashmap(child, store, limit_depth);
     }
 }
 
 fn read_hashmap(node: &mut Node, store: &mut impl store::ReadNodeStore) {
+    // 指定された以上に深かったらスキップしたい
     if let Some(p) = store.read(canonicalize_stones(node)) {
         node.a = p.0;
         node.b = p.1;
@@ -197,6 +200,8 @@ fn main() {
     let oppo_stones: u64 = args[2].parse().unwrap();
     let iter: u64 = args[3].parse().unwrap();
     let store_mode = args[4].as_str();
+    let db_limit_depth = env::var("DB_LIMIT_DEPTH").expect("DB_LIMIT_DEPTH環境変数を読み取れませんでした");
+    let db_limit_depth: u32 = db_limit_depth.parse().unwrap();
     let database = store::prepare_database("othello.redb");
     let mut result: GameResult;
     let transaction = store::create_read_transaction(&database);
@@ -214,7 +219,7 @@ fn main() {
     let transaction = store::create_write_transaction(&database);
     {
         let mut store = store::open_write_table(&transaction, store_mode);
-        make_hashmap(node, &mut *store);
+        make_hashmap(node, &mut *store, db_limit_depth);
         store.print();
     }
     transaction.commit().expect("データベースへのコミットに失敗しました。");
